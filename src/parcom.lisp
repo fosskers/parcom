@@ -110,6 +110,8 @@
                 :initial-value `(funcall ,parser ,input)))))
 
 #++
+(funcall (*> #'any #'eof) "H")
+#++
 (funcall (*> #'any #'any #'eof) "He")
 
 (defmacro <* (parser &rest parsers)
@@ -120,7 +122,9 @@
                   (let ((name (gensym "*>-INNER")))
                     `(let ((,name ,i))
                        (etypecase ,name
-                         (right (fmap (const (cdr (right-val ,name)))
+                         (right (fmap (lambda (pair)
+                                        (cons (car pair)
+                                              (cdr (right-val ,name))))
                                       (funcall ,p (car (right-val ,name)))))
                          (left  ,name)))))
                 parsers
@@ -128,6 +132,10 @@
 
 #++
 (funcall (<* #'any #'eof) "H")  ; Should get 'H'.
+#++
+(funcall (<* #'any #'any #'eof) "Ho")  ; Should get 'H'.
+#++
+(funcall (*> #'any (<* #'any #'eof)) "Ho")  ; Should get 'o'.
 
 ;; --- Parsers --- ;;
 
