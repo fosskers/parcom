@@ -52,10 +52,10 @@
 (empty? "")
 
 (defgeneric flat-map (f thing)
-  (:documentation "Try to apply a new function to the inner contents of some `thing'."))
+  (:documentation "Apply a monadic function to the inner contents of some `thing'."))
 
 (defmethod flat-map ((f function) (right right))
-  "Dive into the `right' via some `f'."
+  "Dive into the `right' via some monadic `f'."
   (funcall f (right-val right)))
 
 (defmethod flat-map ((f function) (left left))
@@ -68,6 +68,31 @@
 #++
 (flat-map (comp #'right #'1+)
           (flat-map (comp #'right #'1+) (left "no!")))
+
+(defgeneric fmap (f thing)
+  (:documentation "Apply a pure function to the inner contents of some `thing'."))
+
+(defmethod fmap ((f function) (right right))
+  "Dive into the `right' via some pure `f'."
+  (right (funcall f (right-val right))))
+
+(defmethod fmap ((f function) (left left))
+  "Pass through the `left' value without manipulating it."
+  left)
+
+#++
+(fmap #'1+ (right 1))
+#++
+(fmap #'1+ (left "no!"))
+
+(defun const (x)
+  "Yield a function that ignores its input and returns some original seed."
+  (lambda (foo)
+    (declare (ignore foo))
+    x))
+
+#++
+(funcall (const 1) 5)
 
 ;; --- Combinators --- ;;
 
@@ -83,6 +108,26 @@
                          (left  ,name)))))
                 parsers
                 :initial-value `(funcall ,parser ,input)))))
+
+#++
+(funcall (*> #'any #'any #'eof) "He")
+
+(defmacro <* (parser &rest parsers)
+  "Leftward combination of parsers."
+  (let ((input (gensym "*>-INPUT")))
+    `(lambda (,input)
+       ,(reduce (lambda (i p)
+                  (let ((name (gensym "*>-INNER")))
+                    `(let ((,name ,i))
+                       (etypecase ,name
+                         (right (fmap (const (cdr (right-val ,name)))
+                                      (funcall ,p (car (right-val ,name)))))
+                         (left  ,name)))))
+                parsers
+                :initial-value `(funcall ,parser ,input)))))
+
+#++
+(funcall (<* #'any #'eof) "H")  ; Should get 'H'.
 
 ;; --- Parsers --- ;;
 
