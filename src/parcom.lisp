@@ -5,6 +5,8 @@
 
 (in-package :parcom)
 
+;; --- Types --- ;;
+
 (defstruct right
   "Some successful result."
   val)
@@ -26,6 +28,21 @@
 (defun perror (exp act)
   (make-perror :expected exp :actual act))
 
+;; --- Utilities --- ;;
+
+(defmacro comp (function &rest functions)
+  "Function composition."
+  (let ((args (gensym "COMP-ARGS-"))
+        (reversed (reverse (cons function functions))))
+    `(lambda (&rest ,args)
+       ,(reduce (lambda (data fn)
+                  `(funcall ,fn ,data))
+                (cdr reversed)
+                :initial-value `(apply ,(car reversed) ,args)))))
+
+#++
+(funcall (comp #'1+ #'length) '(1 2 3))
+
 (declaim (ftype (function (string) boolean) empty?))
 (defun empty? (string)
   "Is a given string empty?"
@@ -33,6 +50,28 @@
 
 #++
 (empty? "")
+
+(defgeneric flat-map (f thing)
+  (:documentation "Try to apply a new function to the inner contents of some `thing'."))
+
+(defmethod flat-map ((f function) (right right))
+  "Dive into the `right' via some `f'."
+  (funcall f (right-val right)))
+
+(defmethod flat-map ((f function) (left left))
+  "Pass through the `left' value without manipulating it."
+  left)
+
+#++
+(flat-map (comp #'right #'1+)
+          (flat-map (comp #'right #'1+) (right 1)))
+#++
+(flat-map (comp #'right #'1+)
+          (flat-map (comp #'right #'1+) (left "no!")))
+
+;; --- Combinators --- ;;
+
+;; --- Parsers --- ;;
 
 (defun any (input)
   (if (empty? input)
@@ -58,3 +97,12 @@
 (eof "hi")
 #++
 (eof "")
+
+#++
+(let* ((s "Hello")
+       (q (make-array (1- (length s))
+                      :element-type 'character
+                      :displaced-to s
+                      :displaced-index-offset 1)))
+  (setf (aref s 2) #\G)
+  (cons s q))
