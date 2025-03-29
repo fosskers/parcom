@@ -71,12 +71,28 @@
 
 ;; --- Combinators --- ;;
 
+(defmacro *> (parser &rest parsers)
+  "Rightward combination of parsers."
+  (let ((input (gensym "*>-INPUT")))
+    `(lambda (,input)
+       ,(reduce (lambda (i p)
+                  (let ((name (gensym "*>-INNER")))
+                    `(let ((,name ,i))
+                       (etypecase ,name
+                         (right (funcall ,p (car (right-val ,name))))
+                         (left  ,name)))))
+                parsers
+                :initial-value `(funcall ,parser ,input)))))
+
 ;; --- Parsers --- ;;
 
 (defun any (input)
   (if (empty? input)
       (left (perror "any char" "end of input"))
-      (right (cons (subseq input 1)
+      (right (cons (make-array (1- (length input))
+                               :element-type 'character
+                               :displaced-to input
+                               :displaced-index-offset 1)
                    (aref input 0)))))
 
 #++
