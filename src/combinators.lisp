@@ -76,4 +76,12 @@
 #++
 (funcall (string "HellO") "Hello yes")
 
-;; TODO: 2025-03-30 `or' and `opt'.
+(defun opt (parser)
+  "Yield nil if the parser failed, but don't fail the whole process nor consume any
+input."
+  (alt parser (lambda (input) (ok input nil)))) ; Clever.
+
+#+nil
+(funcall (opt (string "Ex")) "Exercitus")
+#+nil
+(funcall (opt (string "Ex")) "Facēre")

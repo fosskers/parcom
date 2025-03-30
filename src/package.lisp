@@ -11,7 +11,8 @@
            #:*> #:<* #:<$ #:alt)
   ;; --- Combinators --- ;;
   (:export #:any #:eof
-           #:char #:string)
+           #:char #:string
+           #:opt)
   (:documentation "A simple parser combinator library."))
 
 (in-package :parcom)
