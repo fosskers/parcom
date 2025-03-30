@@ -8,4 +8,10 @@
                 :components ((:file "package")
                              (:file "fp")
                              (:file "combinators"))))
-  :description "A simple parser combinator library.")
+  :description "A simple parser combinator library."
+  :in-order-to ((test-op (test-op :parcom/tests))))
+
+(defsystem "parcom/tests"
+  :depends-on (:parcom :parachute)
+  :components ((:module "tests" :components ((:file "tests"))))
+  :perform (test-op (op c) (symbol-call :parachute :test :parcom/tests)))

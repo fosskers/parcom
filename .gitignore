@@ -2,3 +2,4 @@
 *.fas
 repl.lisp
 turnip.lisp
+vendored/*

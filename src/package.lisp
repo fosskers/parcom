@@ -4,7 +4,7 @@
   ;; --- Types --- ;;
   (:export #:parser #:parser-input #:parser-value
            #:failure #:failure-expected #:failure-actual
-           #:ok #:fail
+           #:ok #:fail #:parse
            #:empty?)
   ;; --- Functional Programming --- ;;
   (:export #:fmap #:const #:comp
@@ -20,7 +20,7 @@
 
 (defstruct parser
   "The result of some successful parsing. Tracks the remaining input."
-  (input nil :type string)
+  (input nil :type cl:string)
   value)
 
 (defun ok (input value)
@@ -29,15 +29,23 @@
 
 (defstruct failure
   "The result of some failed parsing."
-  (expected nil :type string)
-  (actual   nil :type string))
+  (expected nil :type cl:string)
+  (actual   nil :type cl:string))
 
 (defun fail (exp act)
   (make-failure :expected exp :actual act))
 
+(defun parse (parser input)
+  (let ((res (funcall parser input)))
+    (etypecase res
+      (parser  (parser-value res))
+      (failure (error "Parsing failed. Expected: ~a, but got: ~a"
+                      (failure-expected res)
+                      (failure-actual res))))))
+
 ;; --- Utilities --- ;;
 
-(declaim (ftype (function (string) boolean) empty?))
+(declaim (ftype (function (cl:string) boolean) empty?))
 (defun empty? (string)
   "Is a given string empty?"
   (zerop (length string)))
