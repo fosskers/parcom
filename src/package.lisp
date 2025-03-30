@@ -14,7 +14,8 @@
            #:char #:string
            #:take)
   ;; --- Combinators --- ;;
-  (:export #:opt #:delimited)
+  (:export #:opt #:delimited
+           #:many0)
   (:documentation "A simple parser combinator library."))
 
 (in-package :parcom)

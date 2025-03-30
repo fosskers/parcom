@@ -34,6 +34,12 @@
   :parent combinators
   (is equal "Salvē" (pc:parse (pc:delimited (pc:char #\!) (pc:string "Salvē") (pc:char #\!)) "!Salvē!")))
 
+(define-test "many0"
+  :parent combinators
+  (is equal nil (pc:parse (pc:many0 (pc:string "ovēs")) "ovis"))
+  (is equal '("ovēs" "ovēs" "ovēs") (pc:parse (pc:many0 (pc:string "ovēs")) "ovēsovēsovēs!"))
+  (is equal '("ovēs" "ovēs" "avis") (pc:parse (pc:many0 (pc:alt (pc:string "ovēs") (pc:string "avis"))) "ovēsovēsavis!")))
+
 (define-test fp)
 
 (define-test "alt"
