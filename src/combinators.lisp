@@ -12,7 +12,7 @@ input."
 #+nil
 (funcall (opt (string "Ex")) "Facēre")
 
-;; TODO: 2025-03-31 sep0, sep1, many1
+;; TODO: 2025-03-31 sep0, sep1
 
 (defun delimited (a parser b)
   "A main parser flanked by two other ones. Only the value of the main parser is
@@ -40,3 +40,15 @@ kept. Good for parsing backets, parentheses, etc."
 #+nil
 (funcall (many0 (alt (string "ovēs") (string "avis"))) "ovēsovēsavis!")
 
+(defun many1 (parser)
+  "Parse 1 or more occurrences of a `parser'."
+  (lambda (input)
+    (let ((res (funcall (many0 parser) input)))
+      (cond ((failure-p res) res)
+            ((null (parser-value res)) (fail "many1: at least one success" input))
+            (t res)))))
+
+#+nil
+(funcall (many1 (string "ovēs")) "ovis")
+#+nil
+(funcall (many1 (string "ovēs")) "ovēsovēsovēs!")

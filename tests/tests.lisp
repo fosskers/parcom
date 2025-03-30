@@ -40,6 +40,11 @@
   (is equal '("ovēs" "ovēs" "ovēs") (pc:parse (pc:many0 (pc:string "ovēs")) "ovēsovēsovēs!"))
   (is equal '("ovēs" "ovēs" "avis") (pc:parse (pc:many0 (pc:alt (pc:string "ovēs") (pc:string "avis"))) "ovēsovēsavis!")))
 
+(define-test "many1"
+  :parent combinators
+  (fail (pc:parse (pc:many1 (pc:string "ovēs")) "ovis"))
+  (is equal '("ovēs" "ovēs" "ovēs") (pc:parse (pc:many1 (pc:string "ovēs")) "ovēsovēsovēs!")))
+
 (define-test fp)
 
 (define-test "alt"
