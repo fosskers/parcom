@@ -7,6 +7,7 @@
   :components ((:module "src"
                 :components ((:file "package")
                              (:file "fp")
+                             (:file "parsers")
                              (:file "combinators"))))
   :description "A simple parser combinator library."
   :in-order-to ((test-op (test-op :parcom/tests))))

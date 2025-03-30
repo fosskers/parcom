@@ -9,10 +9,12 @@
   ;; --- Functional Programming --- ;;
   (:export #:fmap #:const #:comp
            #:*> #:<* #:<$ #:alt)
-  ;; --- Combinators --- ;;
+  ;; --- Parsers --- ;;
   (:export #:any #:eof
            #:char #:string
-           #:opt)
+           #:take)
+  ;; --- Combinators --- ;;
+  (:export #:opt #:delimited)
   (:documentation "A simple parser combinator library."))
 
 (in-package :parcom)
