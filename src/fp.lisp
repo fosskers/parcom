@@ -55,6 +55,8 @@
                 :initial-value `(funcall ,parser ,input)))))
 
 #++
+(funcall (*> #'any) "H")
+#++
 (funcall (*> #'any #'eof) "H")
 #++
 (funcall (*> #'any #'any #'eof) "He")
@@ -74,8 +76,18 @@
                 :initial-value `(funcall ,parser ,input)))))
 
 #++
+(funcall (<* #'any) "H")
+#++
 (funcall (<* #'any #'eof) "H")  ; Should get 'H'.
 #++
 (funcall (<* #'any #'any #'eof) "Ho")  ; Should get 'H'.
 #++
 (funcall (*> #'any (<* #'any #'eof)) "Ho")  ; Should get 'o'.
+
+(defun <$ (item parser)
+  "Run some parser, but substitute its inner value with some `item' if parsing was
+successful."
+  (lambda (input) (fmap (const item) (funcall parser input))))
+
+#++
+(funcall (<$ 1 #'any) "Ho")
