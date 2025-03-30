@@ -70,6 +70,10 @@
                       (format nil "string: ~a" subs))))))))
 
 #++
+(funcall (string "") "a")
+#++
 (funcall (string "Hello") "Hello yes")
 #++
 (funcall (string "HellO") "Hello yes")
+
+;; TODO: 2025-03-30 `or' and `opt'.

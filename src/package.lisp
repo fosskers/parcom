@@ -8,7 +8,7 @@
            #:empty?)
   ;; --- Functional Programming --- ;;
   (:export #:fmap #:const #:comp
-           #:*> #:<* #:<$)
+           #:*> #:<* #:<$ #:alt)
   ;; --- Combinators --- ;;
   (:export #:any #:eof
            #:char #:string)

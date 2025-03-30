@@ -91,3 +91,22 @@ successful."
 
 #++
 (funcall (<$ 1 #'any) "Ho")
+
+(defun alt (parser &rest parsers)
+  "Accept the results of the first parser from a group to succeed."
+  (lambda (input)
+    (labels ((recurse (ps)
+               (if (null ps)
+                   (fail "alt: something to succeed" "alt: each failed")
+                   (let ((res (funcall (car ps) input)))
+                     (etypecase res
+                       (parser res)
+                       (failure (recurse (cdr ps))))))))
+      (recurse (cons parser parsers)))))
+
+#++
+(funcall (alt (char #\H) (char #\h)) "Hello")
+#++
+(funcall (alt (char #\H) (char #\h)) "hello")
+#++
+(funcall (alt (char #\H) (char #\h)) "ello")
