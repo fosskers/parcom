@@ -45,6 +45,13 @@
   (fail (pc:parse (pc:many1 (pc:string "ovēs")) "ovis"))
   (is equal '("ovēs" "ovēs" "ovēs") (pc:parse (pc:many1 (pc:string "ovēs")) "ovēsovēsovēs!")))
 
+(define-test "sep0"
+  :parent combinators
+  (is equal nil (pc:parse (pc:sep0 (pc:char #\!) (pc:string "a")) "."))
+  (is equal '("a") (pc:parse (pc:sep0 (pc:char #\!) (pc:string "a")) "a."))
+  (is equal '("a" "a" "a") (pc:parse (pc:sep0 (pc:char #\!) (pc:string "a")) "a!a!a."))
+  (is equal '("a" "a" "a") (pc:parse (pc:sep0 (pc:char #\!) (pc:string "a")) "a!a!a!")))
+
 (define-test fp)
 
 (define-test "alt"

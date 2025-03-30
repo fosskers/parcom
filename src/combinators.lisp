@@ -12,8 +12,6 @@ input."
 #+nil
 (funcall (opt (string "Ex")) "Facēre")
 
-;; TODO: 2025-03-31 sep0, sep1
-
 (defun delimited (a parser b)
   "A main parser flanked by two other ones. Only the value of the main parser is
 kept. Good for parsing backets, parentheses, etc."
@@ -52,3 +50,29 @@ kept. Good for parsing backets, parentheses, etc."
 (funcall (many1 (string "ovēs")) "ovis")
 #+nil
 (funcall (many1 (string "ovēs")) "ovēsovēsovēs!")
+
+(defun sep0 (sep parser)
+  "Parse 0 or more instances of a `parser' separated by some `sep' parser."
+  (lambda (input)
+    (labels ((recurse (acc in)
+               (let ((res (funcall parser in)))
+                 (etypecase res
+                   (failure (ok in acc))
+                   (parser (let ((sep-res (funcall sep (parser-input res))))
+                             (etypecase sep-res
+                               (failure (ok (parser-input res)
+                                            (cons (parser-value res) acc)))
+                               (parser (recurse (cons (parser-value res) acc)
+                                                (parser-input sep-res))))))))))
+      (fmap #'nreverse (recurse '() input)))))
+
+#+nil
+(funcall (sep0 (char #\!) (string "pilum")) ".")
+#+nil
+(funcall (sep0 (char #\!) (string "pilum")) "pilum.")
+#+nil
+(funcall (sep0 (char #\!) (string "pilum")) "pilum!pilum!pilum.")
+#+nil
+(funcall (sep0 (char #\!) (string "pilum")) "pilum!pilum!pilum!")
+
+;; TODO: 2025-03-31 sep1
