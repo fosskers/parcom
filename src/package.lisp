@@ -1,7 +1,17 @@
 (defpackage parcom
   (:use :cl)
   (:shadow #:char #:string)
-  (:export)
+  ;; --- Types --- ;;
+  (:export #:parser #:parser-input #:parser-value
+           #:failure #:failure-expected #:failure-actual
+           #:ok #:fail
+           #:empty?)
+  ;; --- Functional Programming --- ;;
+  (:export #:fmap #:const #:comp
+           #:*> #:<* #:<$)
+  ;; --- Combinators --- ;;
+  (:export #:any #:eof
+           #:char #:string)
   (:documentation "A simple parser combinator library."))
 
 (in-package :parcom)
