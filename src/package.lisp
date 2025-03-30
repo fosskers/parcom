@@ -1,5 +1,6 @@
 (defpackage parcom
   (:use :cl)
+  (:shadow #:char #:string)
   (:export)
   (:documentation "A simple parser combinator library."))
 
