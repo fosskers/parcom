@@ -1,2 +1,4 @@
 *.fasl
 *.fas
+repl.lisp
+turnip.lisp
