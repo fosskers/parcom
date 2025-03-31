@@ -96,7 +96,7 @@
 #+nil
 (funcall (take 3) "Arbor")
 
-;; TODO: 2025-03-31 digits, newline, space0, space1, multispace0, multispace1
+;; TODO: 2025-03-31 digits, space0, space1, multispace0, multispace1
 
 (defun take-while (p)
   "Take characters while some predicate holds."
@@ -119,3 +119,14 @@
 (funcall (take-while (lambda (c) (equal #\a c))) "bbb")
 #+nil
 (funcall (take-while (lambda (c) (equal #\a c))) "aaabbb")
+
+(defun newline (input)
+  "Matches a single newline character."
+  (funcall (char #\newline) input))
+
+#+nil
+(newline "Hello")
+#+nil
+(let ((s "!Hello"))
+  (setf (aref s 0) #\newline)
+  (newline s))

@@ -12,6 +12,7 @@
   ;; --- Parsers --- ;;
   (:export #:any #:eof
            #:char #:string
+           #:newline
            #:take #:take-while)
   ;; --- Combinators --- ;;
   (:export #:opt #:delimited
