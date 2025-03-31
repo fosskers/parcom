@@ -73,6 +73,16 @@
   (is equal '("a" "a" "a") (pc:parse (pc:sep1 (pc:char #\!) (pc:string "a")) "a!a!a."))
   (is equal '("a" "a" "a") (pc:parse (pc:sep1 (pc:char #\!) (pc:string "a")) "a!a!a!")))
 
+(define-test skip
+  :parent combinators
+  (is equal "hi" (pc:parser-input (funcall (pc:skip (pc:char #\!)) "!!!hi"))))
+
+(define-test peek
+  :parent combinators
+  (let ((res (funcall (pc:peek (pc:string "he")) "hello")))
+    (is equal "he" (pc:parser-value res))
+    (is equal "hello" (pc:parser-input res))))
+
 (define-test fp)
 
 (define-test alt

@@ -113,4 +113,13 @@ even if not followed by an instance of the main parser."
 #+nil
 (funcall (skip (char #\!)) "!!!hi")
 
-;; TODO: peek
+(defun peek (parser)
+  "Yield the value of a parser, but don't consume the input."
+  (lambda (input)
+    (let ((res (funcall parser input)))
+      (etypecase res
+        (failure res)
+        (parser  (ok input (parser-value res)))))))
+
+#+nil
+(funcall (peek (string "he")) "hello")
