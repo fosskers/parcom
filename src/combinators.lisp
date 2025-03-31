@@ -52,7 +52,9 @@ kept. Good for parsing backets, parentheses, etc."
 (funcall (many1 (string "ovēs")) "ovēsovēsovēs!")
 
 (defun sep0 (sep parser)
-  "Parse 0 or more instances of a `parser' separated by some `sep' parser."
+  "Parse 0 or more instances of a `parser' separated by some `sep' parser. Parses
+the separator eagerly, such that a final instance of it will also be parsed,
+even if not followed by an instance of the main parser."
   (lambda (input)
     (labels ((recurse (acc in)
                (let ((res (funcall parser in)))
@@ -75,4 +77,21 @@ kept. Good for parsing backets, parentheses, etc."
 #+nil
 (funcall (sep0 (char #\!) (string "pilum")) "pilum!pilum!pilum!")
 
-;; TODO: 2025-03-31 sep1
+(defun sep1 (sep parser)
+  "Parse 1 or more instances of a `parser' separated by some `sep' parser. Parses
+the separator eagerly, such that a final instance of it will also be parsed,
+even if not followed by an instance of the main parser."
+  (lambda (input)
+    (let ((res (funcall (sep0 sep parser) input)))
+      (cond ((failure-p res) res)
+            ((null (parser-value res)) (fail "sep1: at least one success" input))
+            (t res)))))
+
+#+nil
+(funcall (sep1 (char #\!) (string "pilum")) ".")
+#+nil
+(funcall (sep1 (char #\!) (string "pilum")) "pilum.")
+#+nil
+(funcall (sep1 (char #\!) (string "pilum")) "pilum!pilum!pilum.")
+#+nil
+(funcall (sep1 (char #\!) (string "pilum")) "pilum!pilum!pilum!")

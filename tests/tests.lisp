@@ -52,6 +52,13 @@
   (is equal '("a" "a" "a") (pc:parse (pc:sep0 (pc:char #\!) (pc:string "a")) "a!a!a."))
   (is equal '("a" "a" "a") (pc:parse (pc:sep0 (pc:char #\!) (pc:string "a")) "a!a!a!")))
 
+(define-test "sep1"
+  :parent combinators
+  (fail (pc:parse (pc:sep1 (pc:char #\!) (pc:string "a")) "."))
+  (is equal '("a") (pc:parse (pc:sep1 (pc:char #\!) (pc:string "a")) "a."))
+  (is equal '("a" "a" "a") (pc:parse (pc:sep1 (pc:char #\!) (pc:string "a")) "a!a!a."))
+  (is equal '("a" "a" "a") (pc:parse (pc:sep1 (pc:char #\!) (pc:string "a")) "a!a!a!")))
+
 (define-test fp)
 
 (define-test "alt"
