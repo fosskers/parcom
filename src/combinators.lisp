@@ -95,3 +95,22 @@ even if not followed by an instance of the main parser."
 (funcall (sep1 (char #\!) (string "pilum")) "pilum!pilum!pilum.")
 #+nil
 (funcall (sep1 (char #\!) (string "pilum")) "pilum!pilum!pilum!")
+
+(defun skip (parser)
+  "Parse some `parser' 0 or more times, but throw away all the results."
+  (lambda (input)
+    (labels ((recurse (in)
+               (let ((res (funcall parser in)))
+                 (etypecase res
+                   (failure (ok in t))
+                   (parser  (recurse (parser-input res)))))))
+      (recurse input))))
+
+#+nil
+(funcall (skip (char #\!)) "")
+#+nil
+(funcall (skip (char #\!)) "a")
+#+nil
+(funcall (skip (char #\!)) "!!!hi")
+
+;; TODO: peek

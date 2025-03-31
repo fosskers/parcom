@@ -16,7 +16,8 @@
            #:take #:take-while)
   ;; --- Combinators --- ;;
   (:export #:opt #:delimited
-           #:many0 #:many1 #:sep0 #:sep1)
+           #:many0 #:many1 #:sep0 #:sep1
+           #:skip)
   (:documentation "A simple parser combinator library."))
 
 (in-package :parcom)
