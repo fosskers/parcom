@@ -96,4 +96,26 @@
 #+nil
 (funcall (take 3) "Arbor")
 
-;; TODO: 2025-03-31 take-while, digits, newline, space0, space1, multispace0, multispace1
+;; TODO: 2025-03-31 digits, newline, space0, space1, multispace0, multispace1
+
+(defun take-while (p)
+  "Take characters while some predicate holds."
+  (lambda (input)
+    (let ((len (length input)))
+      (labels ((recurse (n)
+                 (cond ((>= n len) len)
+                       ((funcall p (aref input n)) (recurse (1+ n)))
+                       (t n))))
+        (let ((keep (recurse 0)))
+          (ok (make-array (- len keep)
+                          :element-type 'character
+                          :displaced-to input
+                          :displaced-index-offset keep)
+              (make-array keep
+                          :element-type 'character
+                          :displaced-to input)))))))
+
+#+nil
+(funcall (take-while (lambda (c) (equal #\a c))) "bbb")
+#+nil
+(funcall (take-while (lambda (c) (equal #\a c))) "aaabbb")

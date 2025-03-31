@@ -23,6 +23,11 @@
   (is equal "Arb" (pc:parse (pc:take 3) "Arbor"))
   (fail (pc:parse (pc:take -5) "Arbor")))
 
+(define-test "take-while"
+  :parent parsers
+  (is equal "" (pc:parse (pc:take-while (lambda (c) (equal #\a c))) "bbb"))
+  (is equal "aaa" (pc:parse (pc:take-while (lambda (c) (equal #\a c))) "aaabbb")))
+
 (define-test combinators)
 
 (define-test "opt"
