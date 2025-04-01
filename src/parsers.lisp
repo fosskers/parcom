@@ -96,8 +96,6 @@
 #+nil
 (funcall (take 3) "Arbor")
 
-;; TODO: 2025-03-31 digits, space0, space1, multispace0, multispace1
-
 (defun take-while (p)
   "Take characters while some predicate holds."
   (lambda (input)
@@ -130,3 +128,24 @@
 (let ((s "!Hello"))
   (setf (aref s 0) #\newline)
   (newline s))
+
+(defun space0 (input)
+  "Parse 0 or more ASCII whitespace and tab characters."
+  (funcall (take-while (lambda (c) (or (equal c #\space) (equal c #\tab)))) input))
+
+#+nil
+(funcall #'space0 "   hi")
+
+(defun space1 (input)
+  "Parse 1 or more ASCII whitespace and tab characters."
+  (let ((res (funcall #'space0 input)))
+    (cond ((failure-p res) res)
+          ((empty? (parser-value res)) (fail "space1: at least one whitespace" input))
+          (t res))))
+
+#+nil
+(funcall #'space1 "abc")
+#+nil
+(funcall #'space1 "   abc")
+
+;; TODO: 2025-03-31 digits, multispace0, multispace1

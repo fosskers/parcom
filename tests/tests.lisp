@@ -37,6 +37,16 @@
   (is equal "" (pc:parse (pc:take-while (lambda (c) (equal #\a c))) "bbb"))
   (is equal "aaa" (pc:parse (pc:take-while (lambda (c) (equal #\a c))) "aaabbb")))
 
+(define-test space0
+  :parent parsers
+  (is equal "" (pc:parse #'pc:space0 "hi"))
+  (is equal "   " (pc:parse #'pc:space0 "   hi")))
+
+(define-test space1
+  :parent parsers
+  (is equal "   " (pc:parse #'pc:space1 "   hi"))
+  (fail (pc:parse #'pc:space1 "hi")))
+
 (define-test combinators)
 
 (define-test opt
