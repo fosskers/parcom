@@ -5,13 +5,19 @@
 (in-package :parcom/tests)
 
 (define-test types
+  #-(or ccl abcl)
   (is eq 'simple-array (car (type-of "How are you")))
+  #-(or ccl abcl)
   (is eq 'simple-array (car (type-of "Hōw are yōu")))
+  #-(or ccl abcl)
   (is eq 'simple-array (car (type-of "Hōw are う")))
-  #-sbcl
+  #-(or sbcl ccl abcl)
   (is eq 'simple-array (car (type-of (format nil "How are you"))))
+  #-(or ccl abcl)
   (is eq 'simple-array (car (type-of (format nil "Hōw are yōu"))))
-  (is eq 'simple-array (car (type-of (format nil "Hōw are う")))))
+  #-(or ccl abcl)
+  (is eq 'simple-array (car (type-of (format nil "Hōw are う"))))
+  (is equal #\newline #\linefeed))
 
 (define-test parsers)
 

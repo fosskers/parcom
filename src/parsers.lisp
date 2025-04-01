@@ -81,16 +81,18 @@
 (defun take (n)
   "Take `n' characters from the input."
   (lambda (input)
-    (if (< (length input) n)
-        (fail (format nil "take: ~a characters" n) input)
-        (ok (make-array (- (length input) n)
-                        :element-type 'character
-                        :displaced-to input
-                        :displaced-index-offset n)
-            (make-array n
-                        :element-type 'character
-                        :displaced-to input)))))
+    (cond ((< n 0) (error "~a must be a positive number" n))
+          ((< (length input) n) (fail (format nil "take: ~a characters" n) input))
+          (t (ok (make-array (- (length input) n)
+                             :element-type 'character
+                             :displaced-to input
+                             :displaced-index-offset n)
+                 (make-array n
+                             :element-type 'character
+                             :displaced-to input))))))
 
+#+nil
+(funcall (take -5) "Arbor")
 #+nil
 (funcall (take 0) "Arbor")
 #+nil
