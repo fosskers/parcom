@@ -150,4 +150,26 @@
 #+nil
 (funcall #'space1 "   abc")
 
-;; TODO: 2025-03-31 digits, multispace0, multispace1
+(defun multispace0 (input)
+  "Parse 0 or more ASCII whitespace, tabs, newlines, and carriage returns."
+  (funcall (take-while (lambda (c)
+                         (or (equal c #\space)
+                             (equal c #\tab)
+                             (equal c #\newline)
+                             (equal c #\return))))
+           input))
+
+#+nil
+(funcall #'multispace0 (concatenate 'cl:string '(#\tab #\tab #\tab)))
+
+(defun multispace1 (input)
+  "Parse 1 or more ASCII whitespace, tabs, newlines, and carriage returns."
+  (let ((res (funcall #'multispace0 input)))
+    (cond ((failure-p res) res)
+          ((empty? (parser-value res)) (fail "multispace1: at least one space-like character" input))
+          (t res))))
+
+#+nil
+(funcall #'multispace1 (concatenate 'cl:string '(#\tab #\tab #\tab)))
+
+;; TODO: 2025-03-31 digits

@@ -53,6 +53,17 @@
   (is equal "   " (pc:parse #'pc:space1 "   hi"))
   (fail (pc:parse #'pc:space1 "hi")))
 
+(define-test multispace0
+  :parent parsers
+  (let ((chars (concatenate 'string '(#\tab #\newline #\tab))))
+    (is equal chars (pc:parse #'pc:multispace0 chars))))
+
+(define-test multispace1
+  :parent parsers
+  (let ((chars (concatenate 'string '(#\tab #\newline #\tab))))
+    (is equal chars (pc:parse #'pc:multispace1 chars)))
+  (fail (pc:parse #'pc:multispace1 "hello")))
+
 (define-test combinators)
 
 (define-test opt
