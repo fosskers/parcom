@@ -185,12 +185,15 @@
 #+nil
 (funcall #'multispace1 (concatenate 'cl:string '(#\tab #\tab #\tab)))
 
-;; TODO: 2025-03-31 float
-
 (defun unsigned (input)
   "Parse a positive integer."
-  (fmap #'read-from-string (funcall (take-while1 #'digit?) input)))
+  (let ((res (funcall (take-while1 #'digit?) input)))
+    (cond ((failure-p res) res)
+          ((char-equal #\0 (aref (parser-value res) 0)) (fail "unsigned: an integer not starting with 0" (parser-value res)))
+          (t (fmap #'read-from-string res)))))
 
+#+nil
+(unsigned "0123!")
 #+nil
 (unsigned "123!")
 
@@ -203,3 +206,14 @@
 (integer "123!")
 #+nil
 (integer "-123!")
+
+;; FIXME: 2025-04-03 Avoid reallocating a string here!
+(defun float (input)
+  "Parse a positive or negative floating point number."
+  (fmap (lambda (three) (read-from-string (format nil "~d.~a" (nth 0 three) (nth 2 three))))
+        (funcall (<*> #'integer (char #\.) (take-while1 #'digit?)) input)))
+
+#+nil
+(funcall #'float "-123.0456!")
+#+nil
+(funcall #'float "123.0456!")

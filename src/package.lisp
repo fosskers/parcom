@@ -12,7 +12,7 @@
   ;; --- Parsers --- ;;
   (:export #:any #:eof
            #:char #:string
-           #:unsigned #:integer
+           #:unsigned #:integer #:float
            #:newline #:space0 #:space1 #:multispace0 #:multispace1
            #:take #:take-while #:take-while1)
   ;; --- Combinators --- ;;
@@ -43,6 +43,7 @@
   (make-failure :expected exp :actual act))
 
 (defun parse (parser input)
+  "Run a parser and attempt to extract its final value."
   (let ((res (funcall parser input)))
     (etypecase res
       (parser  (parser-value res))
