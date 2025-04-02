@@ -12,13 +12,13 @@ input."
 #+nil
 (funcall (opt (string "Ex")) "Facēre")
 
-(defun delimited (a parser b)
+(defun between (a parser b)
   "A main parser flanked by two other ones. Only the value of the main parser is
 kept. Good for parsing backets, parentheses, etc."
   (*> a (<* parser b)))
 
 #+nil
-(funcall (delimited (char #\!) (string "Salvē") (char #\!)) "!Salvē!")
+(funcall (between (char #\!) (string "Salvē") (char #\!)) "!Salvē!")
 
 (defun many0 (parser)
   "Parse 0 or more occurrences of a `parser'."
@@ -52,6 +52,50 @@ kept. Good for parsing backets, parentheses, etc."
 (funcall (many1 (string "ovēs")) "ovēsovēsovēs!")
 
 (defun sep0 (sep parser)
+  "Parse 0 or more instances of a `parser' separated by some `sep' parser."
+  (lambda (input)
+    (labels ((recurse (acc in)
+               (let ((sep-res (funcall sep in)))
+                 (etypecase sep-res
+                   (failure (ok in acc))
+                   (parser  (let ((res (funcall parser (parser-input sep-res))))
+                              (etypecase res
+                                (failure res)
+                                (parser  (recurse (cons (parser-value res) acc)
+                                                  (parser-input res))))))))))
+      (let ((res (funcall parser input)))
+        (etypecase res
+          (failure (ok input '()))
+          (parser  (fmap #'nreverse (recurse (list (parser-value res))
+                                             (parser-input res)))))))))
+
+#+nil
+(funcall (sep0 (char #\!) (string "pilum")) ".")
+#+nil
+(funcall (sep0 (char #\!) (string "pilum")) "pilum.")
+#+nil
+(funcall (sep0 (char #\!) (string "pilum")) "pilum!pilum!pilum.")
+#+nil
+(funcall (sep0 (char #\!) (string "pilum")) "pilum!pilum!pilum!")
+
+(defun sep1 (sep parser)
+  "Parse 1 or more instances of a `parser' separated by some `sep' parser."
+  (lambda (input)
+    (let ((res (funcall (sep0 sep parser) input)))
+      (cond ((failure-p res) res)
+            ((null (parser-value res)) (fail "sep1: at least one success" input))
+            (t res)))))
+
+#+nil
+(funcall (sep1 (char #\!) (string "pilum")) ".")
+#+nil
+(funcall (sep1 (char #\!) (string "pilum")) "pilum.")
+#+nil
+(funcall (sep1 (char #\!) (string "pilum")) "pilum!pilum!pilum.")
+#+nil
+(funcall (sep1 (char #\!) (string "pilum")) "pilum!pilum!pilum!")
+
+(defun sep-end0 (sep parser)
   "Parse 0 or more instances of a `parser' separated by some `sep' parser. Parses
 the separator eagerly, such that a final instance of it will also be parsed,
 even if not followed by an instance of the main parser."
@@ -69,32 +113,32 @@ even if not followed by an instance of the main parser."
       (fmap #'nreverse (recurse '() input)))))
 
 #+nil
-(funcall (sep0 (char #\!) (string "pilum")) ".")
+(funcall (sep-end0 (char #\!) (string "pilum")) ".")
 #+nil
-(funcall (sep0 (char #\!) (string "pilum")) "pilum.")
+(funcall (sep-end0 (char #\!) (string "pilum")) "pilum.")
 #+nil
-(funcall (sep0 (char #\!) (string "pilum")) "pilum!pilum!pilum.")
+(funcall (sep-end0 (char #\!) (string "pilum")) "pilum!pilum!pilum.")
 #+nil
-(funcall (sep0 (char #\!) (string "pilum")) "pilum!pilum!pilum!")
+(funcall (sep-end0 (char #\!) (string "pilum")) "pilum!pilum!pilum!")
 
-(defun sep1 (sep parser)
+(defun sep-end1 (sep parser)
   "Parse 1 or more instances of a `parser' separated by some `sep' parser. Parses
 the separator eagerly, such that a final instance of it will also be parsed,
 even if not followed by an instance of the main parser."
   (lambda (input)
-    (let ((res (funcall (sep0 sep parser) input)))
+    (let ((res (funcall (sep-end0 sep parser) input)))
       (cond ((failure-p res) res)
-            ((null (parser-value res)) (fail "sep1: at least one success" input))
+            ((null (parser-value res)) (fail "sep-end1: at least one success" input))
             (t res)))))
 
 #+nil
-(funcall (sep1 (char #\!) (string "pilum")) ".")
+(funcall (sep-end1 (char #\!) (string "pilum")) ".")
 #+nil
-(funcall (sep1 (char #\!) (string "pilum")) "pilum.")
+(funcall (sep-end1 (char #\!) (string "pilum")) "pilum.")
 #+nil
-(funcall (sep1 (char #\!) (string "pilum")) "pilum!pilum!pilum.")
+(funcall (sep-end1 (char #\!) (string "pilum")) "pilum!pilum!pilum.")
 #+nil
-(funcall (sep1 (char #\!) (string "pilum")) "pilum!pilum!pilum!")
+(funcall (sep-end1 (char #\!) (string "pilum")) "pilum!pilum!pilum!")
 
 (defun skip (parser)
   "Parse some `parser' 0 or more times, but throw away all the results."

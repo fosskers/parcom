@@ -93,9 +93,9 @@
   (is equal "Ex" (pc:parse (pc:opt (pc:string "Ex")) "Exercitus"))
   (is equal nil (pc:parse (pc:opt (pc:string "Ex")) "Facēre")))
 
-(define-test delimited
+(define-test between
   :parent combinators
-  (is equal "Salvē" (pc:parse (pc:delimited (pc:char #\!) (pc:string "Salvē") (pc:char #\!)) "!Salvē!")))
+  (is equal "Salvē" (pc:parse (pc:between (pc:char #\!) (pc:string "Salvē") (pc:char #\!)) "!Salvē!")))
 
 (define-test many0
   :parent combinators
@@ -113,14 +113,28 @@
   (is equal nil (pc:parse (pc:sep0 (pc:char #\!) (pc:string "a")) "."))
   (is equal '("a") (pc:parse (pc:sep0 (pc:char #\!) (pc:string "a")) "a."))
   (is equal '("a" "a" "a") (pc:parse (pc:sep0 (pc:char #\!) (pc:string "a")) "a!a!a."))
-  (is equal '("a" "a" "a") (pc:parse (pc:sep0 (pc:char #\!) (pc:string "a")) "a!a!a!")))
+  (fail (pc:parse (pc:sep0 (pc:char #\!) (pc:string "a")) "a!a!a!")))
 
 (define-test sep1
   :parent combinators
   (fail (pc:parse (pc:sep1 (pc:char #\!) (pc:string "a")) "."))
   (is equal '("a") (pc:parse (pc:sep1 (pc:char #\!) (pc:string "a")) "a."))
   (is equal '("a" "a" "a") (pc:parse (pc:sep1 (pc:char #\!) (pc:string "a")) "a!a!a."))
-  (is equal '("a" "a" "a") (pc:parse (pc:sep1 (pc:char #\!) (pc:string "a")) "a!a!a!")))
+  (fail (pc:parse (pc:sep1 (pc:char #\!) (pc:string "a")) "a!a!a!")))
+
+(define-test sep-end0
+  :parent combinators
+  (is equal nil (pc:parse (pc:sep-end0 (pc:char #\!) (pc:string "a")) "."))
+  (is equal '("a") (pc:parse (pc:sep-end0 (pc:char #\!) (pc:string "a")) "a."))
+  (is equal '("a" "a" "a") (pc:parse (pc:sep-end0 (pc:char #\!) (pc:string "a")) "a!a!a."))
+  (is equal '("a" "a" "a") (pc:parse (pc:sep-end0 (pc:char #\!) (pc:string "a")) "a!a!a!")))
+
+(define-test sep-end1
+  :parent combinators
+  (fail (pc:parse (pc:sep-end1 (pc:char #\!) (pc:string "a")) "."))
+  (is equal '("a") (pc:parse (pc:sep-end1 (pc:char #\!) (pc:string "a")) "a."))
+  (is equal '("a" "a" "a") (pc:parse (pc:sep-end1 (pc:char #\!) (pc:string "a")) "a!a!a."))
+  (is equal '("a" "a" "a") (pc:parse (pc:sep-end1 (pc:char #\!) (pc:string "a")) "a!a!a!")))
 
 (define-test skip
   :parent combinators
