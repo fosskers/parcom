@@ -42,7 +42,7 @@
 (funcall (const 1) 5)
 
 (defmacro *> (parser &rest parsers)
-  "Rightward combination of parsers."
+  "Combination of parsers yielding the result of the rightmost one."
   (let ((input (gensym "*>-INPUT")))
     `(lambda (,input)
        ,(reduce (lambda (i p)
@@ -62,7 +62,7 @@
 (funcall (*> #'any #'any #'eof) "He")
 
 (defmacro <* (parser &rest parsers)
-  "Leftward combination of parsers."
+  "Combination of parsers yielding the result of the leftmost one."
   (let ((input (gensym "*>-INPUT")))
     `(lambda (,input)
        ,(reduce (lambda (i p)
@@ -83,6 +83,28 @@
 (funcall (<* #'any #'any #'eof) "Ho")  ; Should get 'H'.
 #++
 (funcall (*> #'any (<* #'any #'eof)) "Ho")  ; Should get 'o'.
+
+(defmacro <*> (parser &rest parsers)
+  "Combination of parsers yielding all results as a list."
+  (let ((input (gensym "<*>-INPUT")))
+    `(lambda (,input)
+       ,(labels ((recurse (ps i)
+                   (if (null ps)
+                       `(ok ,i nil)
+                       (let ((name (gensym "<*>-INNER")))
+                         `(let ((,name (funcall ,(car ps) ,i)))
+                            (etypecase ,name
+                              (failure ,name)
+                              (parser  (let ((res ,(recurse (cdr ps) `(parser-input ,name))))
+                                         (fmap (lambda (xs) (cons (parser-value ,name) xs)) res)))))))))
+          (recurse (cons parser parsers) input)))))
+
+#+nil
+(funcall (<*> (string "hi")) "hihohum!")
+#+nil
+(funcall (<*> (string "hi") (string "ho") (string "hum")) "hihohum!")
+#+nil
+(funcall (<*> (string "hi") (string "har") (string "hum")) "hihohum!")
 
 (defun <$ (item parser)
   "Run some parser, but substitute its inner value with some `item' if parsing was

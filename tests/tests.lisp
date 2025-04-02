@@ -117,3 +117,9 @@
   (is equal #\H (pc:parse (pc:alt (pc:char #\H) (pc:char #\h)) "Hello"))
   (is equal #\h (pc:parse (pc:alt (pc:char #\H) (pc:char #\h)) "hello"))
   (fail (pc:parse (pc:alt (pc:char #\H) (pc:char #\h)) "ello")))
+
+(define-test <*>
+  :parent fp
+  (is equal '("hi") (pc:parse (pc:<*> (pc:string "hi")) "hihohum!"))
+  (is equal '("hi" "ho") (pc:parse (pc:<*> (pc:string "hi") (pc:string "ho")) "hihohum!"))
+  (is equal '("hi" "ho" "hum") (pc:parse (pc:<*> (pc:string "hi") (pc:string "ho") (pc:string "hum")) "hihohum!")))

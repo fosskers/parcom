@@ -1,6 +1,6 @@
 (defpackage parcom
   (:use :cl)
-  (:shadow #:char #:string)
+  (:shadow #:char #:string #:integer #:float)
   ;; --- Types --- ;;
   (:export #:parser #:parser-input #:parser-value
            #:failure #:failure-expected #:failure-actual
@@ -8,7 +8,7 @@
            #:empty?)
   ;; --- Functional Programming --- ;;
   (:export #:fmap #:const #:comp
-           #:*> #:<* #:<$ #:alt)
+           #:*> #:<* #:<*> #:<$ #:alt)
   ;; --- Parsers --- ;;
   (:export #:any #:eof
            #:char #:string
@@ -58,3 +58,4 @@
 
 #++
 (empty? "")
+
