@@ -120,6 +120,19 @@
 #+nil
 (funcall (take-while (lambda (c) (equal #\a c))) "aaabbb")
 
+(defun take-while1 (p)
+  "Take characters while some predicate holds. Must succeed at least once."
+  (lambda (input)
+    (let ((res (funcall (take-while p) input)))
+      (cond ((failure-p res) res)
+            ((empty? (parser-value res)) (fail "take-while1: at least one success" input))
+            (t res)))))
+
+#+nil
+(funcall (take-while1 #'digit?) "bob!")
+#+nil
+(funcall (take-while1 #'digit?) "123!")
+
 (defun newline (input)
   "Matches a single newline character."
   (funcall (char #\newline) input))
@@ -172,4 +185,21 @@
 #+nil
 (funcall #'multispace1 (concatenate 'cl:string '(#\tab #\tab #\tab)))
 
-;; TODO: 2025-03-31 digits
+;; TODO: 2025-03-31 float
+
+(defun unsigned (input)
+  "Parse a positive integer."
+  (fmap #'read-from-string (funcall (take-while1 #'digit?) input)))
+
+#+nil
+(unsigned "123!")
+
+(defun integer (input)
+  "Parse a positive or negative integer."
+  (fmap (lambda (pair) (if (null (car pair)) (nth 1 pair) (- (nth 1 pair))))
+        (funcall (<*> (opt (char #\-)) #'unsigned) input)))
+
+#+nil
+(integer "123!")
+#+nil
+(integer "-123!")

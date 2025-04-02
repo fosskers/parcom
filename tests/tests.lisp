@@ -32,6 +32,17 @@
   (is equal "Hello" (pc:parse (pc:string "Hello") "Hello yes"))
   (fail (pc:parse (pc:string "HellO") "Hello yes")))
 
+(define-test unsigned
+  :parent parsers
+  (is equal 123 (pc:parse #'pc:unsigned "123"))
+  (is equal 1234567890123456789 (pc:parse #'pc:unsigned "1234567890123456789"))
+  (is equal 123456789012345678901234567890 (pc:parse #'pc:unsigned "123456789012345678901234567890")))
+
+(define-test integer
+  :parent parsers
+  (is equal 123 (pc:parse #'pc:integer "123!"))
+  (is equal -123 (pc:parse #'pc:integer "-123!")))
+
 (define-test take
   :parent parsers
   (is equal "" (pc:parse (pc:take 0) "Arbor"))
@@ -42,6 +53,11 @@
   :parent parsers
   (is equal "" (pc:parse (pc:take-while (lambda (c) (equal #\a c))) "bbb"))
   (is equal "aaa" (pc:parse (pc:take-while (lambda (c) (equal #\a c))) "aaabbb")))
+
+(define-test take-while1
+  :parent parsers
+  (is equal "aaa" (pc:parse (pc:take-while1 (lambda (c) (equal #\a c))) "aaabbb"))
+  (fail (pc:parse (pc:take-while1 (lambda (c) (equal #\a c))) "bbb")))
 
 (define-test space0
   :parent parsers

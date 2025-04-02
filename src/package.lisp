@@ -5,15 +5,16 @@
   (:export #:parser #:parser-input #:parser-value
            #:failure #:failure-expected #:failure-actual
            #:ok #:fail #:parse
-           #:empty?)
+           #:empty? #:digit?)
   ;; --- Functional Programming --- ;;
   (:export #:fmap #:const #:comp
            #:*> #:<* #:<*> #:<$ #:alt)
   ;; --- Parsers --- ;;
   (:export #:any #:eof
            #:char #:string
+           #:unsigned #:integer
            #:newline #:space0 #:space1 #:multispace0 #:multispace1
-           #:take #:take-while)
+           #:take #:take-while #:take-while1)
   ;; --- Combinators --- ;;
   (:export #:opt #:delimited
            #:many0 #:many1 #:sep0 #:sep1
@@ -59,3 +60,10 @@
 #++
 (empty? "")
 
+(declaim (ftype (function (character) boolean) digit?))
+(defun digit? (char)
+  "Is a given character a number from 0 to 9?"
+  (char<= #\0 char #\9))
+
+#+nil
+(digit? #\7)
