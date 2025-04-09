@@ -1,0 +1,75 @@
+#+title: parcom - Parser Combinators
+
+=parcom= is a consise Parser Combinator library in the style of Haskell's =parsec=
+and Rust's =nom=.
+
+#+begin_src lisp :exports both
+(in-package :parcom)
+(parse (*> (string "Tempus") #'space0 (string "fugit")) "Tempus fugit.")
+#+end_src
+
+#+RESULTS:
+: fugit
+
+=parcom= operates strictly on strings, not streamed byte data, but is otherwise
+"zero copy" in that extracted substrings of the original input are not
+reallocated.
+
+=parcom= has no dependencies.
+
+* Table of Contents :TOC_5_gh:noexport:
+- [[#compatibility][Compatibility]]
+- [[#api][API]]
+  - [[#types-and-running-parsers][Types and Running Parsers]]
+  - [[#parsers][Parsers]]
+    - [[#char][char]]
+    - [[#string][string]]
+  - [[#combinators][Combinators]]
+  - [[#utilities][Utilities]]
+
+* Compatibility
+
+| Compiler  | Status |
+|-----------+--------|
+| SBCL      | ✅    |
+| ECL       | ✅    |
+| Clasp     | ❓    |
+| ABCL      | ✅    |
+| CCL       | ✅    |
+| Clisp     | ✅    |
+| Allegro   | ✅    |
+| LispWorks | ❓    |
+
+* API
+
+The examples below use =(in-package :parcom)= for brevity, but it's assumed that
+you'll use a local nickname like =pc= in your actual code.
+
+** Types and Running Parsers
+** Parsers
+*** char
+
+Parse a given character.
+
+#+begin_src lisp :exports both
+(in-package :parcom)
+(parse (char #\a) "apple")
+#+end_src
+
+#+RESULTS:
+: #\a
+
+*** string
+
+Parse the given string.
+
+#+begin_src lisp :exports both
+(in-package :parcom)
+(parse (string "Hello") "Hello there!")
+#+end_src
+
+#+RESULTS:
+: Hello
+
+** Combinators
+** Utilities

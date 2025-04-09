@@ -5,17 +5,17 @@
 (in-package :parcom/tests)
 
 (define-test types
-  #-(or ccl abcl)
+  #-(or ccl abcl clisp)
   (is eq 'simple-array (car (type-of "How are you")))
-  #-(or ccl abcl)
+  #-(or ccl abcl clisp)
   (is eq 'simple-array (car (type-of "Hōw are yōu")))
-  #-(or ccl abcl)
+  #-(or ccl abcl clisp)
   (is eq 'simple-array (car (type-of "Hōw are う")))
-  #-(or sbcl ccl abcl)
+  #-(or sbcl ccl abcl clisp)
   (is eq 'simple-array (car (type-of (format nil "How are you"))))
-  #-(or ccl abcl)
+  #-(or ccl abcl clisp)
   (is eq 'simple-array (car (type-of (format nil "Hōw are yōu"))))
-  #-(or ccl abcl)
+  #-(or ccl abcl clisp)
   (is eq 'simple-array (car (type-of (format nil "Hōw are う"))))
   (is equal #\newline #\linefeed))
 
