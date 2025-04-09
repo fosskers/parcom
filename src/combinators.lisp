@@ -167,3 +167,24 @@ even if not followed by an instance of the main parser."
 
 #+nil
 (funcall (peek (string "he")) "hello")
+
+(defun count (parser n)
+  "Apply a `parser' a given number of times."
+  (lambda (input)
+    (labels ((recurse (acc m i)
+               (if (<= m 0)
+                   (ok i (nreverse acc))
+                   (let ((res (funcall parser i)))
+                     (etypecase res
+                       (failure res)
+                       (parser  (recurse (cons (parser-value res) acc)
+                                         (1- m)
+                                         (parser-input res))))))))
+      (recurse '() n input))))
+
+#+nil
+(funcall (count (char #\a) 3) "aaaaaa")
+#+nil
+(funcall (count (char #\a) 3) "aa")
+#+nil
+(funcall (count (char #\a) 0) "aa")

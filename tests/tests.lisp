@@ -146,6 +146,12 @@
     (is equal "he" (pc:parser-value res))
     (is equal "hello" (pc:parser-input res))))
 
+(define-test count
+  :parent combinators
+  (is equal '() (pc:parse (pc:count (pc:char #\a) 0) "aa"))
+  (is equal '(#\a #\a #\a) (pc:parse (pc:count (pc:char #\a) 3) "aaaaaa"))
+  (fail (pc:parse (pc:count (pc:char #\a) 3) "aa")))
+
 (define-test fp)
 
 (define-test alt
