@@ -18,7 +18,7 @@
   ;; --- Combinators --- ;;
   (:export #:opt #:between
            #:many0 #:many1 #:sep0 #:sep1 #:sep-end0 #:sep-end1
-           #:skip #:peek #:count)
+           #:skip #:peek #:count #:recognize)
   (:documentation "A simple parser combinator library."))
 
 (in-package :parcom)

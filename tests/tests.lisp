@@ -152,6 +152,11 @@
   (is equal '(#\a #\a #\a) (pc:parse (pc:count (pc:char #\a) 3) "aaaaaa"))
   (fail (pc:parse (pc:count (pc:char #\a) 3) "aa")))
 
+(define-test recognize
+  :parent combinators
+  (is equal "hibye" (pc:parse (pc:recognize (pc:<*> (pc:string "hi") (pc:string "bye"))) "hibyethere"))
+  (fail (pc:parse (pc:recognize (pc:<*> (pc:string "hi") (pc:string "bye"))) "hihi")))
+
 (define-test fp)
 
 (define-test alt

@@ -188,3 +188,19 @@ even if not followed by an instance of the main parser."
 (funcall (count (char #\a) 3) "aa")
 #+nil
 (funcall (count (char #\a) 0) "aa")
+
+(defun recognize (parser)
+  "If the given `parser' was successful, return the consumed input instead."
+  (lambda (input)
+    (let ((res (funcall parser input)))
+      (etypecase res
+        (failure res)
+        (parser  (ok (parser-input res)
+                     (make-array (- (length input) (length (parser-input res)))
+                                 :element-type 'character
+                                 :displaced-to input)))))))
+
+#+nil
+(funcall (recognize (<*> (string "hi") (string "bye"))) "hibyethere")
+#+nil
+(funcall (recognize (<*> (string "hi") (string "bye"))) "hihi")
