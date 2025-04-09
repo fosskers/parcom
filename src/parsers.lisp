@@ -217,3 +217,10 @@
 (funcall #'float "-123.0456!")
 #+nil
 (funcall #'float "123.0456!")
+
+(defun rest (input)
+  "Consume the rest of the input."
+  (ok "" input))
+
+#+nil
+(funcall (<*> (string "hi") (*> #'space0 #'rest)) "hi there")

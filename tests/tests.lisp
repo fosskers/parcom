@@ -86,6 +86,10 @@
     (is equal chars (pc:parse #'pc:multispace1 chars)))
   (fail (pc:parse #'pc:multispace1 "hello")))
 
+(define-test rest
+  :parent parsers
+  (is equal '("hi" "there") (pc:parse (pc:<*> (pc:string "hi") (pc:*> #'pc:space0 #'pc:rest)) "hi there")))
+
 (define-test combinators)
 
 (define-test opt
