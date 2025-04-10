@@ -2,8 +2,9 @@
 
 (in-package :parcom)
 
-(declaim (ftype (function (cl:string) (or parser failure)) any))
+(declaim (ftype maybe-parse any))
 (defun any (input)
+  "Accept any character."
   (if (empty? input)
       (fail "any char" "end of input")
       (ok (make-array (1- (length input))
@@ -17,8 +18,9 @@
 #++
 (any "")
 
-(declaim (ftype (function (cl:string) (or parser failure)) eof))
+(declaim (ftype maybe-parse eof))
 (defun eof (input)
+  "Recognize the end of the input."
   (if (empty? input)
       (ok input t)
       (fail "the end of the input" input)))
@@ -28,7 +30,7 @@
 #++
 (eof "")
 
-(declaim (ftype (function (character) (function (cl:string) (or parser failure))) char))
+(declaim (ftype (function (character) maybe-parse) char))
 (defun char (c)
   "Parse a given character."
   (lambda (input)
@@ -51,6 +53,7 @@
 #++
 (funcall (*> (char #\H) (char #\e)) "Hello")
 
+(declaim (ftype (function (cl:string) maybe-parse) string))
 (defun string (s)
   "Parse the given string."
   (lambda (input)
@@ -78,6 +81,7 @@
 #++
 (funcall (string "HellO") "Hello yes")
 
+(declaim (ftype (function (fixnum) maybe-parse) take))
 (defun take (n)
   "Take `n' characters from the input."
   (lambda (input)
@@ -98,6 +102,7 @@
 #+nil
 (funcall (take 3) "Arbor")
 
+(declaim (ftype (function ((function (character) boolean)) always-parse) take-while))
 (defun take-while (p)
   "Take characters while some predicate holds."
   (lambda (input)
@@ -120,6 +125,7 @@
 #+nil
 (funcall (take-while (lambda (c) (equal #\a c))) "aaabbb")
 
+(declaim (ftype (function ((function (character) boolean)) maybe-parse) take-while1))
 (defun take-while1 (p)
   "Take characters while some predicate holds. Must succeed at least once."
   (lambda (input)
@@ -133,6 +139,7 @@
 #+nil
 (funcall (take-while1 #'digit?) "123!")
 
+(declaim (ftype maybe-parse newline))
 (defun newline (input)
   "Matches a single newline character."
   (funcall (char #\newline) input))
@@ -144,6 +151,7 @@
   (setf (aref s 0) #\newline)
   (newline s))
 
+(declaim (ftype always-parse space0))
 (defun space0 (input)
   "Parse 0 or more ASCII whitespace and tab characters."
   (funcall (take-while (lambda (c) (or (equal c #\space) (equal c #\tab)))) input))
@@ -151,6 +159,7 @@
 #+nil
 (funcall #'space0 "   hi")
 
+(declaim (ftype maybe-parse space1))
 (defun space1 (input)
   "Parse 1 or more ASCII whitespace and tab characters."
   (let ((res (funcall #'space0 input)))
@@ -163,6 +172,7 @@
 #+nil
 (funcall #'space1 "   abc")
 
+(declaim (ftype always-parse multispace0))
 (defun multispace0 (input)
   "Parse 0 or more ASCII whitespace, tabs, newlines, and carriage returns."
   (funcall (take-while (lambda (c)
@@ -175,6 +185,7 @@
 #+nil
 (funcall #'multispace0 (concatenate 'cl:string '(#\tab #\tab #\tab)))
 
+(declaim (ftype maybe-parse multispace1))
 (defun multispace1 (input)
   "Parse 1 or more ASCII whitespace, tabs, newlines, and carriage returns."
   (let ((res (funcall #'multispace0 input)))
@@ -185,6 +196,7 @@
 #+nil
 (funcall #'multispace1 (concatenate 'cl:string '(#\tab #\tab #\tab)))
 
+(declaim (ftype maybe-parse unsigned))
 (defun unsigned (input)
   "Parse a positive integer."
   (let ((res (funcall (take-while1 #'digit?) input)))
@@ -197,6 +209,7 @@
 #+nil
 (unsigned "123!")
 
+(declaim (ftype maybe-parse integer))
 (defun integer (input)
   "Parse a positive or negative integer."
   (fmap (lambda (pair) (if (null (car pair)) (nth 1 pair) (- (nth 1 pair))))
@@ -208,6 +221,7 @@
 (integer "-123!")
 
 ;; FIXME: 2025-04-03 Avoid reallocating a string here!
+(declaim (ftype maybe-parse float))
 (defun float (input)
   "Parse a positive or negative floating point number."
   (fmap (lambda (three) (read-from-string (format nil "~d.~a" (nth 0 three) (nth 2 three))))
@@ -218,8 +232,9 @@
 #+nil
 (funcall #'float "123.0456!")
 
+(declaim (ftype always-parse rest))
 (defun rest (input)
-  "Consume the rest of the input."
+  "Consume the rest of the input. Always succeeds."
   (ok "" input))
 
 #+nil

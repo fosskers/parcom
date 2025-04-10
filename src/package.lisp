@@ -25,6 +25,14 @@
 
 ;; --- Types --- ;;
 
+(deftype maybe-parse ()
+  "A parser that might fail."
+  '(function (cl:string) (or parser failure)))
+
+(deftype always-parse ()
+  "A parser that always succeeds."
+  '(function (cl:string) parser))
+
 (defstruct parser
   "The result of some successful parsing. Tracks the remaining input."
   (input nil :type cl:string)
