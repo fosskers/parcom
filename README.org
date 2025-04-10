@@ -22,10 +22,29 @@ reallocated.
 - [[#api][API]]
   - [[#types-and-running-parsers][Types and Running Parsers]]
   - [[#parsers][Parsers]]
-    - [[#char][char]]
-    - [[#string][string]]
+    - [[#characters-and-strings][Characters and Strings]]
+      - [[#char][char]]
+      - [[#string][string]]
+      - [[#any][any]]
+      - [[#eof][eof]]
+    - [[#numbers][Numbers]]
+      - [[#unsigned][unsigned]]
+      - [[#integer][integer]]
+      - [[#float][float]]
+    - [[#whitespace][Whitespace]]
+      - [[#newline][newline]]
+      - [[#space0][space0]]
+      - [[#space1][space1]]
+      - [[#multispace0][multispace0]]
+      - [[#multispace1][multispace1]]
+    - [[#taking-in-bulk][Taking in Bulk]]
+      - [[#take][take]]
+      - [[#take-while][take-while]]
+      - [[#take-while1][take-while1]]
+      - [[#rest][rest]]
   - [[#combinators][Combinators]]
   - [[#utilities][Utilities]]
+- [[#writing-your-own-parsers][Writing your own Parsers]]
 
 * Compatibility
 
@@ -47,7 +66,12 @@ you'll use a local nickname like =pc= in your actual code.
 
 ** Types and Running Parsers
 ** Parsers
-*** char
+
+A "parser" is a function that consumes some specific input and yields a single
+result.
+
+*** Characters and Strings
+**** char
 
 Parse a given character.
 
@@ -59,7 +83,7 @@ Parse a given character.
 #+RESULTS:
 : #\a
 
-*** string
+**** string
 
 Parse the given string.
 
@@ -71,5 +95,217 @@ Parse the given string.
 #+RESULTS:
 : Hello
 
+**** any
+
+Parse any character.
+
+#+begin_src lisp :exports both
+(in-package :parcom)
+(parse #'any "Hello there!")
+#+end_src
+
+#+RESULTS:
+: #\H
+
+**** eof
+
+Recognize the end of the input.
+
+#+begin_src lisp :exports both
+(in-package :parcom)
+(parse #'eof "")
+#+end_src
+
+#+RESULTS:
+: T
+
+#+begin_src lisp :exports both
+(in-package :parcom)
+(parse (*> (string "Mālum") #'eof) "Mālum")
+#+end_src
+
+#+RESULTS:
+: T
+
+#+begin_src lisp :exports both
+(in-package :parcom)
+(funcall (*> (string "Mālum") #'eof) "Mālum rubrum")
+#+end_src
+
+#+RESULTS:
+: #S(FAILURE :EXPECTED "the end of the input" :ACTUAL " rubrum")
+*** Numbers
+**** unsigned
+
+Parse a positive integer into a =fixnum=.
+
+#+begin_src lisp :exports both
+(in-package :parcom)
+(parse #'unsigned "44")
+#+end_src
+
+#+RESULTS:
+: 44
+
+**** integer
+
+Parse a positive or negative integer into a =fixnum=.
+
+#+begin_src lisp :exports both
+(in-package :parcom)
+(parse #'integer "-44")
+#+end_src
+
+#+RESULTS:
+: -44
+
+**** float
+
+Parse a positive or negative floating point number into a =float=.
+
+#+begin_src lisp :exports both
+(in-package :parcom)
+(parse #'float "123.0456")
+#+end_src
+
+#+RESULTS:
+: 123.0456
+*** Whitespace
+**** newline
+
+Matches a single newline character.
+
+#+begin_src lisp :exports both
+(in-package :parcom)
+(let ((s (concatenate 'cl:string '(#\newline #\a #\b #\c)))) ; "\nabc"
+  (parse #'newline s))
+#+end_src
+
+#+RESULTS:
+: #\Newline
+
+**** space0
+
+Parse 0 or more ASCII whitespace and tab characters.
+
+#+begin_src lisp :exports both
+(in-package :parcom)
+(length (parse #'space0 "   Salvē!"))
+#+end_src
+
+#+RESULTS:
+: 3
+
+**** space1
+
+Parse 1 or more ASCII whitespace and tab characters.
+
+#+begin_src lisp :exports both
+(in-package :parcom)
+(length (parse #'space1 "   Salvē!"))
+#+end_src
+
+#+RESULTS:
+: 3
+
+#+begin_src lisp :exports both
+(in-package :parcom)
+(funcall #'space1 "Salvē!")
+#+end_src
+
+#+RESULTS:
+: #S(FAILURE :EXPECTED "space1: at least one whitespace" :ACTUAL "Salvē!")
+
+**** multispace0
+
+Parse 0 or more ASCII whitespace, tabs, newlines, and carriage returns.
+
+#+begin_src lisp :exports both
+(in-package :parcom)
+(length (parse #'multispace0 (concatenate 'cl:string '(#\tab #\newline #\tab))))
+#+end_src
+
+#+RESULTS:
+: 3
+
+**** multispace1
+
+Parse 1 or more ASCII whitespace, tabs, newlines, and carriage returns.
+
+#+begin_src lisp :exports both
+(in-package :parcom)
+(length (parse #'multispace1 (concatenate 'cl:string '(#\tab #\newline #\tab))))
+#+end_src
+
+#+RESULTS:
+: 3
+
+#+begin_src lisp :exports both
+(in-package :parcom)
+(funcall #'multispace1 "Ārcus")
+#+end_src
+
+#+RESULTS:
+: #S(FAILURE
+:    :EXPECTED "multispace1: at least one space-like character"
+:    :ACTUAL "Ārcus")
+*** Taking in Bulk
+
+These always yield a substring borrowed directly from the original input.
+
+**** take
+
+Take =n= characters from the input.
+
+#+begin_src lisp :exports both
+(in-package :parcom)
+(parse (take 3) "Arbor")
+#+end_src
+
+#+RESULTS:
+: Arb
+
+**** take-while
+
+Take characters while some predicate holds.
+
+#+begin_src lisp :exports both
+(in-package :parcom)
+(parse (take-while (lambda (c) (equal #\a c))) "aaabbb")
+#+end_src
+
+#+RESULTS:
+: aaa
+
+**** take-while1
+
+Like =take-while=, but must yield at least one character.
+
+#+begin_src lisp :exports both
+(in-package :parcom)
+(funcall (take-while1 (lambda (c) (equal #\a c))) "bbb")
+#+end_src
+
+#+RESULTS:
+: #S(FAILURE :EXPECTED "take-while1: at least one success" :ACTUAL "bbb")
+
+**** rest
+
+Consume the rest of the input. Always succeeds.
+
+#+begin_src lisp :exports both :results verbatim
+(in-package :parcom)
+(parse (<*> (string "Salvē") (*> #'space0 #'rest)) "Salvē domine!")
+#+end_src
+
+#+RESULTS:
+: ("Salvē" "domine!")
+
 ** Combinators
+
+"Combinators" combine child parsers together to form compound results. They
+allow us to express intent like "parse this then that" and "parse this, then
+maybe that, but only if..." etc.
+
 ** Utilities
+* Writing your own Parsers

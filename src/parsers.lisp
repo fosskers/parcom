@@ -231,6 +231,8 @@
 (funcall #'float "-123.0456!")
 #+nil
 (funcall #'float "123.0456!")
+#+nil
+(funcall #'float "123.0456123123123123!")
 
 (declaim (ftype always-parse rest))
 (defun rest (input)
