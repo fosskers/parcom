@@ -8,6 +8,7 @@
            #:empty? #:digit?)
   ;; --- Functional Programming --- ;;
   (:export #:fmap #:const #:comp
+           #:all #:right #:left #:instead
            #:*> #:<* #:<*> #:<$ #:alt)
   ;; --- Parsers --- ;;
   (:export #:any #:eof

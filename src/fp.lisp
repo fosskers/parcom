@@ -61,6 +61,10 @@
 #++
 (funcall (*> #'any #'any #'eof) "He")
 
+(defmacro right (parser &rest parsers)
+  "Combination of parsers yielding the result of the rightmost one."
+  `(*> ,parser ,@parsers))
+
 (defmacro <* (parser &rest parsers)
   "Combination of parsers yielding the result of the leftmost one."
   (let ((input (gensym "*>-INPUT")))
@@ -84,6 +88,10 @@
 #++
 (funcall (*> #'any (<* #'any #'eof)) "Ho")  ; Should get 'o'.
 
+(defmacro left (parser &rest parsers)
+  "Combination of parsers yielding the result of the leftmost one."
+  `(<* ,parser ,@parsers))
+
 (defmacro <*> (parser &rest parsers)
   "Combination of parsers yielding all results as a list."
   (let ((input (gensym "<*>-INPUT")))
@@ -106,6 +114,13 @@
 #+nil
 (funcall (<*> (string "hi") (string "har") (string "hum")) "hihohum!")
 
+(defmacro all (parser &rest parsers)
+  "Combination of parsers yielding all results as a list."
+  `(<*> ,parser ,@parsers))
+
+#+nil
+(all (string "hi") (string "ho") (string "hum"))
+
 (defun <$ (item parser)
   "Run some parser, but substitute its inner value with some `item' if parsing was
 successful."
@@ -113,6 +128,11 @@ successful."
 
 #++
 (funcall (<$ 1 #'any) "Ho")
+
+(defmacro instead (item parser)
+  "Run some parser, but substitute its inner value with some `item' if parsing was
+successful."
+  `(<$ ,item ,parser))
 
 (defmacro alt (parser &rest parsers)
   "Accept the results of the first parser from a group to succeed."
