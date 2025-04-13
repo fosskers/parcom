@@ -43,6 +43,12 @@ reallocated.
       - [[#take-while1][take-while1]]
       - [[#rest][rest]]
   - [[#combinators][Combinators]]
+    - [[#-right][*>, right]]
+    - [[#-left][<*, left]]
+    - [[#-all][<*>, all]]
+    - [[#-instead][<$, instead]]
+    - [[#alt][alt]]
+    - [[#opt][opt]]
   - [[#utilities][Utilities]]
 - [[#writing-your-own-parsers][Writing your own Parsers]]
 
@@ -306,6 +312,103 @@ Consume the rest of the input. Always succeeds.
 "Combinators" combine child parsers together to form compound results. They
 allow us to express intent like "parse this then that" and "parse this, then
 maybe that, but only if..." etc.
+
+*** *>, right
+
+Run multiple parsers one after another, but yield the value of the rightmost
+one. =right= is an alias.
+
+#+begin_src lisp :exports both
+(in-package :parcom)
+(funcall (*> (char #\!) #'unsigned) "!123?")
+#+end_src
+
+#+RESULTS:
+: #S(PARSER :INPUT "?" :VALUE 123)
+
+*** <*, left
+
+Run multiple parsers one after another, but yield the value of the leftmost
+one. =left= is an alias.
+
+#+begin_src lisp :exports both
+(in-package :parcom)
+(funcall (<* (char #\!) #'unsigned) "!123?")
+#+end_src
+
+#+RESULTS:
+: #S(PARSER :INPUT "?" :VALUE #\!)
+
+*** <*>, all
+
+Combination of parsers yielding all results as a list. =all= is an alias.
+
+#+begin_src lisp :exports both
+(in-package :parcom)
+(parse (<*> #'unsigned (char #\!) #'unsigned) "123!456")
+#+end_src
+
+#+RESULTS:
+: (123 #\! 456)
+
+This library does not offer a currying mechanism, so the technique usually
+available in Haskell of fmap'ing a function over chain of =<*>= must be done
+instead with =apply=:
+
+#+begin_src lisp :exports both
+(in-package :parcom)
+(apply #'+ (parse (<*> #'unsigned (*> (char #\!) #'unsigned)) "123!456"))
+#+end_src
+
+#+RESULTS:
+: 579
+
+*** <$, instead
+
+Run some parser, but substitute its inner value with something else if parsing
+was successful.
+
+#+begin_src lisp :exports both
+(in-package :parcom)
+(parse (<$ :roma (string "Roma")) "Roma!")
+#+end_src
+
+#+RESULTS:
+: :ROMA
+
+*** alt
+
+Accept the results of the first parser from a group to succeed. Can combine as
+many parsers as you want.
+
+#+begin_src lisp :exports both
+(in-package :parcom)
+(parse (alt (string "dog") (string "cat")) "cat")
+#+end_src
+
+#+RESULTS:
+: cat
+
+*** opt
+
+Yield =nil= if the parser failed, but don't fail the whole process nor consume any
+input.
+
+#+begin_src lisp :exports both
+(in-package :parcom)
+(parse (opt (string "Ex")) "Exercitus")
+#+end_src
+
+#+RESULTS:
+: Ex
+
+#+begin_src lisp :exports both
+(in-package :parcom)
+(parse (opt (string "Ex")) "Facēre")
+#+end_src
+
+#+RESULTS:
+: NIL
 
 ** Utilities
 * Writing your own Parsers
