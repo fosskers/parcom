@@ -48,6 +48,12 @@ reallocated.
     - [[#opt][opt]]
     - [[#between][between]]
     - [[#many-many1][many, many1]]
+    - [[#sep-sep1][sep, sep1]]
+    - [[#sep-end-sep-end1][sep-end, sep-end1]]
+    - [[#skip][skip]]
+    - [[#peek][peek]]
+    - [[#count][count]]
+    - [[#recognize][recognize]]
   - [[#utilities][Utilities]]
 - [[#writing-your-own-parsers][Writing your own Parsers]]
 
@@ -67,7 +73,10 @@ reallocated.
 * API
 
 The examples below use =(in-package :parcom)= for brevity, but it's assumed that
-you'll use a local nickname like =pc= in your actual code.
+you'll use a local nickname like =pc= in your actual code. Further, most examples
+run the parsers with =parse=, but occasionally =funcall= is used instead to
+demonstrate what the remaining input would be after the parse succeeded. You
+will generally be using =parse= in your own code.
 
 ** Types and Running Parsers
 ** Parsers
@@ -428,6 +437,92 @@ parse succeeds or a Condition will be raised.
 
 #+RESULTS:
 : ("ovēs" "ovēs" "avis")
+
+*** sep, sep1
+
+=sep= parses 0 or more instances of a parser separated by some =sep= parser. =sep1=
+demands that at least one parse succeeds or a Condition will be raised.
+
+#+begin_src lisp :exports both :results verbatim
+(in-package :parcom)
+(parse (sep (char #\!) (string "pilum")) "pilum!pilum!pilum.")
+#+end_src
+
+#+RESULTS:
+: ("pilum" "pilum" "pilum")
+
+Critically, if a separator is detected, the parent parser must also then succeed
+or then entire combination fails. For example, this will not parse due to the =!=
+on the end:
+
+#+begin_src lisp :exports both :results verbatim
+(in-package :parcom)
+(parse (sep (char #\!) (string "pilum")) "pilum!pilum!pilum!")
+#+end_src
+
+For more lenient behaviour regarding the separator, see =sep-end=.
+
+*** sep-end, sep-end1
+
+The same as =sep=, but the separator /may/ appear at the end of the final "parent".
+Likewise, =sep-end1= demands that at least one parse of the parent succeeds.
+
+#+begin_src lisp :exports both :results verbatim
+(in-package :parcom)
+(funcall (sep-end (char #\!) (string "pilum")) "pilum!pilum!pilum!scūtum")
+#+end_src
+
+#+RESULTS:
+: #S(PARSER :INPUT "scūtum" :VALUE ("pilum" "pilum" "pilum"))
+
+*** skip
+
+Parse some parser 0 or more times, but throw away all the results.
+
+#+begin_src lisp :exports both
+(in-package :parcom)
+(parse (*> (skip (char #\!)) #'unsigned) "!!!123")
+#+end_src
+
+#+RESULTS:
+: 123
+
+*** peek
+
+Yield the value of a parser, but don't consume the input.
+
+#+begin_src lisp :exports both
+(in-package :parcom)
+(funcall (peek (string "he")) "hello")
+#+end_src
+
+#+RESULTS:
+: #S(PARSER :INPUT "hello" :VALUE "he")
+
+*** count
+
+Apply a parser a given number of times and collect the results as a list.
+
+#+begin_src lisp :exports both
+(in-package :parcom)
+(funcall (count (char #\a) 3) "aaaaaa")
+#+end_src
+
+#+RESULTS:
+: #S(PARSER :INPUT "aaa" :VALUE (#\a #\a #\a))
+
+*** recognize
+
+If the given parser was successful, return the consumed input as a string
+instead.
+
+#+begin_src lisp :exports both
+(in-package :parcom)
+(funcall (recognize (<*> (string "hi") #'unsigned)) "hi123there")
+#+end_src
+
+#+RESULTS:
+: #S(PARSER :INPUT "there" :VALUE "hi123")
 
 ** Utilities
 * Writing your own Parsers
