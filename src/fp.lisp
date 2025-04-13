@@ -2,6 +2,7 @@
 
 (in-package :parcom)
 
+#++
 (defmacro comp (function &rest functions)
   "Function composition."
   (let ((args (gensym "COMP-ARGS-"))

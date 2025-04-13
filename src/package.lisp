@@ -7,7 +7,7 @@
            #:ok #:fail #:parse
            #:empty? #:digit?)
   ;; --- Functional Programming --- ;;
-  (:export #:fmap #:const #:comp
+  (:export #:fmap #:const
            #:all #:right #:left #:instead
            #:*> #:<* #:<*> #:<$ #:alt)
   ;; --- Parsers --- ;;

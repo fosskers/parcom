@@ -55,6 +55,10 @@ reallocated.
     - [[#count][count]]
     - [[#recognize][recognize]]
   - [[#utilities][Utilities]]
+    - [[#empty][empty?]]
+    - [[#digit][digit?]]
+    - [[#fmap][fmap]]
+    - [[#const][const]]
 - [[#writing-your-own-parsers][Writing your own Parsers]]
 
 * Compatibility
@@ -79,6 +83,43 @@ demonstrate what the remaining input would be after the parse succeeded. You
 will generally be using =parse= in your own code.
 
 ** Types and Running Parsers
+
+All parsers have the function signature =string -> parser=, where =parser= is a
+struct that holds the value of the parsing success alongside the remaining input
+string.
+
+#+begin_src lisp :exports both
+(in-package :parcom)
+(funcall (string "Hello") "Hello there")
+#+end_src
+
+#+RESULTS:
+: #S(PARSER :INPUT " there" :VALUE "Hello")
+
+Of course, a parser might fail, in which case a =failure= struct is returned:
+
+#+begin_src lisp :exports both
+(in-package :parcom)
+(funcall (string "Hello") "Bye!")
+#+end_src
+
+#+RESULTS:
+: #S(FAILURE :EXPECTED "string: Hello" :ACTUAL "string: Bye!")
+
+In general though we call =parse= to fully run some combined parsers and yield
+the final output:
+
+#+begin_src lisp :exports both
+(in-package :parcom)
+(apply #'+ (parse (sep (char #\.) #'unsigned) "123.456.789!"))
+#+end_src
+
+#+RESULTS:
+: 1368
+
+=parse= otherwise ignores any final, unconsumed input. It will also raise a
+Condition if the parsing failed.
+
 ** Parsers
 
 A "parser" is a function that consumes some specific input and yields a single
@@ -452,7 +493,7 @@ demands that at least one parse succeeds or a Condition will be raised.
 : ("pilum" "pilum" "pilum")
 
 Critically, if a separator is detected, the parent parser must also then succeed
-or then entire combination fails. For example, this will not parse due to the =!=
+or the entire combination fails. For example, this will not parse due to the =!=
 on the end:
 
 #+begin_src lisp :exports both :results verbatim
@@ -525,4 +566,53 @@ instead.
 : #S(PARSER :INPUT "there" :VALUE "hi123")
 
 ** Utilities
+
+*** empty?
+
+Is a given string empty?
+
+#+begin_src lisp :exports both
+(in-package :parcom)
+(empty? "")
+#+end_src
+
+#+RESULTS:
+: T
+
+*** digit?
+
+Is a given character a number from 0 to 9?
+
+#+begin_src lisp :exports both
+(in-package :parcom)
+(digit? #\7)
+#+end_src
+
+#+RESULTS:
+: T
+
+*** fmap
+
+Apply a pure function to the inner contents of a parser.
+
+#+begin_src lisp :exports both
+(in-package :parcom)
+(fmap #'1+ (funcall #'unsigned "1"))
+#+end_src
+
+#+RESULTS:
+: #S(PARSER :INPUT "" :VALUE 2)
+
+*** const
+
+Yield a function that ignores its input and returns some original seed.
+
+#+begin_src lisp :exports both
+(in-package :parcom)
+(funcall (const 1) 5)
+#+end_src
+
+#+RESULTS:
+: 1
+
 * Writing your own Parsers
