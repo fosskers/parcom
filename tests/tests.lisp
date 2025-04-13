@@ -65,20 +65,20 @@
   (is equal "aaa" (pc:parse (pc:take-while1 (lambda (c) (equal #\a c))) "aaabbb"))
   (fail (pc:parse (pc:take-while1 (lambda (c) (equal #\a c))) "bbb")))
 
-(define-test space0
+(define-test space
   :parent parsers
-  (is equal "" (pc:parse #'pc:space0 "hi"))
-  (is equal "   " (pc:parse #'pc:space0 "   hi")))
+  (is equal "" (pc:parse #'pc:space "hi"))
+  (is equal "   " (pc:parse #'pc:space "   hi")))
 
 (define-test space1
   :parent parsers
   (is equal "   " (pc:parse #'pc:space1 "   hi"))
   (fail (pc:parse #'pc:space1 "hi")))
 
-(define-test multispace0
+(define-test multispace
   :parent parsers
   (let ((chars (concatenate 'string '(#\tab #\newline #\tab))))
-    (is equal chars (pc:parse #'pc:multispace0 chars))))
+    (is equal chars (pc:parse #'pc:multispace chars))))
 
 (define-test multispace1
   :parent parsers
@@ -88,7 +88,7 @@
 
 (define-test rest
   :parent parsers
-  (is equal '("hi" "there") (pc:parse (pc:<*> (pc:string "hi") (pc:*> #'pc:space0 #'pc:rest)) "hi there")))
+  (is equal '("hi" "there") (pc:parse (pc:<*> (pc:string "hi") (pc:*> #'pc:space #'pc:rest)) "hi there")))
 
 (define-test combinators)
 
@@ -101,23 +101,23 @@
   :parent combinators
   (is equal "Salvē" (pc:parse (pc:between (pc:char #\!) (pc:string "Salvē") (pc:char #\!)) "!Salvē!")))
 
-(define-test many0
+(define-test many
   :parent combinators
-  (is equal nil (pc:parse (pc:many0 (pc:string "ovēs")) "ovis"))
-  (is equal '("ovēs" "ovēs" "ovēs") (pc:parse (pc:many0 (pc:string "ovēs")) "ovēsovēsovēs!"))
-  (is equal '("ovēs" "ovēs" "avis") (pc:parse (pc:many0 (pc:alt (pc:string "ovēs") (pc:string "avis"))) "ovēsovēsavis!")))
+  (is equal nil (pc:parse (pc:many (pc:string "ovēs")) "ovis"))
+  (is equal '("ovēs" "ovēs" "ovēs") (pc:parse (pc:many (pc:string "ovēs")) "ovēsovēsovēs!"))
+  (is equal '("ovēs" "ovēs" "avis") (pc:parse (pc:many (pc:alt (pc:string "ovēs") (pc:string "avis"))) "ovēsovēsavis!")))
 
 (define-test many1
   :parent combinators
   (fail (pc:parse (pc:many1 (pc:string "ovēs")) "ovis"))
   (is equal '("ovēs" "ovēs" "ovēs") (pc:parse (pc:many1 (pc:string "ovēs")) "ovēsovēsovēs!")))
 
-(define-test sep0
+(define-test sep
   :parent combinators
-  (is equal nil (pc:parse (pc:sep0 (pc:char #\!) (pc:string "a")) "."))
-  (is equal '("a") (pc:parse (pc:sep0 (pc:char #\!) (pc:string "a")) "a."))
-  (is equal '("a" "a" "a") (pc:parse (pc:sep0 (pc:char #\!) (pc:string "a")) "a!a!a."))
-  (fail (pc:parse (pc:sep0 (pc:char #\!) (pc:string "a")) "a!a!a!")))
+  (is equal nil (pc:parse (pc:sep (pc:char #\!) (pc:string "a")) "."))
+  (is equal '("a") (pc:parse (pc:sep (pc:char #\!) (pc:string "a")) "a."))
+  (is equal '("a" "a" "a") (pc:parse (pc:sep (pc:char #\!) (pc:string "a")) "a!a!a."))
+  (fail (pc:parse (pc:sep (pc:char #\!) (pc:string "a")) "a!a!a!")))
 
 (define-test sep1
   :parent combinators
@@ -126,12 +126,12 @@
   (is equal '("a" "a" "a") (pc:parse (pc:sep1 (pc:char #\!) (pc:string "a")) "a!a!a."))
   (fail (pc:parse (pc:sep1 (pc:char #\!) (pc:string "a")) "a!a!a!")))
 
-(define-test sep-end0
+(define-test sep-end
   :parent combinators
-  (is equal nil (pc:parse (pc:sep-end0 (pc:char #\!) (pc:string "a")) "."))
-  (is equal '("a") (pc:parse (pc:sep-end0 (pc:char #\!) (pc:string "a")) "a."))
-  (is equal '("a" "a" "a") (pc:parse (pc:sep-end0 (pc:char #\!) (pc:string "a")) "a!a!a."))
-  (is equal '("a" "a" "a") (pc:parse (pc:sep-end0 (pc:char #\!) (pc:string "a")) "a!a!a!")))
+  (is equal nil (pc:parse (pc:sep-end (pc:char #\!) (pc:string "a")) "."))
+  (is equal '("a") (pc:parse (pc:sep-end (pc:char #\!) (pc:string "a")) "a."))
+  (is equal '("a" "a" "a") (pc:parse (pc:sep-end (pc:char #\!) (pc:string "a")) "a!a!a."))
+  (is equal '("a" "a" "a") (pc:parse (pc:sep-end (pc:char #\!) (pc:string "a")) "a!a!a!")))
 
 (define-test sep-end1
   :parent combinators

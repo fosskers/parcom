@@ -5,7 +5,7 @@ and Rust's =nom=.
 
 #+begin_src lisp :exports both
 (in-package :parcom)
-(parse (*> (string "Tempus") #'space0 (string "fugit")) "Tempus fugit.")
+(parse (*> (string "Tempus") #'space (string "fugit")) "Tempus fugit.")
 #+end_src
 
 #+RESULTS:
@@ -33,14 +33,11 @@ reallocated.
       - [[#float][float]]
     - [[#whitespace][Whitespace]]
       - [[#newline][newline]]
-      - [[#space0][space0]]
-      - [[#space1][space1]]
-      - [[#multispace0][multispace0]]
-      - [[#multispace1][multispace1]]
+      - [[#space-space1][space, space1]]
+      - [[#multispace-multispace1][multispace, multispace1]]
     - [[#taking-in-bulk][Taking in Bulk]]
       - [[#take][take]]
-      - [[#take-while][take-while]]
-      - [[#take-while1][take-while1]]
+      - [[#take-while-take-while1][take-while, take-while1]]
       - [[#rest][rest]]
   - [[#combinators][Combinators]]
     - [[#-right][*>, right]]
@@ -49,6 +46,8 @@ reallocated.
     - [[#-instead][<$, instead]]
     - [[#alt][alt]]
     - [[#opt][opt]]
+    - [[#between][between]]
+    - [[#many-many1][many, many1]]
   - [[#utilities][Utilities]]
 - [[#writing-your-own-parsers][Writing your own Parsers]]
 
@@ -190,19 +189,17 @@ Matches a single newline character.
 #+RESULTS:
 : #\Newline
 
-**** space0
+**** space, space1
 
 Parse 0 or more ASCII whitespace and tab characters.
 
 #+begin_src lisp :exports both
 (in-package :parcom)
-(length (parse #'space0 "   Salvē!"))
+(length (parse #'space "   Salvē!"))
 #+end_src
 
 #+RESULTS:
 : 3
-
-**** space1
 
 Parse 1 or more ASCII whitespace and tab characters.
 
@@ -222,19 +219,17 @@ Parse 1 or more ASCII whitespace and tab characters.
 #+RESULTS:
 : #S(FAILURE :EXPECTED "space1: at least one whitespace" :ACTUAL "Salvē!")
 
-**** multispace0
+**** multispace, multispace1
 
 Parse 0 or more ASCII whitespace, tabs, newlines, and carriage returns.
 
 #+begin_src lisp :exports both
 (in-package :parcom)
-(length (parse #'multispace0 (concatenate 'cl:string '(#\tab #\newline #\tab))))
+(length (parse #'multispace (concatenate 'cl:string '(#\tab #\newline #\tab))))
 #+end_src
 
 #+RESULTS:
 : 3
-
-**** multispace1
 
 Parse 1 or more ASCII whitespace, tabs, newlines, and carriage returns.
 
@@ -271,7 +266,7 @@ Take =n= characters from the input.
 #+RESULTS:
 : Arb
 
-**** take-while
+**** take-while, take-while1
 
 Take characters while some predicate holds.
 
@@ -283,9 +278,7 @@ Take characters while some predicate holds.
 #+RESULTS:
 : aaa
 
-**** take-while1
-
-Like =take-while=, but must yield at least one character.
+=take-while1= is like =take-while=, but must yield at least one character.
 
 #+begin_src lisp :exports both
 (in-package :parcom)
@@ -301,7 +294,7 @@ Consume the rest of the input. Always succeeds.
 
 #+begin_src lisp :exports both :results verbatim
 (in-package :parcom)
-(parse (<*> (string "Salvē") (*> #'space0 #'rest)) "Salvē domine!")
+(parse (<*> (string "Salvē") (*> #'space #'rest)) "Salvē domine!")
 #+end_src
 
 #+RESULTS:
@@ -366,7 +359,7 @@ instead with =apply=:
 *** <$, instead
 
 Run some parser, but substitute its inner value with something else if parsing
-was successful.
+was successful. =instead= is an alias.
 
 #+begin_src lisp :exports both
 (in-package :parcom)
@@ -409,6 +402,32 @@ input.
 
 #+RESULTS:
 : NIL
+
+*** between
+
+A main parser flanked by two other ones. Only the value of the main parser is
+kept. Good for parsing backets, parentheses, etc.
+
+#+begin_src lisp :exports both
+(in-package :parcom)
+(parse (between (char #\!) (string "Salvē") (char #\!)) "!Salvē!")
+#+end_src
+
+#+RESULTS:
+: Salvē
+
+*** many, many1
+
+=many= parses 0 or more occurrences of a parser. =many1= demands that at least one
+parse succeeds or a Condition will be raised.
+
+#+begin_src lisp :exports both :results verbatim
+(in-package :parcom)
+(parse (many (alt (string "ovēs") (string "avis"))) "ovēsovēsavis!")
+#+end_src
+
+#+RESULTS:
+: ("ovēs" "ovēs" "avis")
 
 ** Utilities
 * Writing your own Parsers

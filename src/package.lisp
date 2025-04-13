@@ -1,6 +1,6 @@
 (defpackage parcom
   (:use :cl)
-  (:shadow #:char #:string #:integer #:float #:count #:rest)
+  (:shadow #:char #:string #:integer #:float #:count #:rest #:space)
   ;; --- Types --- ;;
   (:export #:parser #:parser-input #:parser-value
            #:failure #:failure-expected #:failure-actual
@@ -14,11 +14,11 @@
   (:export #:any #:eof
            #:char #:string
            #:unsigned #:integer #:float
-           #:newline #:space0 #:space1 #:multispace0 #:multispace1
+           #:newline #:space #:space1 #:multispace #:multispace1
            #:take #:take-while #:take-while1 #:rest)
   ;; --- Combinators --- ;;
   (:export #:opt #:between
-           #:many0 #:many1 #:sep0 #:sep1 #:sep-end0 #:sep-end1
+           #:many #:many1 #:sep #:sep1 #:sep-end #:sep-end1
            #:skip #:peek #:count #:recognize)
   (:documentation "A simple parser combinator library."))
 

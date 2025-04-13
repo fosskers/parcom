@@ -21,8 +21,8 @@ kept. Good for parsing backets, parentheses, etc."
 #+nil
 (funcall (between (char #\!) (string "Salvē") (char #\!)) "!Salvē!")
 
-(declaim (ftype (function (maybe-parse) always-parse) many0))
-(defun many0 (parser)
+(declaim (ftype (function (maybe-parse) always-parse) many))
+(defun many (parser)
   "Parse 0 or more occurrences of a `parser'."
   (lambda (input)
     (labels ((recurse (acc in)
@@ -34,17 +34,17 @@ kept. Good for parsing backets, parentheses, etc."
       (fmap #'nreverse (recurse '() input)))))
 
 #+nil
-(funcall (many0 (string "ovēs")) "ovis")
+(funcall (many (string "ovēs")) "ovis")
 #+nil
-(funcall (many0 (string "ovēs")) "ovēsovēsovēs!")
+(funcall (many (string "ovēs")) "ovēsovēsovēs!")
 #+nil
-(funcall (many0 (alt (string "ovēs") (string "avis"))) "ovēsovēsavis!")
+(funcall (many (alt (string "ovēs") (string "avis"))) "ovēsovēsavis!")
 
 (declaim (ftype (function (maybe-parse) maybe-parse) many1))
 (defun many1 (parser)
   "Parse 1 or more occurrences of a `parser'."
   (lambda (input)
-    (let ((res (funcall (many0 parser) input)))
+    (let ((res (funcall (many parser) input)))
       (cond ((failure-p res) res)
             ((null (parser-value res)) (fail "many1: at least one success" input))
             (t res)))))
@@ -54,8 +54,8 @@ kept. Good for parsing backets, parentheses, etc."
 #+nil
 (funcall (many1 (string "ovēs")) "ovēsovēsovēs!")
 
-(declaim (ftype (function (maybe-parse maybe-parse) always-parse) sep0))
-(defun sep0 (sep parser)
+(declaim (ftype (function (maybe-parse maybe-parse) always-parse) sep))
+(defun sep (sep parser)
   "Parse 0 or more instances of a `parser' separated by some `sep' parser."
   (lambda (input)
     (labels ((recurse (acc in)
@@ -74,19 +74,19 @@ kept. Good for parsing backets, parentheses, etc."
                                              (parser-input res)))))))))
 
 #+nil
-(funcall (sep0 (char #\!) (string "pilum")) ".")
+(funcall (sep (char #\!) (string "pilum")) ".")
 #+nil
-(funcall (sep0 (char #\!) (string "pilum")) "pilum.")
+(funcall (sep (char #\!) (string "pilum")) "pilum.")
 #+nil
-(funcall (sep0 (char #\!) (string "pilum")) "pilum!pilum!pilum.")
+(funcall (sep (char #\!) (string "pilum")) "pilum!pilum!pilum.")
 #+nil
-(funcall (sep0 (char #\!) (string "pilum")) "pilum!pilum!pilum!")
+(funcall (sep (char #\!) (string "pilum")) "pilum!pilum!pilum!")
 
 (declaim (ftype (function (maybe-parse maybe-parse) maybe-parse) sep1))
 (defun sep1 (sep parser)
   "Parse 1 or more instances of a `parser' separated by some `sep' parser."
   (lambda (input)
-    (let ((res (funcall (sep0 sep parser) input)))
+    (let ((res (funcall (sep sep parser) input)))
       (cond ((failure-p res) res)
             ((null (parser-value res)) (fail "sep1: at least one success" input))
             (t res)))))
@@ -100,8 +100,8 @@ kept. Good for parsing backets, parentheses, etc."
 #+nil
 (funcall (sep1 (char #\!) (string "pilum")) "pilum!pilum!pilum!")
 
-(declaim (ftype (function (maybe-parse maybe-parse) always-parse) sep-end0))
-(defun sep-end0 (sep parser)
+(declaim (ftype (function (maybe-parse maybe-parse) always-parse) sep-end))
+(defun sep-end (sep parser)
   "Parse 0 or more instances of a `parser' separated by some `sep' parser. Parses
 the separator eagerly, such that a final instance of it will also be parsed,
 even if not followed by an instance of the main parser."
@@ -119,13 +119,13 @@ even if not followed by an instance of the main parser."
       (fmap #'nreverse (recurse '() input)))))
 
 #+nil
-(funcall (sep-end0 (char #\!) (string "pilum")) ".")
+(funcall (sep-end (char #\!) (string "pilum")) ".")
 #+nil
-(funcall (sep-end0 (char #\!) (string "pilum")) "pilum.")
+(funcall (sep-end (char #\!) (string "pilum")) "pilum.")
 #+nil
-(funcall (sep-end0 (char #\!) (string "pilum")) "pilum!pilum!pilum.")
+(funcall (sep-end (char #\!) (string "pilum")) "pilum!pilum!pilum.")
 #+nil
-(funcall (sep-end0 (char #\!) (string "pilum")) "pilum!pilum!pilum!")
+(funcall (sep-end (char #\!) (string "pilum")) "pilum!pilum!pilum!")
 
 (declaim (ftype (function (maybe-parse maybe-parse) maybe-parse) sep-end1))
 (defun sep-end1 (sep parser)
@@ -133,7 +133,7 @@ even if not followed by an instance of the main parser."
 the separator eagerly, such that a final instance of it will also be parsed,
 even if not followed by an instance of the main parser."
   (lambda (input)
-    (let ((res (funcall (sep-end0 sep parser) input)))
+    (let ((res (funcall (sep-end sep parser) input)))
       (cond ((failure-p res) res)
             ((null (parser-value res)) (fail "sep-end1: at least one success" input))
             (t res)))))

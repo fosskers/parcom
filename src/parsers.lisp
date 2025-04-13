@@ -151,18 +151,18 @@
   (setf (aref s 0) #\newline)
   (newline s))
 
-(declaim (ftype always-parse space0))
-(defun space0 (input)
+(declaim (ftype always-parse space))
+(defun space (input)
   "Parse 0 or more ASCII whitespace and tab characters."
   (funcall (take-while (lambda (c) (or (equal c #\space) (equal c #\tab)))) input))
 
 #+nil
-(funcall #'space0 "   hi")
+(funcall #'space "   hi")
 
 (declaim (ftype maybe-parse space1))
 (defun space1 (input)
   "Parse 1 or more ASCII whitespace and tab characters."
-  (let ((res (funcall #'space0 input)))
+  (let ((res (funcall #'space input)))
     (cond ((failure-p res) res)
           ((empty? (parser-value res)) (fail "space1: at least one whitespace" input))
           (t res))))
@@ -172,8 +172,8 @@
 #+nil
 (funcall #'space1 "   abc")
 
-(declaim (ftype always-parse multispace0))
-(defun multispace0 (input)
+(declaim (ftype always-parse multispace))
+(defun multispace (input)
   "Parse 0 or more ASCII whitespace, tabs, newlines, and carriage returns."
   (funcall (take-while (lambda (c)
                          (or (equal c #\space)
@@ -183,12 +183,12 @@
            input))
 
 #+nil
-(funcall #'multispace0 (concatenate 'cl:string '(#\tab #\tab #\tab)))
+(funcall #'multispace (concatenate 'cl:string '(#\tab #\tab #\tab)))
 
 (declaim (ftype maybe-parse multispace1))
 (defun multispace1 (input)
   "Parse 1 or more ASCII whitespace, tabs, newlines, and carriage returns."
-  (let ((res (funcall #'multispace0 input)))
+  (let ((res (funcall #'multispace input)))
     (cond ((failure-p res) res)
           ((empty? (parser-value res)) (fail "multispace1: at least one space-like character" input))
           (t res))))
@@ -240,4 +240,4 @@
   (ok "" input))
 
 #+nil
-(funcall (<*> (string "hi") (*> #'space0 #'rest)) "hi there")
+(funcall (<*> (string "hi") (*> #'space #'rest)) "hi there")
