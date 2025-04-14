@@ -46,8 +46,9 @@
 
 (define-test float
   :parent parsers
-  (is = 123.0456 (pc:parse #'pc:float "123.0456!"))
-  (is = -123.0456 (pc:parse #'pc:float "-123.0456!")))
+  (is = 123.0456d0 (pc:parse #'pc:float "123.0456!"))
+  (is = -123.0456d0 (pc:parse #'pc:float "-123.0456!"))
+  (is = 1.0 (pc:parse #'pc:float "1")))
 
 (define-test take
   :parent parsers

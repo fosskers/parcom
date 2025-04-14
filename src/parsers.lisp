@@ -224,8 +224,12 @@
 (declaim (ftype maybe-parse float))
 (defun float (input)
   "Parse a positive or negative floating point number."
-  (fmap (lambda (three) (read-from-string (format nil "~d.~a" (nth 0 three) (nth 2 three))))
-        (funcall (<*> #'integer (char #\.) (take-while1 #'digit?)) input)))
+  (fmap (lambda (two)
+          (if (null (nth 1 two))
+              (cl:float (car two))
+              (let ((*read-default-float-format* 'double-float))
+                (read-from-string (format nil "~d.~a" (nth 0 two) (nth 1 two))))))
+        (funcall (<*> #'integer (opt (*> (char #\.) (take-while1 #'digit?)))) input)))
 
 #+nil
 (funcall #'float "-123.0456!")
@@ -233,6 +237,8 @@
 (funcall #'float "123.0456!")
 #+nil
 (funcall #'float "123.0456123123123123!")
+#+nil
+(funcall #'float "1")
 
 (declaim (ftype always-parse rest))
 (defun rest (input)
