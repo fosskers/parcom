@@ -12,6 +12,10 @@
   :description "A simple parser combinator library."
   :in-order-to ((test-op (test-op :parcom/tests))))
 
+(defsystem "parcom/json"
+  :depends-on (:parcom)
+  :components ((:module "src" :components ((:file "json")))))
+
 (defsystem "parcom/tests"
   :depends-on (:parcom :parachute)
   :components ((:module "tests" :components ((:file "tests"))))
