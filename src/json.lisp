@@ -2,9 +2,27 @@
   (:use :cl)
   (:shadow #:array #:string #:boolean)
   (:import-from :parcom #:<*> #:<* #:*> #:<$)
-  (:local-nicknames (#:p #:parcom)))
+  (:local-nicknames (#:p #:parcom))
+  ;; --- Entry Points --- ;;
+  (:export #:parse)
+  ;; --- Parsers --- ;;
+  (:export #:json
+           #:collection #:array #:object
+           #:primitive #:string #:boolean))
 
 (in-package :parcom/json)
+
+(defun parse (input)
+  "Attempt to parse any JSON value."
+  (let ((res (json input)))
+    (etypecase res
+      (p:parser (p:parser-value res))
+      (p:failure (error "Parsing json failed. Expected: ~a, but got: ~a"
+                        (p:failure-expected res)
+                        (p:failure-actual res))))))
+
+#+nil
+(parse "{\"x\": 1, \"y\": 2, \"z\": [1, {\"a\":true}]}")
 
 (defun json (input)
   "Parser: Parse any JSON value."
