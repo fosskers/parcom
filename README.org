@@ -60,6 +60,9 @@ reallocated.
     - [[#fmap][fmap]]
     - [[#const][const]]
 - [[#writing-your-own-parsers][Writing your own Parsers]]
+  - [[#basics][Basics]]
+  - [[#parameterized-parsers][Parameterized Parsers]]
+  - [[#failure][Failure]]
 
 * Compatibility
 
@@ -616,3 +619,73 @@ Yield a function that ignores its input and returns some original seed.
 : 1
 
 * Writing your own Parsers
+
+** Basics
+
+The whole point of Parser Combinators is that it becomes simple to write your
+own parsing functions. Recall that a "fully realized" parser has the signature
+=string -> parser=. In the simplest case, a parser of yours could look like:
+
+#+begin_src lisp :exports both
+(in-package :parcom)
+
+(defun excited-apple (input)
+  (funcall (<* (string "Mālum") (char #\!)) input))
+
+(funcall #'excited-apple "Mālum! Ō!")
+#+end_src
+
+#+RESULTS:
+: #S(PARSER :INPUT " Ō!" :VALUE "Mālum")
+
+Wherein you utilize the combinators provided by this library to build up
+composite parsers that are useful to you.
+
+** Parameterized Parsers
+
+You can also parameterize your parsers, similar to parsers like =take= or
+combinators like =count=:
+
+#+begin_src lisp :exports both
+(in-package :parcom)
+
+(defun excited-apple (input)
+  (funcall (<* (string "Mālum") (char #\!)) input))
+
+(defun excited-apples (n)
+  "Parse a certain number of excited apples."
+  (lambda (input)
+    (funcall (count #'excited-apple n) input)))
+
+(funcall (excited-apples 3) "Mālum!Mālum!Mālum!Mālum!")
+#+end_src
+
+#+RESULTS:
+: #S(PARSER :INPUT "Mālum!" :VALUE ("Mālum" "Mālum" "Mālum"))
+
+So, if your parser is parameterized by some initial argument, it has to return a
+lambda that accepts an =input= string.
+
+** Failure
+
+You can use =fail= within more complex hand-written parsers to explicitly fail
+with your own diagnostics:
+
+#+begin_src lisp :exports both
+(in-package :parcom)
+
+(defun three-sad-pears (input)
+  (let ((res (funcall (many (string "Pirum trīste")) input)))
+    (cond ((failure-p res)
+           (fail "Three sad pears" "No pears at all!"))
+          ((< (length (parser-value res)) 3)
+           (fail "Three sad pears" "Not enough pears"))
+          ((> (length (parser-value res)) 3)
+           (fail "Three sad pears" "Way too many pears"))
+          (t res))))
+
+(three-sad-pears "Pirum trīste")
+#+end_src
+
+#+RESULTS:
+: #S(FAILURE :EXPECTED "Three sad pears" :ACTUAL "Not enough pears")
