@@ -689,3 +689,6 @@ with your own diagnostics:
 
 #+RESULTS:
 : #S(FAILURE :EXPECTED "Three sad pears" :ACTUAL "Not enough pears")
+
+Notice the usage of =parser-value= to access the current inner success value of
+the =parser= result. =parser-input= is likewise used to access the remaining input.

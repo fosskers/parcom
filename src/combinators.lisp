@@ -215,3 +215,12 @@ even if not followed by an instance of the main parser."
 (funcall (recognize (<*> (string "hi") (string "bye"))) "hibyethere")
 #+nil
 (funcall (recognize (<*> (string "hi") (string "bye"))) "hihi")
+
+(defun pair (p0 p1)
+  "Combinator: Parse two parsers and yield the results as a cons cell."
+  (lambda (input)
+    (fmap (lambda (list) (cons (car list) (cadr list)))
+          (funcall (<*> p0 p1) input))))
+
+#+nil
+(funcall (pair #'any #'any) "hi")

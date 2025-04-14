@@ -17,7 +17,7 @@
            #:newline #:space #:space1 #:multispace #:multispace1
            #:take #:take-while #:take-while1 #:rest)
   ;; --- Combinators --- ;;
-  (:export #:opt #:between
+  (:export #:opt #:between #:pair
            #:many #:many1 #:sep #:sep1 #:sep-end #:sep-end1
            #:skip #:peek #:count #:recognize)
   (:documentation "A simple parser combinator library."))
