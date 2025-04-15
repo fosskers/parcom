@@ -42,7 +42,7 @@
   (p:fmap (lambda (list) (coerce list 'vector))
           (funcall (p:between (*> (p:char #\[) #'p:multispace)
                               (p:sep (*> (p:char #\,) #'p:multispace)
-                                     #'json)
+                                     (<* #'json #'p:multispace))
                               (*> #'p:multispace (p:char #\])))
                    input)))
 
@@ -50,6 +50,8 @@
 (array "[]")
 #+nil
 (array "[ 1,true,3,\"hi\",[4] ]")
+#+nil
+(array "[ 1 , 2 ]")
 
 (defun object (input)
   "Parser: Parse a JSON Object as a Hash Table."
@@ -60,7 +62,8 @@
               ht))
           (funcall (p:between (*> (p:char #\{) #'p:multispace)
                               (p:sep (*> (p:char #\,) #'p:multispace)
-                                     (p:pair #'string (*> (p:char #\:)
+                                     (p:pair #'string (*> #'p:multispace
+                                                          (p:char #\:)
                                                           #'p:multispace
                                                           #'json)))
                               (*> #'p:multispace (p:char #\})))
@@ -100,7 +103,7 @@
 (null "null")
 
 #+nil
-(array (uiop:read-file-string "tests/test/pass1.json"))
+(object (uiop:read-file-string "tests/test/pass0.json"))
 
 #+nil
 (json "\"\b\f\n\r\t\"")
