@@ -1,6 +1,7 @@
 (defpackage parcom/tests
   (:use :cl :parachute)
-  (:local-nicknames (#:pc #:parcom)))
+  (:local-nicknames (#:pc #:parcom)
+                    (#:pj #:parcom/json)))
 
 (in-package :parcom/tests)
 
@@ -175,3 +176,9 @@
   (is equal '("hi") (pc:parse (pc:<*> (pc:string "hi")) "hihohum!"))
   (is equal '("hi" "ho") (pc:parse (pc:<*> (pc:string "hi") (pc:string "ho")) "hihohum!"))
   (is equal '("hi" "ho" "hum") (pc:parse (pc:<*> (pc:string "hi") (pc:string "ho") (pc:string "hum")) "hihohum!")))
+
+(define-test json)
+
+(define-test unicode
+  :parent json
+  (is equal "hēllお🐂" (pj:parse "\"hēllお🐂\"")))

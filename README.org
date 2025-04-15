@@ -642,6 +642,11 @@ Conversions:
 | Number | =float=      |
 | String | String     |
 
+As with the parent =parcom= library, =parcom/json= works strictly off of strings and
+makes no attempt to be clever or high-performance. For a more "industrial
+strength" JSON parsing library, see [[https://github.com/Zulu-Inuoe/jzon][jzon]]. The strength of =parcom/json= is in its
+simplicity and light weight.
+
 *** parse
 
 Attempt to parse any JSON value. Analogous to =parse= from the main library.
@@ -669,6 +674,16 @@ Attempt to parse any JSON value. Analogous to =parse= from the main library.
 
 #+RESULTS:
 : 1.0
+
+Non-ascii characters are supported for free:
+
+#+begin_src lisp :exports both
+(in-package :parcom/json)
+(parse "\"hēllお🐂\"")
+#+end_src
+
+#+RESULTS:
+: hēllお🐂
 
 *** json
 

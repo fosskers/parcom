@@ -1,6 +1,6 @@
 (defpackage parcom/json
   (:use :cl)
-  (:shadow #:array #:string #:boolean)
+  (:shadow #:array #:string #:boolean #:null)
   (:import-from :parcom #:<*> #:<* #:*> #:<$)
   (:local-nicknames (#:p #:parcom))
   ;; --- Entry Points --- ;;
@@ -31,7 +31,7 @@
 #+nil
 (json "{\"x\": 1, \"y\": 2, \"z\": [1, {\"a\":true}]}")
 #+nil
-(array "[1,true,3,\"hi\",[4]]")
+(json "[1,true,3,\"hi\",[4]]")
 
 (defun collection (input)
   "Parser: Parse either an Object or an Array."
@@ -71,7 +71,7 @@
 
 (defun primitive (input)
   "Parser: Parse a string, number, or boolean."
-  (funcall (p:alt #'string #'p:float #'boolean) input))
+  (funcall (p:alt #'string #'p:float #'boolean #'null) input))
 
 (defun string (input)
   "Parser: Parse any string."
@@ -91,3 +91,22 @@
 
 #+nil
 (boolean "true")
+
+(defun null (input)
+  "Parser: Parse `null' as :null."
+  (funcall (<$ :null (p:string "null")) input))
+
+#+nil
+(null "null")
+
+#+nil
+(array (uiop:read-file-string "tests/test/pass1.json"))
+
+#+nil
+(json "\"\b\f\n\r\t\"")
+
+#+nil
+(json "1.234567890E+34")
+
+#+nil
+(json "\"\u0123\u4567\u89AB\uCDEF\uabcd\uef4A\"")
