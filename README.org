@@ -59,6 +59,9 @@ reallocated.
     - [[#digit][digit?]]
     - [[#fmap][fmap]]
     - [[#const][const]]
+  - [[#json][JSON]]
+    - [[#parse][parse]]
+    - [[#json-1][json]]
 - [[#writing-your-own-parsers][Writing your own Parsers]]
   - [[#basics][Basics]]
   - [[#parameterized-parsers][Parameterized Parsers]]
@@ -617,6 +620,67 @@ Yield a function that ignores its input and returns some original seed.
 
 #+RESULTS:
 : 1
+** JSON
+
+By depending on the optional =parcom/json= system, you can parse simple JSON or
+include parcom-compatible JSON parsers into your own custom parsing code.
+
+=(in-package :parcom/json)= is used below for brevity, but it's assumed that in
+your own code you will use a nickname, perhaps =pj=.
+
+If you don't care about the individual parsers per se and just want to simply
+parse some JSON, use =parse=.
+
+Conversions:
+
+| JSON   | Lisp       |
+|--------+------------|
+| =true=   | =T=          |
+| =false=  | =NIL=        |
+| Array  | Vector     |
+| Object | Hash Table |
+| Number | =float=      |
+| String | String     |
+
+*** parse
+
+Attempt to parse any JSON value. Analogous to =parse= from the main library.
+
+#+begin_src lisp :exports both
+(in-package :parcom/json)
+(parse "{\"x\": 1, \"y\": 2, \"z\": [1, {\"a\":true}]}")
+#+end_src
+
+#+RESULTS:
+: #<HASH-TABLE :TEST EQUAL :COUNT 3 {100985EBF3}>
+
+#+begin_src lisp :exports both :results verbatim
+(in-package :parcom/json)
+(parse "[1,true,3,\"hi\",[4]]")
+#+end_src
+
+#+RESULTS:
+: #(1.0 T 3.0 "hi" #(4.0))
+
+#+begin_src lisp :exports both
+(in-package :parcom/json)
+(parse "1")
+#+end_src
+
+#+RESULTS:
+: 1.0
+
+*** json
+
+Parse any kind of JSON (the actual parser).
+
+#+begin_src lisp :exports both
+(in-package :parcom/json)
+(json "{\"x\": 1, \"y\": 2, \"z\": [1, {\"a\":true}]}  ")
+#+end_src
+
+#+RESULTS:
+: #S(P:PARSER :INPUT "  " :VALUE #<HASH-TABLE :TEST EQUAL :COUNT 3 {1009D16A63}>)
 
 * Writing your own Parsers
 

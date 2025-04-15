@@ -30,6 +30,8 @@
 
 #+nil
 (json "{\"x\": 1, \"y\": 2, \"z\": [1, {\"a\":true}]}")
+#+nil
+(array "[1,true,3,\"hi\",[4]]")
 
 (defun collection (input)
   "Parser: Parse either an Object or an Array."
