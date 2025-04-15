@@ -44,7 +44,7 @@
                               :displaced-index-offset 1)
                   head)
               (fail (format nil "character: ~a" c)
-                  (format nil "character: ~a" head)))))))
+                    (format nil "character: ~a" head)))))))
 
 #++
 (funcall (char #\H) "Hello")
@@ -61,7 +61,7 @@
           (leni (length input)))
       (if (> lens leni)
           (fail (format nil "string: ~a" s)
-              (format nil "string: ~a" input))
+                (format nil "string: ~a" input))
           (let ((subs (make-array lens
                                   :element-type 'character
                                   :displaced-to input)))
@@ -72,7 +72,7 @@
                                 :displaced-index-offset lens)
                     subs)
                 (fail (format nil "string: ~a" s)
-                    (format nil "string: ~a" subs))))))))
+                      (format nil "string: ~a" subs))))))))
 
 #++
 (funcall (string "") "a")
@@ -201,9 +201,13 @@
   "Parse a positive integer."
   (let ((res (funcall (take-while1 #'digit?) input)))
     (cond ((failure-p res) res)
-          ((char-equal #\0 (aref (parser-value res) 0)) (fail "unsigned: an integer not starting with 0" (parser-value res)))
+          ((and (char-equal #\0 (aref (parser-value res) 0))
+                (> (length (parser-value res)) 1))
+           (fail "unsigned: an integer not starting with 0" (parser-value res)))
           (t (fmap #'read-from-string res)))))
 
+#+nil
+(unsigned "0!")
 #+nil
 (unsigned "0123!")
 #+nil

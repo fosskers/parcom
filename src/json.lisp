@@ -8,7 +8,7 @@
   ;; --- Parsers --- ;;
   (:export #:json
            #:collection #:array #:object
-           #:primitive #:string #:boolean))
+           #:primitive #:string #:boolean #:null))
 
 (in-package :parcom/json)
 

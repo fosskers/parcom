@@ -36,6 +36,7 @@
 (define-test unsigned
   :parent parsers
   (fail (pc:parse #'pc:unsigned "0123"))
+  (is = 0 (pc:parse #'pc:unsigned "0"))
   (is = 123 (pc:parse #'pc:unsigned "123"))
   (is = 1234567890123456789 (pc:parse #'pc:unsigned "1234567890123456789"))
   (is = 123456789012345678901234567890 (pc:parse #'pc:unsigned "123456789012345678901234567890")))
@@ -49,7 +50,8 @@
   :parent parsers
   (is = 123.0456d0 (pc:parse #'pc:float "123.0456!"))
   (is = -123.0456d0 (pc:parse #'pc:float "-123.0456!"))
-  (is = 1.0 (pc:parse #'pc:float "1")))
+  (is = 1.0 (pc:parse #'pc:float "1"))
+  (is = 0.0 (pc:parse #'pc:float "0")))
 
 (define-test take
   :parent parsers
