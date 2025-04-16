@@ -8,7 +8,7 @@
   ;; --- Parsers --- ;;
   (:export #:json
            #:collection #:array #:object
-           #:primitive #:string #:boolean #:null))
+           #:primitive #:string #:boolean #:scientific #:null))
 
 (in-package :parcom/json)
 
@@ -104,6 +104,7 @@
               (read-from-string s)))
           (funcall (p:recognize (p:pair #'p:float
                                         (p:opt (*> (p:alt (p:char #\E) (p:char #\e))
+                                                   (p:opt (p:alt (p:char #\+) (p:char #\-)))
                                                    #'p:unsigned))))
                    input)))
 

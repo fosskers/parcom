@@ -641,7 +641,7 @@ Conversions:
 | Object | Hash Table |
 | Number | =float=      |
 | String | String     |
-| =null=   | =:null=      |
+| =null=   | =:NULL=    |
 
 As with the parent =parcom= library, =parcom/json= works strictly off of strings and
 makes no attempt to be clever or high-performance. For a more "industrial
