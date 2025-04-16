@@ -76,7 +76,7 @@
 
 (defun primitive (input)
   "Parser: Parse a string, number, or boolean."
-  (funcall (p:alt #'string #'p:float #'boolean #'null) input))
+  (funcall (p:alt #'string #'scientific #'boolean #'null) input))
 
 (defun string (input)
   "Parser: Parse any string."
@@ -96,6 +96,22 @@
 
 #+nil
 (boolean "true")
+
+(defun scientific (input)
+  "Parser: Parse a JSON number in scientific notation."
+  (p:fmap (lambda (s)
+            (let ((*read-default-float-format* 'double-float))
+              (read-from-string s)))
+          (funcall (p:recognize (p:pair #'p:float
+                                        (p:opt (*> (p:alt (p:char #\E) (p:char #\e))
+                                                   #'p:unsigned))))
+                   input)))
+
+#+nil
+(scientific "23456789012E66   ")
+
+(let ((*read-default-float-format* 'double-float))
+  (read-from-string "1.23e4"))
 
 (defun null (input)
   "Parser: Parse `null' as :null."

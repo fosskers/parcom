@@ -51,7 +51,8 @@
   (is = 123.0456d0 (pc:parse #'pc:float "123.0456!"))
   (is = -123.0456d0 (pc:parse #'pc:float "-123.0456!"))
   (is = 1.0 (pc:parse #'pc:float "1"))
-  (is = 0.0 (pc:parse #'pc:float "0")))
+  (is = 0.0 (pc:parse #'pc:float "0"))
+  (is = 2.3456789012d10 (pc:parse #'pc:float "23456789012")))
 
 (define-test take
   :parent parsers
@@ -197,6 +198,9 @@
   :parent json
   (is equal "hēllお🐂" (pj:parse "\"hēllお🐂\"")))
 
-(define-test misc
+(define-test numbers
   :parent json
-  (is = 0.0 (pj:parse "0")))
+  (is = 0.0 (pj:parse "0"))
+  (is = 1234567890.0d0 (pj:parse "1234567890"))
+  (is = -9876.543210d0 (pj:parse "-9876.543210"))
+  (is = 23456789012d66 (pj:parse "23456789012E66")))
