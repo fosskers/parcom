@@ -20,9 +20,22 @@
   (:export #:opt #:between #:pair
            #:many #:many1 #:sep #:sep1 #:sep-end #:sep-end1
            #:skip #:peek #:count #:recognize)
+  ;; --- Conditions --- ;;
+  (:export #:parse-failure)
   (:documentation "A simple parser combinator library."))
 
 (in-package :parcom)
+
+;; --- Conditions --- ;;
+
+(define-condition parse-failure (error)
+  ((expected :initarg expected :reader parse-failure-expected)
+   (actual   :initarg actual   :reader parse-failure-actual))
+  (:documentation "Some parsing failed, so we render why.")
+  (:report (lambda (c stream)
+             (format stream "Expected:~%  ~a~%Actual:~%  ~a"
+                     (parse-failure-expected c)
+                     (parse-failure-actual c)))))
 
 ;; --- Types --- ;;
 
@@ -49,6 +62,8 @@
   (actual   nil :type cl:string))
 
 (defun fail (exp act)
+  "It's assumed that you pass back the entire remaining input as the 'actual' value.
+Error reporting code will check the length of this and truncate it if necessary."
   (make-failure :expected exp :actual act))
 
 (defun parse (parser input)
@@ -56,9 +71,14 @@
   (let ((res (funcall parser input)))
     (etypecase res
       (parser  (parser-value res))
-      (failure (error "Parsing failed. Expected: ~a, but got: ~a"
-                      (failure-expected res)
-                      (failure-actual res))))))
+      (failure (error 'parse-failure
+                      :expected (failure-expected res)
+                      :actual (if (< (length (failure-actual res)) 16)
+                                  (failure-actual res)
+                                  (format nil "~a ... (truncated)"
+                                          (make-array 16
+                                                      :element-type 'character
+                                                      :displaced-to (failure-actual res)))))))))
 
 ;; --- Utilities --- ;;
 

@@ -141,7 +141,7 @@ successful."
     `(lambda (,input)
        ,(labels ((recurse (ps)
                    (if (null ps)
-                       `(fail "alt: something to succeed" "alt: each failed")
+                       `(fail "alt: something to succeed" ,input)
                        `(let ((res (funcall ,(car ps) ,input)))
                           (etypecase res
                             (parser res)

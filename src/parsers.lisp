@@ -6,7 +6,7 @@
 (defun any (input)
   "Accept any character."
   (if (empty? input)
-      (fail "any char" "end of input")
+      (fail "any char" input)
       (ok (make-array (1- (length input))
                       :element-type 'character
                       :displaced-to input
@@ -35,7 +35,7 @@
   "Parse a given character."
   (lambda (input)
     (if (empty? input)
-        (fail (format nil "character: ~a" c) "end of input")
+        (fail (format nil "character: ~a" c) input)
         (let ((head (aref input 0)))
           (if (equal c head)
               (ok (make-array (1- (length input))
@@ -43,8 +43,7 @@
                               :displaced-to input
                               :displaced-index-offset 1)
                   head)
-              (fail (format nil "character: ~a" c)
-                    (format nil "character: ~a" head)))))))
+              (fail (format nil "character: ~a" c) input))))))
 
 #++
 (funcall (char #\H) "Hello")
@@ -60,8 +59,7 @@
     (let ((lens (length s))
           (leni (length input)))
       (if (> lens leni)
-          (fail (format nil "string: ~a" s)
-                (format nil "string: ~a" input))
+          (fail (format nil "string: ~a" s) input)
           (let ((subs (make-array lens
                                   :element-type 'character
                                   :displaced-to input)))
@@ -71,8 +69,7 @@
                                 :displaced-to input
                                 :displaced-index-offset lens)
                     subs)
-                (fail (format nil "string: ~a" s)
-                      (format nil "string: ~a" subs))))))))
+                (fail (format nil "string: ~a" s) input)))))))
 
 #++
 (funcall (string "") "a")
@@ -203,7 +200,7 @@
     (cond ((failure-p res) res)
           ((and (char-equal #\0 (aref (parser-value res) 0))
                 (> (length (parser-value res)) 1))
-           (fail "unsigned: an integer not starting with 0" (parser-value res)))
+           (fail "unsigned: an integer not starting with 0" input))
           (t (fmap #'read-from-string res)))))
 
 #+nil
