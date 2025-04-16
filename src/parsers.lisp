@@ -227,7 +227,7 @@
   "Parse a positive or negative floating point number."
   (fmap (lambda (two)
           (if (null (nth 1 two))
-              (cl:float (car two))
+              (cl:float (car two) 1.0d0)
               (let ((*read-default-float-format* 'double-float))
                 (read-from-string (format nil "~d.~a" (nth 0 two) (nth 1 two))))))
         (funcall (<*> #'integer (opt (*> (char #\.) (take-while1 #'digit?)))) input)))
