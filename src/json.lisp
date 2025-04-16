@@ -65,12 +65,14 @@
                                      (p:pair #'string (*> #'p:multispace
                                                           (p:char #\:)
                                                           #'p:multispace
-                                                          #'json)))
+                                                          (<* #'json #'p:multispace))))
                               (*> #'p:multispace (p:char #\})))
                    input)))
 
 #+nil
 (object "{\"x\": 1, \"y\": 2}")
+#+nil
+(object "{ \"x\" : 1 , \"y\":2 } ")
 
 (defun primitive (input)
   "Parser: Parse a string, number, or boolean."

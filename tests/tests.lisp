@@ -183,13 +183,17 @@
 
 (define-test objects
   :parent json
-  (true (hash-table-p (pj:parse "{\"x\" : 1, \"y\":2}"))))
+  (is = 0 (hash-table-count (pj:parse "{}")))
+  (true (hash-table-p (pj:parse "{\"x\": 1, \"y\": 2}")))
+  (true (hash-table-p (pj:parse "{ \"x\" : 1 , \"y\":2}"))))
 
 (define-test arrays
   :parent json
+  (is equalp #() (pj:parse "[]"))
+  (is equalp #(1.0 2.0) (pj:parse "[1, 2]"))
   (is equalp #(1.0 2.0) (pj:parse "[ 1 , 2 ]")))
 
-(define-test unicode
+(define-test non-ascii
   :parent json
   (is equal "hēllお🐂" (pj:parse "\"hēllお🐂\"")))
 
