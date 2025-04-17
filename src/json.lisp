@@ -80,7 +80,7 @@
 
 (defun compound-char (input)
   "Parser: Parse a char while being wary of escaping."
-  (funcall (p:alt #'special-char #'control-char (p:anybut #\")) input))
+  (funcall (p:alt #'special-char #'control-char #'unicode (p:anybut #\")) input))
 
 (defun special-char (input)
   "Parser: Backslashes and quotes."
@@ -108,6 +108,24 @@
 #+nil
 (control-char "\\n")
 
+(defun unicode (input)
+  "Parser: Parse a unicode char of 4 hex values."
+  (p:fmap (lambda (chars)
+            (destructuring-bind (a b c d) chars
+              (code-char (+ (* 4096 (digit-char-p a 16))
+                            (* 256 (digit-char-p b 16))
+                            (* 16 (digit-char-p c 16))
+                            (digit-char-p d 16)))))
+          (funcall (*> (p:char #\\)
+                       (p:alt (p:char #\u) (p:char #\U))
+                       (p:count 4 #'p:hex))
+                   input)))
+
+#+nil
+(unicode "\\u0022")
+#+nil
+(unicode "\\U0022")
+
 (defun string (input)
   "Parser: Parse any string."
   (p:fmap (lambda (chars) (concatenate 'cl:string chars))
@@ -120,6 +138,8 @@
 (string "\"Hel\\tlo\"")
 #+nil
 (string "\"\\\"\"")
+#+nil
+(string "\"Hi \\u03B1\"")
 
 (defun boolean (input)
   "Parser: Parse `true' as T and `false' as NIL."
@@ -155,10 +175,4 @@
 (null "null")
 
 #+nil
-(object (uiop:read-file-string "tests/test/pass0.json"))
-
-#+nil
-(json "\"\\b\\f\\n\\r\\t\"")
-
-#+nil
-(json "\"\\u0123\\u4567\\u89AB\\uCDEF\\uabcd\\uef4A\"")
+(parse (uiop:read-file-string "tests/data/pass0.json"))

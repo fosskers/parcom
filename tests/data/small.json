@@ -1,0 +1,38 @@
+{
+  "id": "2489651053",
+  "type": "PushEvent",
+  "actor": {
+    "id": 6339799,
+    "login": "izuzero",
+    "gravatar_id": "",
+    "url": "https://api.github.com/users/izuzero",
+    "avatar_url": "https://avatars.githubusercontent.com/u/6339799?"
+  },
+  "repo": {
+    "id": 28270952,
+    "name": "izuzero/xe-module-ajaxboard",
+    "url": "https://api.github.com/repos/izuzero/xe-module-ajaxboard"
+  },
+  "payload": {
+    "push_id": 536863972,
+    "size": 1,
+    "distinct_size": 1,
+    "ref": "refs/heads/develop",
+    "head": "ec819b9df4fe612bb35bf562f96810bf991f9975",
+    "before": "590433109f221a96cf19ea7a7d9a43ca333e3b3e",
+    "commits": [
+      {
+        "sha": "ec819b9df4fe612bb35bf562f96810bf991f9975",
+        "author": {
+          "email": "df05f55543db3c62cf64f7438018ec37f3605d3c@gmail.com",
+          "name": "Eunsoo Lee"
+        },
+        "message": "#20 게시글 및 댓글 삭제 시 새로고침이 되는 문제 해결\n\n원래 의도는 새로고침이 되지 않고 확인창만으로 해결되어야 함.\n기본 게시판 대응 플러그인에서 발생한 이슈.",
+        "distinct": true,
+        "url": "https://api.github.com/repos/izuzero/xe-module-ajaxboard/commits/ec819b9df4fe612bb35bf562f96810bf991f9975"
+      }
+    ]
+  },
+  "public": true,
+  "created_at": "2015-01-01T15:00:01Z"
+}
