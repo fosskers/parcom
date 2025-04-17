@@ -78,15 +78,60 @@
   "Parser: Parse a string, number, or boolean."
   (funcall (p:alt #'string #'scientific #'boolean #'null) input))
 
+(defun compound-char (input)
+  "Parser: Parse a char while being wary of escaping."
+  (funcall (p:alt #'special-char #'control-char) input))
+
+(defun special-char (input)
+  "Parser: Backslashes and quotes."
+  (funcall (*> (p:char #\\)
+               (p:alt (p:char #\\) (p:char #\") (p:char #\')))
+           input))
+
+#+nil
+(special-char "\\\\")
+#+nil
+(special-char "\\\"")
+#+nil
+(special-char "\\'")
+
+(defun control-char (input)
+  "Parser: Newlines and whatnot."
+  (funcall (*> (p:char #\\)
+               (p:alt (<$ #\newline (p:char #\n))
+                      (<$ #\tab (p:char #\t))
+                      (<$ #\return (p:char #\r))
+                      (<$ #\backspace (p:char #\b))
+                      (<$ #\formfeed (p:char #\f))))
+           input))
+
+#+nil
+(control-char "\\n")
+
 (defun string (input)
   "Parser: Parse any string."
   (funcall (p:between (p:char #\")
+                      (p:many #'compound-char)
+                      (p:char #\"))
+           input))
+
+#+nil
+(defun string (input)
+  "Parser: Parse any string."
+  (funcall (p:between (p:char #\")
+                      ;; TODO: Here. New "compound char" parser?
                       (p:take-while (lambda (c) (not (equal #\" c))))
                       (p:char #\"))
            input))
 
 #+nil
 (string "\"Hello\"")
+#+nil
+(string "\"\\\"\"")
+#+nil
+"\"\\\"\""
+#+nil
+"\\\\"
 
 (defun boolean (input)
   "Parser: Parse `true' as T and `false' as NIL."
@@ -125,10 +170,7 @@
 (object (uiop:read-file-string "tests/test/pass0.json"))
 
 #+nil
-(json "\"\b\f\n\r\t\"")
+(json "\"\\b\\f\\n\\r\\t\"")
 
 #+nil
-(json "1.234567890E+34")
-
-#+nil
-(json "\"\u0123\u4567\u89AB\uCDEF\uabcd\uef4A\"")
+(json "\"\\u0123\\u4567\\u89AB\\uCDEF\\uabcd\\uef4A\"")
