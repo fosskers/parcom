@@ -11,7 +11,7 @@
            #:all #:right #:left #:instead
            #:*> #:<* #:<*> #:<$ #:alt)
   ;; --- Parsers --- ;;
-  (:export #:any #:anybut #:eof
+  (:export #:any #:anybut #:hex #:eof
            #:char #:string
            #:unsigned #:integer #:float
            #:newline #:space #:space1 #:multispace #:multispace1
@@ -97,3 +97,15 @@ Error reporting code will check the length of this and truncate it if necessary.
 
 #+nil
 (digit? #\7)
+
+(declaim (ftype (function (character) boolean) hex?))
+(defun hex? (char)
+  "Is a given character a hex digit?"
+  (or (digit? char)
+      (char<= #\a char #\f)
+      (char<= #\A char #\F)))
+
+#+nil
+(hex? #\7)
+#+nil
+(hex? #\J)

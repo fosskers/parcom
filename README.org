@@ -27,6 +27,7 @@ reallocated.
       - [[#string][string]]
       - [[#any][any]]
       - [[#anybut][anybut]]
+      - [[#hex][hex]]
       - [[#eof][eof]]
     - [[#numbers][Numbers]]
       - [[#unsigned][unsigned]]
@@ -188,6 +189,18 @@ Parse any character expect the one you don't want.
 
 #+RESULTS:
 : #S(FAILURE :EXPECTED "anybut: not H" :ACTUAL "Hello there!")
+
+**** hex
+
+Parse a hex character of any case.
+
+#+begin_src lisp :exports both
+(in-package :parcom)
+(funcall (many #'hex) "abcd0efgh")
+#+end_src
+
+#+RESULTS:
+: #S(PARSER :INPUT "gh" :VALUE (#\a #\b #\c #\d #\0 #\e #\f))
 
 **** eof
 

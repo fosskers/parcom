@@ -31,6 +31,16 @@
 #+nil
 (funcall (anybut #\") "\"hi")
 
+(defun hex (input)
+  "Parser: A hex character of any case."
+  (let ((res (any input)))
+    (cond ((failure-p res) res)
+          ((hex? (parser-value res)) res)
+          (t (fail "hex: 0-9 or A-F" input)))))
+
+#+nil
+(funcall (many #'hex) "abcdefgh")
+
 (declaim (ftype maybe-parse eof))
 (defun eof (input)
   "Recognize the end of the input."
