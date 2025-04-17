@@ -18,6 +18,19 @@
 #++
 (any "")
 
+(defun anybut (char)
+  "Parser: Any character except the given one."
+  (lambda (input)
+    (let ((res (any input)))
+      (cond ((failure-p res) res)
+            ((eql char (parser-value res)) (fail (format nil "anybut: not ~a" char) input))
+            (t res)))))
+
+#+nil
+(funcall (anybut #\") "hi")
+#+nil
+(funcall (anybut #\") "\"hi")
+
 (declaim (ftype maybe-parse eof))
 (defun eof (input)
   "Recognize the end of the input."

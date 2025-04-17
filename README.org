@@ -26,6 +26,7 @@ reallocated.
       - [[#char][char]]
       - [[#string][string]]
       - [[#any][any]]
+      - [[#anybut][anybut]]
       - [[#eof][eof]]
     - [[#numbers][Numbers]]
       - [[#unsigned][unsigned]]
@@ -167,6 +168,26 @@ Parse any character.
 
 #+RESULTS:
 : #\H
+
+**** anybut
+
+Parse any character expect the one you don't want.
+
+#+begin_src lisp :exports both
+(in-package :parcom)
+(parse (anybut #\!) "Hello there!")
+#+end_src
+
+#+RESULTS:
+: #\H
+
+#+begin_src lisp :exports both
+(in-package :parcom)
+(funcall (anybut #\H) "Hello there!")
+#+end_src
+
+#+RESULTS:
+: #S(FAILURE :EXPECTED "anybut: not H" :ACTUAL "Hello there!")
 
 **** eof
 
@@ -620,7 +641,7 @@ Yield a function that ignores its input and returns some original seed.
 
 #+RESULTS:
 : 1
-** JSON
+** TODO JSON
 
 By depending on the optional =parcom/json= system, you can parse simple JSON or
 include parcom-compatible JSON parsers into your own custom parsing code.

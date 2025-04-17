@@ -11,7 +11,7 @@
            #:all #:right #:left #:instead
            #:*> #:<* #:<*> #:<$ #:alt)
   ;; --- Parsers --- ;;
-  (:export #:any #:eof
+  (:export #:any #:anybut #:eof
            #:char #:string
            #:unsigned #:integer #:float
            #:newline #:space #:space1 #:multispace #:multispace1
