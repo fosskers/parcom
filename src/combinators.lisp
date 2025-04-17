@@ -177,8 +177,8 @@ even if not followed by an instance of the main parser."
 #+nil
 (funcall (peek (string "he")) "hello")
 
-(declaim (ftype (function (maybe-parse fixnum) maybe-parse) count))
-(defun count (parser n)
+(declaim (ftype (function (fixnum maybe-parse) maybe-parse) count))
+(defun count (n parser)
   "Apply a `parser' a given number of times."
   (lambda (input)
     (labels ((recurse (acc m i)
@@ -193,11 +193,11 @@ even if not followed by an instance of the main parser."
       (recurse '() n input))))
 
 #+nil
-(funcall (count (char #\a) 3) "aaaaaa")
+(funcall (count 3 (char #\a)) "aaaaaa")
 #+nil
-(funcall (count (char #\a) 3) "aa")
+(funcall (count 3 (char #\a)) "aa")
 #+nil
-(funcall (count (char #\a) 0) "aa")
+(funcall (count 0 (char #\a)) "aa")
 
 (declaim (ftype (function (maybe-parse) maybe-parse) recognize))
 (defun recognize (parser)

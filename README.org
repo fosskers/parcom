@@ -586,7 +586,7 @@ Apply a parser a given number of times and collect the results as a list.
 
 #+begin_src lisp :exports both
 (in-package :parcom)
-(funcall (count (char #\a) 3) "aaaaaa")
+(funcall (count 3 (char #\a)) "aaaaaa")
 #+end_src
 
 #+RESULTS:

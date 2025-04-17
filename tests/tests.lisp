@@ -157,9 +157,9 @@
 
 (define-test count
   :parent combinators
-  (is equal '() (pc:parse (pc:count (pc:char #\a) 0) "aa"))
-  (is equal '(#\a #\a #\a) (pc:parse (pc:count (pc:char #\a) 3) "aaaaaa"))
-  (fail (pc:parse (pc:count (pc:char #\a) 3) "aa")))
+  (is equal '() (pc:parse (pc:count 0 (pc:char #\a)) "aa"))
+  (is equal '(#\a #\a #\a) (pc:parse (pc:count 3 (pc:char #\a)) "aaaaaa"))
+  (fail (pc:parse (pc:count 3 (pc:char #\a)) "aa")))
 
 (define-test recognize
   :parent combinators
