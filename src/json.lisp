@@ -80,7 +80,7 @@
 
 (defun compound-char (input)
   "Parser: Parse a char while being wary of escaping."
-  (funcall (p:alt #'special-char #'control-char) input))
+  (funcall (p:alt #'special-char #'control-char (p:anybut #\")) input))
 
 (defun special-char (input)
   "Parser: Backslashes and quotes."
@@ -110,28 +110,16 @@
 
 (defun string (input)
   "Parser: Parse any string."
-  (funcall (p:between (p:char #\")
-                      (p:many #'compound-char)
-                      (p:char #\"))
-           input))
+  (p:fmap (lambda (chars) (concatenate 'cl:string chars))
+          (funcall (p:between (p:char #\")
+                              (p:many #'compound-char)
+                              (p:char #\"))
+                   input)))
 
 #+nil
-(defun string (input)
-  "Parser: Parse any string."
-  (funcall (p:between (p:char #\")
-                      ;; TODO: Here. New "compound char" parser?
-                      (p:take-while (lambda (c) (not (equal #\" c))))
-                      (p:char #\"))
-           input))
-
-#+nil
-(string "\"Hello\"")
+(string "\"Hel\\tlo\"")
 #+nil
 (string "\"\\\"\"")
-#+nil
-"\"\\\"\""
-#+nil
-"\\\\"
 
 (defun boolean (input)
   "Parser: Parse `true' as T and `false' as NIL."
