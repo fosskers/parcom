@@ -102,7 +102,7 @@
                       (<$ #\tab (p:char #\t))
                       (<$ #\return (p:char #\r))
                       (<$ #\backspace (p:char #\b))
-                      (<$ #\formfeed (p:char #\f))))
+                      (<$ #\page (p:char #\f))))
            input))
 
 #+nil
