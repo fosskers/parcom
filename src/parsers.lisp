@@ -131,19 +131,17 @@
   "Take characters while some predicate holds."
   (lambda (input)
     (declare (optimize (speed 3) (safety 0)))
-    (let ((len (length input)))
-      (labels ((recurse (n)
-                 (cond ((>= n len) len)
-                       ((funcall p (cl:char input n)) (recurse (1+ n)))
-                       (t n))))
-        (let ((keep (recurse 0)))
-          (ok (make-array (- len keep)
-                          :element-type 'character
-                          :displaced-to input
-                          :displaced-index-offset keep)
-              (make-array keep
-                          :element-type 'character
-                          :displaced-to input)))))))
+    (let* ((len (length input))
+           (keep (loop :for i :from 0 :below len
+                       :while (funcall p (cl:char input i))
+                       :finally (return i))))
+      (ok (make-array (- len keep)
+                      :element-type 'character
+                      :displaced-to input
+                      :displaced-index-offset keep)
+          (make-array keep
+                      :element-type 'character
+                      :displaced-to input)))))
 
 #+nil
 (funcall (take-while (lambda (c) (equal #\a c))) "bbb")
@@ -241,8 +239,8 @@
 (declaim (ftype maybe-parse integer))
 (defun integer (input)
   "Parse a positive or negative integer."
-  (fmap (lambda (pair) (if (null (car pair)) (nth 1 pair) (- (nth 1 pair))))
-        (funcall (<*> (opt (char #\-)) #'unsigned) input)))
+  (fmap (lambda (pair) (if (null (car pair)) (cdr pair) (- (cdr pair))))
+        (funcall (pair (opt (char #\-)) #'unsigned) input)))
 
 #+nil
 (integer "123!")
