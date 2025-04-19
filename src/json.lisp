@@ -169,6 +169,7 @@
 #+nil
 (scientific "23456789012E66   ")
 
+#+nil
 (let ((*read-default-float-format* 'double-float))
   (read-from-string "1.23e4"))
 

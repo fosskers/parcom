@@ -25,6 +25,7 @@ kept. Good for parsing backets, parentheses, etc."
 (defun many (parser)
   "Parse 0 or more occurrences of a `parser'."
   (lambda (input)
+    (declare (optimize (speed 3)))
     (labels ((recurse (acc in)
                (let ((res (funcall parser in)))
                  (etypecase res

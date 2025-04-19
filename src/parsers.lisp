@@ -5,13 +5,14 @@
 (declaim (ftype maybe-parse any))
 (defun any (input)
   "Accept any character."
+  (declare (optimize (speed 3) (safety 0)))
   (if (empty? input)
       (fail "any char" input)
       (ok (make-array (1- (length input))
                       :element-type 'character
                       :displaced-to input
                       :displaced-index-offset 1)
-          (aref input 0))))
+          (cl:char input 0))))
 
 #++
 (any "hello")
@@ -62,7 +63,7 @@
     (declare (optimize (speed 3) (safety 0)))
     (if (empty? input)
         (fail (format nil "character: ~a" c) input)
-        (let ((head (aref input 0)))
+        (let ((head (cl:char input 0)))
           (if (equal c head)
               (ok (make-array (1- (length input))
                               :element-type 'character
@@ -129,10 +130,11 @@
 (defun take-while (p)
   "Take characters while some predicate holds."
   (lambda (input)
+    (declare (optimize (speed 3) (safety 0)))
     (let ((len (length input)))
       (labels ((recurse (n)
                  (cond ((>= n len) len)
-                       ((funcall p (aref input n)) (recurse (1+ n)))
+                       ((funcall p (cl:char input n)) (recurse (1+ n)))
                        (t n))))
         (let ((keep (recurse 0)))
           (ok (make-array (- len keep)
@@ -224,7 +226,7 @@
   "Parse a positive integer."
   (let ((res (funcall (take-while1 #'digit?) input)))
     (cond ((failure-p res) res)
-          ((and (char-equal #\0 (aref (parser-value res) 0))
+          ((and (char-equal #\0 (cl:char (parser-value res) 0))
                 (> (length (parser-value res)) 1))
            (fail "unsigned: an integer not starting with 0" input))
           (t (fmap #'read-from-string res)))))
