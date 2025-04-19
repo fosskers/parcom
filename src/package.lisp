@@ -58,8 +58,8 @@
 
 (defstruct failure
   "The result of some failed parsing."
-  (expected nil :type cl:string)
-  (actual   nil :type cl:string))
+  expected
+  (actual nil :type cl:string))
 
 (defun fail (exp act)
   "It's assumed that you pass back the entire remaining input as the 'actual' value.

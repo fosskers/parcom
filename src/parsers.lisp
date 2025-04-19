@@ -25,7 +25,7 @@
   (lambda (input)
     (let ((res (any input)))
       (cond ((failure-p res) res)
-            ((eql char (parser-value res)) (fail (format nil "anybut: not ~a" char) input))
+            ((eql char (parser-value res)) (fail char input))
             (t res)))))
 
 #+nil
@@ -62,7 +62,7 @@
   (lambda (input)
     (declare (optimize (speed 3) (safety 0)))
     (if (empty? input)
-        (fail (format nil "character: ~a" c) input)
+        (fail c input)
         (let ((head (cl:char input 0)))
           (if (equal c head)
               (ok (make-array (1- (length input))
@@ -70,7 +70,7 @@
                               :displaced-to input
                               :displaced-index-offset 1)
                   head)
-              (fail (format nil "character: ~a" c) input))))))
+              (fail c input))))))
 
 #++
 (funcall (char #\H) "Hello")
@@ -86,7 +86,7 @@
     (let ((lens (length s))
           (leni (length input)))
       (if (> lens leni)
-          (fail (format nil "string: ~a" s) input)
+          (fail s input)
           (let ((subs (make-array lens
                                   :element-type 'character
                                   :displaced-to input)))
@@ -96,7 +96,7 @@
                                 :displaced-to input
                                 :displaced-index-offset lens)
                     subs)
-                (fail (format nil "string: ~a" s) input)))))))
+                (fail s input)))))))
 
 #++
 (funcall (string "") "a")
@@ -110,7 +110,7 @@
   "Take `n' characters from the input."
   (lambda (input)
     (cond ((< n 0) (error "~a must be a positive number" n))
-          ((< (length input) n) (fail (format nil "take: ~a characters" n) input))
+          ((< (length input) n) (fail "multiple characters" input))
           (t (ok (make-array (- (length input) n)
                              :element-type 'character
                              :displaced-to input
