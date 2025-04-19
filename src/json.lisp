@@ -80,7 +80,12 @@
 
 (defun compound-char (input)
   "Parser: Parse a char while being wary of escaping."
-  (funcall (p:alt #'special-char #'control-char #'unicode (p:anybut #\")) input))
+  (funcall (p:alt #'escaped-char (p:anybut #\")) input))
+
+(defun escaped-char (input)
+  (funcall (*> (p:peek (p:char #\\))
+               (p:alt #'special-char #'control-char #'unicode))
+           input))
 
 (defun special-char (input)
   "Parser: Backslashes and quotes."

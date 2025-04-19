@@ -18,6 +18,7 @@
 #++
 (any "")
 
+(declaim (ftype (function (character) maybe-parse) anybut))
 (defun anybut (char)
   "Parser: Any character except the given one."
   (lambda (input)
@@ -31,6 +32,7 @@
 #+nil
 (funcall (anybut #\") "\"hi")
 
+(declaim (ftype maybe-parse hex))
 (defun hex (input)
   "Parser: A hex character of any case."
   (let ((res (any input)))
@@ -57,6 +59,7 @@
 (defun char (c)
   "Parse a given character."
   (lambda (input)
+    (declare (optimize (speed 3) (safety 0)))
     (if (empty? input)
         (fail (format nil "character: ~a" c) input)
         (let ((head (aref input 0)))

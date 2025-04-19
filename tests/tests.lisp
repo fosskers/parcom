@@ -213,4 +213,5 @@
   :parent json
   (true (hash-table-p (pj:parse (uiop:read-file-string "tests/data/small.json"))))
   (true (arrayp (pj:parse (uiop:read-file-string "tests/data/pass1.json"))))
-  (true (arrayp (pj:parse (uiop:read-file-string "tests/data/pass2.json")))))
+  (true (arrayp (pj:parse (uiop:read-file-string "tests/data/pass2.json"))))
+  (true (hash-table-p (pj:parse (uiop:read-file-string "tests/data/beam-18.json")))))
