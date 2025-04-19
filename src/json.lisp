@@ -175,4 +175,4 @@
 (null "null")
 
 #+nil
-(array (uiop:read-file-string "tests/data/pass1.json"))
+(array (uiop:read-file-string "tests/data/pass2.json"))

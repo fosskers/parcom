@@ -212,5 +212,5 @@
 (define-test test-files
   :parent json
   (true (hash-table-p (pj:parse (uiop:read-file-string "tests/data/small.json"))))
-  (true (hash-table-p (pj:parse (uiop:read-file-string "tests/data/pass0.json"))))
-  (true (arrayp (pj:parse (uiop:read-file-string "tests/data/pass1.json")))))
+  (true (arrayp (pj:parse (uiop:read-file-string "tests/data/pass1.json"))))
+  (true (arrayp (pj:parse (uiop:read-file-string "tests/data/pass2.json")))))

@@ -667,15 +667,15 @@ parse some JSON, use =parse=.
 
 Conversions:
 
-| JSON   | Lisp       |
-|--------+------------|
-| =true=   | =T=          |
-| =false=  | =NIL=        |
-| Array  | Vector     |
-| Object | Hash Table |
-| Number | =float=      |
-| String | String     |
-| =null=   | =:NULL=    |
+| JSON   | Lisp           |
+|--------+----------------|
+| =true=   | =T=              |
+| =false=  | =NIL=            |
+| Array  | Vector         |
+| Object | Hash Table     |
+| Number | =double-float= |
+| String | String         |
+| =null=   | =:NULL=          |
 
 As with the parent =parcom= library, =parcom/json= works strictly off of strings and
 makes no attempt to be clever or high-performance. For a more "industrial
@@ -696,19 +696,11 @@ Attempt to parse any JSON value. Analogous to =parse= from the main library.
 
 #+begin_src lisp :exports both :results verbatim
 (in-package :parcom/json)
-(parse "[1,true,3,\"hi\",[4]]")
+(parse "[1.9,true,3e+7,\"hi\",[4],null]")
 #+end_src
 
 #+RESULTS:
-: #(1.0 T 3.0 "hi" #(4.0))
-
-#+begin_src lisp :exports both
-(in-package :parcom/json)
-(parse "1")
-#+end_src
-
-#+RESULTS:
-: 1.0
+: #(1.9d0 T 3.0d7 "hi" #(4) :NULL)
 
 Non-ascii and unicode characters are supported:
 
@@ -731,6 +723,9 @@ Parse any kind of JSON (the actual parser).
 
 #+RESULTS:
 : #S(P:PARSER :INPUT "  " :VALUE #<HASH-TABLE :TEST EQUAL :COUNT 3 {1009D16A63}>)
+
+There are other subparsers exposed, but they are left out here for brevity.
+Please consult the source code if you need them.
 
 * Writing your own Parsers
 
