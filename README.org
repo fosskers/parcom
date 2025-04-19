@@ -710,15 +710,15 @@ Attempt to parse any JSON value. Analogous to =parse= from the main library.
 #+RESULTS:
 : 1.0
 
-Non-ascii characters are supported for free:
+Non-ascii and unicode characters are supported:
 
 #+begin_src lisp :exports both
 (in-package :parcom/json)
-(parse "\"hēllお🐂\"")
+(parse "\"hēllお🐂\\u03B1\"")
 #+end_src
 
 #+RESULTS:
-: hēllお🐂
+: hēllお🐂α
 
 *** json
 

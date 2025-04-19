@@ -158,7 +158,7 @@
           (funcall (p:recognize (p:pair #'p:float
                                         (p:opt (*> (p:alt (p:char #\E) (p:char #\e))
                                                    (p:opt (p:alt (p:char #\+) (p:char #\-)))
-                                                   #'p:unsigned))))
+                                                   (*> (p:skip (p:char #\0)) (p:opt #'p:unsigned))))))
                    input)))
 
 #+nil
@@ -175,4 +175,4 @@
 (null "null")
 
 #+nil
-(parse (uiop:read-file-string "tests/data/pass0.json"))
+(array (uiop:read-file-string "tests/data/pass1.json"))

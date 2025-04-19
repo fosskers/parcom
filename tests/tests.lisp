@@ -197,11 +197,12 @@
 (define-test non-ascii
   :parent json
   (is equal "hēllお🐂" (pj:parse "\"hēllお🐂\""))
-  (is equal "Hi α" (pj:parse "\"Hi \\u03B1\"")))
+  (is equal "Hi α!" (pj:parse "\"Hi \\u03B1!\"")))
 
 (define-test numbers
   :parent json
   (is = 0.0 (pj:parse "0"))
+  (is equalp "," (pc:parser-input (pj:scientific "1e00,")))
   (is = 1234567890.0d0 (pj:parse "1234567890"))
   (is = -9876.543210d0 (pj:parse "-9876.543210"))
   (is = 23456789012d66 (pj:parse "23456789012E66"))
@@ -212,4 +213,4 @@
   :parent json
   (true (hash-table-p (pj:parse (uiop:read-file-string "tests/data/small.json"))))
   (true (hash-table-p (pj:parse (uiop:read-file-string "tests/data/pass0.json"))))
-  (true (hash-table-p (pj:parse (uiop:read-file-string "tests/data/pass1.json")))))
+  (true (arrayp (pj:parse (uiop:read-file-string "tests/data/pass1.json")))))
