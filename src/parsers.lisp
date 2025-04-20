@@ -222,12 +222,13 @@
 (declaim (ftype maybe-parse unsigned))
 (defun unsigned (input)
   "Parse a positive integer."
+  (declare (optimize (speed 3) (safety 0)))
   (let ((res (funcall (take-while1 #'digit?) input)))
     (cond ((failure-p res) res)
           ((and (char-equal #\0 (cl:char (parser-value res) 0))
                 (> (length (parser-value res)) 1))
            (fail "unsigned: an integer not starting with 0" input))
-          (t (fmap #'read-from-string res)))))
+          (t (fmap #'parse-integer res)))))
 
 #+nil
 (unsigned "0!")
@@ -247,16 +248,13 @@
 #+nil
 (integer "-123!")
 
-;; FIXME: 2025-04-03 Avoid reallocating a string here!
 (declaim (ftype maybe-parse float))
 (defun float (input)
   "Parse a positive or negative floating point number."
-  (fmap (lambda (two)
-          (if (null (nth 1 two))
-              (cl:float (car two) 1.0d0)
-              (let ((*read-default-float-format* 'double-float))
-                (read-from-string (format nil "~d.~a" (nth 0 two) (nth 1 two))))))
-        (funcall (<*> #'integer (opt (*> (char #\.) (take-while1 #'digit?)))) input)))
+  (fmap (lambda (s)
+          (let ((*read-default-float-format* 'double-float))
+            (read-from-string s)))
+        (funcall (recognize (*> #'integer (opt (*> (char #\.) (take-while1 #'digit?))))) input)))
 
 #+nil
 (funcall #'float "-123.0456!")

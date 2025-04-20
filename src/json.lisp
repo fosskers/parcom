@@ -160,10 +160,10 @@
   (p:fmap (lambda (s)
             (let ((*read-default-float-format* 'double-float))
               (read-from-string s)))
-          (funcall (p:recognize (p:pair #'p:float
-                                        (p:opt (*> (p:alt (p:char #\E) (p:char #\e))
-                                                   (p:opt (p:alt (p:char #\+) (p:char #\-)))
-                                                   (*> (p:skip (p:char #\0)) (p:opt #'p:unsigned))))))
+          (funcall (p:recognize (*> #'p:float
+                                    (p:opt (*> (p:alt (p:char #\E) (p:char #\e))
+                                               (p:opt (p:alt (p:char #\+) (p:char #\-)))
+                                               (*> (p:skip (p:char #\0)) (p:opt #'p:unsigned))))))
                    input)))
 
 #+nil
