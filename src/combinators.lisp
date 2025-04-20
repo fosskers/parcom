@@ -6,7 +6,7 @@
 (defun opt (parser)
   "Yield nil if the parser failed, but don't fail the whole process nor consume any
 input."
-  (alt parser (lambda (input) (ok (input-str input) nil)))) ; Clever.
+  (alt parser (lambda (input) (ok-fast input nil)))) ; Clever.
 
 #+nil
 (funcall (opt (string "Ex")) "Exercitus")
@@ -173,10 +173,10 @@ even if not followed by an instance of the main parser."
     (let ((res (funcall parser input)))
       (etypecase res
         (failure res)
-        (parser  (ok (input-str input) (parser-value res)))))))
+        (parser  (ok-fast input (parser-value res)))))))
 
 #+nil
-(funcall (peek (string "he")) "hello")
+(funcall (peek (string "he")) (in "hello"))
 
 (declaim (ftype (function (fixnum maybe-parse) maybe-parse) count))
 (defun count (n parser)
