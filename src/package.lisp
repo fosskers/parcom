@@ -72,6 +72,12 @@
   "Some successful parsing!"
   (make-parser :input (in input) :value value))
 
+(declaim (ftype (function (input t) parser) ok-fast))
+(defun ok-fast (old value)
+  "A declaration that the position of the parsing input didn't change, so
+we don't need to reaccess the underlying vector."
+  (make-parser :input old :value value))
+
 (defstruct failure
   "The result of some failed parsing."
   expected

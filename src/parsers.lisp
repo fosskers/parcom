@@ -49,7 +49,7 @@
 (defun eof (input)
   "Recognize the end of the input."
   (if (empty? (input-str input))
-      (ok (input-str input) t)
+      (ok-fast input t)
       (fail "the end of the input" input)))
 
 #++
@@ -113,6 +113,7 @@
   (lambda (input)
     (let ((s (input-str input)))
       (cond ((< n 0) (error "~a must be a positive number" n))
+            ((zerop n) (ok-fast input ""))
             ((< (length s) n) (fail "multiple characters" input))
             (t (ok (make-array (- (length s) n)
                                :element-type 'character
@@ -133,24 +134,27 @@
 (defun take-while (p)
   "Take characters while some predicate holds."
   (lambda (input)
-    (declare (optimize (speed 3) (safety 0)))
-    (let* ((s   (input-str input))
-           (len (length s))
-           (keep (loop :for i :from 0 :below len
-                       :while (funcall p (cl:char s i))
-                       :finally (return i))))
-      (ok (make-array (- len keep)
-                      :element-type 'character
-                      :displaced-to s
-                      :displaced-index-offset keep)
-          (make-array keep
-                      :element-type 'character
-                      :displaced-to s)))))
+    (declare (optimize (speed 3) (safety 0))
+             (type input input))
+    (if (not (funcall p (input-head input)))
+        (ok-fast input "")
+        (let* ((s   (input-str input))
+               (len (length s))
+               (keep (loop :for i :from 1 :below len
+                           :while (funcall p (cl:char s i))
+                           :finally (return i))))
+          (ok (make-array (- len keep)
+                          :element-type 'character
+                          :displaced-to s
+                          :displaced-index-offset keep)
+              (make-array keep
+                          :element-type 'character
+                          :displaced-to s))))))
 
 #+nil
-(funcall (take-while (lambda (c) (equal #\a c))) "bbb")
+(funcall (take-while (lambda (c) (equal #\a c))) (in "bbb"))
 #+nil
-(funcall (take-while (lambda (c) (equal #\a c))) "aaabbb")
+(funcall (take-while (lambda (c) (equal #\a c))) (in "aaabbb"))
 
 (declaim (ftype (function ((function (character) boolean)) maybe-parse) take-while1))
 (defun take-while1 (p)
