@@ -21,7 +21,7 @@
 
 (defmethod fmap ((f function) (p parser))
   "Map some `f' over the inner value of a parser."
-  (ok (parser-input p)
+  (ok (input-str (parser-input p))
       (funcall f (parser-value p))))
 
 (defmethod fmap ((f function) (failure failure))
@@ -56,11 +56,11 @@
                 :initial-value `(funcall ,parser ,input)))))
 
 #++
-(funcall (*> #'any) "H")
+(funcall (*> #'any) (in "H"))
 #++
-(funcall (*> #'any #'eof) "H")
+(funcall (*> #'any #'eof) (in "H"))
 #++
-(funcall (*> #'any #'any #'eof) "He")
+(funcall (*> #'any #'any #'eof) (in "He"))
 
 (defmacro right (parser &rest parsers)
   "Combination of parsers yielding the result of the rightmost one."
@@ -99,7 +99,7 @@
     `(lambda (,input)
        ,(labels ((recurse (ps i)
                    (if (null ps)
-                       `(ok ,i nil)
+                       `(ok (input-str ,i) nil)
                        (let ((name (gensym "<*>-INNER")))
                          `(let ((,name (funcall ,(car ps) ,i)))
                             (etypecase ,name
@@ -109,11 +109,11 @@
           (recurse (cons parser parsers) input)))))
 
 #+nil
-(funcall (<*> (string "hi")) "hihohum!")
+(funcall (<*> (string "hi")) (in "hihohum!"))
 #+nil
-(funcall (<*> (string "hi") (string "ho") (string "hum")) "hihohum!")
+(funcall (<*> (string "hi") (string "ho") (string "hum")) (in "hihohum!"))
 #+nil
-(funcall (<*> (string "hi") (string "har") (string "hum")) "hihohum!")
+(funcall (<*> (string "hi") (string "har") (string "hum")) (in "hihohum!"))
 
 (defmacro all (parser &rest parsers)
   "Combination of parsers yielding all results as a list."

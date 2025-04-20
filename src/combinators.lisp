@@ -6,7 +6,7 @@
 (defun opt (parser)
   "Yield nil if the parser failed, but don't fail the whole process nor consume any
 input."
-  (alt parser (lambda (input) (ok input nil)))) ; Clever.
+  (alt parser (lambda (input) (ok (input-str input) nil)))) ; Clever.
 
 #+nil
 (funcall (opt (string "Ex")) "Exercitus")
@@ -29,7 +29,7 @@ kept. Good for parsing backets, parentheses, etc."
     (labels ((recurse (acc in)
                (let ((res (funcall parser in)))
                  (etypecase res
-                   (failure (ok in acc))
+                   (failure (ok (input-str in) acc))
                    (parser (recurse (cons (parser-value res) acc)
                                     (parser-input res)))))))
       (fmap #'nreverse (recurse '() input)))))
@@ -62,7 +62,7 @@ kept. Good for parsing backets, parentheses, etc."
     (labels ((recurse (acc in)
                (let ((sep-res (funcall sep in)))
                  (etypecase sep-res
-                   (failure (ok in acc))
+                   (failure (ok (input-str in) acc))
                    (parser  (let ((res (funcall parser (parser-input sep-res))))
                               (etypecase res
                                 (failure res)
@@ -70,7 +70,7 @@ kept. Good for parsing backets, parentheses, etc."
                                                   (parser-input res))))))))))
       (let ((res (funcall parser input)))
         (etypecase res
-          (failure (ok input '()))
+          (failure (ok (input-str input) '()))
           (parser  (fmap #'nreverse (recurse (list (parser-value res))
                                              (parser-input res)))))))))
 
@@ -110,10 +110,10 @@ even if not followed by an instance of the main parser."
     (labels ((recurse (acc in)
                (let ((res (funcall parser in)))
                  (etypecase res
-                   (failure (ok in acc))
+                   (failure (ok (input-str in) acc))
                    (parser (let ((sep-res (funcall sep (parser-input res))))
                              (etypecase sep-res
-                               (failure (ok (parser-input res)
+                               (failure (ok (input-str (parser-input res))
                                             (cons (parser-value res) acc)))
                                (parser (recurse (cons (parser-value res) acc)
                                                 (parser-input sep-res))))))))))
@@ -155,7 +155,7 @@ even if not followed by an instance of the main parser."
     (labels ((recurse (in)
                (let ((res (funcall parser in)))
                  (etypecase res
-                   (failure (ok in t))
+                   (failure (ok (input-str in) t))
                    (parser  (recurse (parser-input res)))))))
       (recurse input))))
 
@@ -173,7 +173,7 @@ even if not followed by an instance of the main parser."
     (let ((res (funcall parser input)))
       (etypecase res
         (failure res)
-        (parser  (ok input (parser-value res)))))))
+        (parser  (ok (input-str input) (parser-value res)))))))
 
 #+nil
 (funcall (peek (string "he")) "hello")
@@ -184,7 +184,7 @@ even if not followed by an instance of the main parser."
   (lambda (input)
     (labels ((recurse (acc m i)
                (if (<= m 0)
-                   (ok i (nreverse acc))
+                   (ok (input-str i) (nreverse acc))
                    (let ((res (funcall parser i)))
                      (etypecase res
                        (failure res)
@@ -194,11 +194,11 @@ even if not followed by an instance of the main parser."
       (recurse '() n input))))
 
 #+nil
-(funcall (count 3 (char #\a)) "aaaaaa")
+(funcall (count 3 (char #\a)) (in "aaaaaa"))
 #+nil
-(funcall (count 3 (char #\a)) "aa")
+(funcall (count 3 (char #\a)) (in "aa"))
 #+nil
-(funcall (count 0 (char #\a)) "aa")
+(funcall (count 0 (char #\a)) (in "aa"))
 
 (declaim (ftype (function (maybe-parse) maybe-parse) recognize))
 (defun recognize (parser)
@@ -207,10 +207,11 @@ even if not followed by an instance of the main parser."
     (let ((res (funcall parser input)))
       (etypecase res
         (failure res)
-        (parser  (ok (parser-input res)
-                     (make-array (- (length input) (length (parser-input res)))
+        (parser  (ok (input-str (parser-input res))
+                     (make-array (- (length (input-str input))
+                                    (length (input-str (parser-input res))))
                                  :element-type 'character
-                                 :displaced-to input)))))))
+                                 :displaced-to (input-str input))))))))
 
 #+nil
 (funcall (recognize (<*> (string "hi") (string "bye"))) "hibyethere")

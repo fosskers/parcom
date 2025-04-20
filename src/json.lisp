@@ -14,7 +14,7 @@
 
 (defun parse (input)
   "Attempt to parse any JSON value."
-  (let ((res (json input)))
+  (let ((res (json (p:in input))))
     (etypecase res
       (p:parser (p:parser-value res))
       (p:failure (error "Parsing json failed. Expected: ~a, but got: ~a"
@@ -23,6 +23,8 @@
 
 #+nil
 (parse "{\"x\": 1, \"y\": 2, \"z\": [1, {\"a\":true}]}")
+#+nil
+(funcall #'json (p:in "{\"x\": 1, \"y\": 2, \"z\": [1, {\"a\":true}]}"))
 
 (defun json (input)
   "Parser: Parse any JSON value."

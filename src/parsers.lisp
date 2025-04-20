@@ -6,13 +6,14 @@
 (defun any (input)
   "Accept any character."
   (declare (optimize (speed 3) (safety 0)))
-  (if (empty? input)
-      (fail "any char" input)
-      (ok (make-array (1- (length input))
-                      :element-type 'character
-                      :displaced-to input
-                      :displaced-index-offset 1)
-          (cl:char input 0))))
+  (let ((s (input-str input)))
+    (if (empty? s)
+        (fail "any char" input)
+        (ok (make-array (1- (length s))
+                        :element-type 'character
+                        :displaced-to s
+                        :displaced-index-offset 1)
+            (input-head input)))))
 
 #++
 (any "hello")
@@ -29,9 +30,9 @@
             (t res)))))
 
 #+nil
-(funcall (anybut #\") "hi")
+(funcall (anybut #\") (in "hi"))
 #+nil
-(funcall (anybut #\") "\"hi")
+(funcall (anybut #\") (in "\"hi"))
 
 (declaim (ftype maybe-parse hex))
 (defun hex (input)
@@ -47,8 +48,8 @@
 (declaim (ftype maybe-parse eof))
 (defun eof (input)
   "Recognize the end of the input."
-  (if (empty? input)
-      (ok input t)
+  (if (empty? (input-str input))
+      (ok (input-str input) t)
       (fail "the end of the input" input)))
 
 #++
@@ -60,14 +61,15 @@
 (defun char (c)
   "Parse a given character."
   (lambda (input)
-    (declare (optimize (speed 3) (safety 0)))
-    (if (empty? input)
+    (declare (optimize (speed 3) (safety 0))
+             (type input input))
+    (if (empty? (input-str input))
         (fail c input)
-        (let ((head (cl:char input 0)))
+        (let ((head (input-head input)))
           (if (equal c head)
-              (ok (make-array (1- (length input))
+              (ok (make-array (1- (length (input-str input)))
                               :element-type 'character
-                              :displaced-to input
+                              :displaced-to (input-str input)
                               :displaced-index-offset 1)
                   head)
               (fail c input))))))
@@ -84,16 +86,16 @@
   "Parse the given string."
   (lambda (input)
     (let ((lens (length s))
-          (leni (length input)))
+          (leni (length (input-str input))))
       (if (> lens leni)
           (fail s input)
           (let ((subs (make-array lens
                                   :element-type 'character
-                                  :displaced-to input)))
+                                  :displaced-to (input-str input))))
             (if (equal s subs)
                 (ok (make-array (- leni lens)
                                 :element-type 'character
-                                :displaced-to input
+                                :displaced-to (input-str input)
                                 :displaced-index-offset lens)
                     subs)
                 (fail s input)))))))
@@ -109,39 +111,41 @@
 (defun take (n)
   "Take `n' characters from the input."
   (lambda (input)
-    (cond ((< n 0) (error "~a must be a positive number" n))
-          ((< (length input) n) (fail "multiple characters" input))
-          (t (ok (make-array (- (length input) n)
-                             :element-type 'character
-                             :displaced-to input
-                             :displaced-index-offset n)
-                 (make-array n
-                             :element-type 'character
-                             :displaced-to input))))))
+    (let ((s (input-str input)))
+      (cond ((< n 0) (error "~a must be a positive number" n))
+            ((< (length s) n) (fail "multiple characters" input))
+            (t (ok (make-array (- (length s) n)
+                               :element-type 'character
+                               :displaced-to s
+                               :displaced-index-offset n)
+                   (make-array n
+                               :element-type 'character
+                               :displaced-to s)))))))
 
 #+nil
-(funcall (take -5) "Arbor")
+(funcall (take -5) (in "Arbor"))
 #+nil
-(funcall (take 0) "Arbor")
+(funcall (take 0) (in "Arbor"))
 #+nil
-(funcall (take 3) "Arbor")
+(funcall (take 3) (in "Arbor"))
 
 (declaim (ftype (function ((function (character) boolean)) always-parse) take-while))
 (defun take-while (p)
   "Take characters while some predicate holds."
   (lambda (input)
     (declare (optimize (speed 3) (safety 0)))
-    (let* ((len (length input))
+    (let* ((s   (input-str input))
+           (len (length s))
            (keep (loop :for i :from 0 :below len
-                       :while (funcall p (cl:char input i))
+                       :while (funcall p (cl:char s i))
                        :finally (return i))))
       (ok (make-array (- len keep)
                       :element-type 'character
-                      :displaced-to input
+                      :displaced-to s
                       :displaced-index-offset keep)
           (make-array keep
                       :element-type 'character
-                      :displaced-to input)))))
+                      :displaced-to s)))))
 
 #+nil
 (funcall (take-while (lambda (c) (equal #\a c))) "bbb")
@@ -268,7 +272,7 @@
 (declaim (ftype always-parse rest))
 (defun rest (input)
   "Consume the rest of the input. Always succeeds."
-  (ok "" input))
+  (ok "" (input-str input)))
 
 #+nil
-(funcall (<*> (string "hi") (*> #'space #'rest)) "hi there")
+(funcall (<*> (string "hi") (*> #'space #'rest)) (in "hi there"))

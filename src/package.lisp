@@ -4,6 +4,7 @@
   ;; --- Types --- ;;
   (:export #:parser #:parser-input #:parser-value
            #:failure #:failure-expected #:failure-actual
+           #:input #:in
            #:ok #:fail #:parse
            #:empty? #:digit?)
   ;; --- Functional Programming --- ;;
@@ -39,27 +40,42 @@
 
 ;; --- Types --- ;;
 
+(defstruct input
+  "The remaining parser input with a cached reference to its first character."
+  (head nil :type character)
+  (str  ""  :type cl:string))
+
+(declaim (ftype (function (cl:string) input) in))
+(defun in (input)
+  "Smart constructor for some parser input."
+  (declare (optimize (speed 3) (safety 0)))
+  (make-input :head (cl:char input 0) :str input))
+
+#+nil
+(in "hello")
+
 (deftype maybe-parse ()
   "A parser that might fail."
-  '(function (cl:string) (or parser failure)))
+  '(function (input) (or parser failure)))
 
 (deftype always-parse ()
   "A parser that always succeeds."
-  '(function (cl:string) parser))
+  '(function (input) parser))
 
 (defstruct parser
   "The result of some successful parsing. Tracks the remaining input."
-  (input nil :type cl:string)
+  (input nil :type input)
   value)
 
+(declaim (ftype (function (cl:string t) parser) ok))
 (defun ok (input value)
   "Some successful parsing!"
-  (make-parser :input input :value value))
+  (make-parser :input (in input) :value value))
 
 (defstruct failure
   "The result of some failed parsing."
   expected
-  (actual nil :type cl:string))
+  (actual nil :type input))
 
 (defun fail (exp act)
   "It's assumed that you pass back the entire remaining input as the 'actual' value.
@@ -68,17 +84,17 @@ Error reporting code will check the length of this and truncate it if necessary.
 
 (defun parse (parser input)
   "Run a parser and attempt to extract its final value."
-  (let ((res (funcall parser input)))
+  (let ((res (funcall parser (in input))))
     (etypecase res
       (parser  (parser-value res))
       (failure (error 'parse-failure
                       :expected (failure-expected res)
-                      :actual (if (< (length (failure-actual res)) 16)
+                      :actual (if (< (length (input-str (failure-actual res))) 16)
                                   (failure-actual res)
                                   (format nil "~a ... (truncated)"
                                           (make-array 16
                                                       :element-type 'character
-                                                      :displaced-to (failure-actual res)))))))))
+                                                      :displaced-to (input-str (failure-actual res))))))))))
 
 ;; --- Utilities --- ;;
 
