@@ -43,16 +43,29 @@
 (defstruct input
   "The remaining parser input with a cached reference to its first character."
   (head nil :type character)
-  (str  ""  :type cl:string))
+  (curr 0   :type fixnum)
+  (str  nil :type simple-string))
 
-(declaim (ftype (function (cl:string) input) in))
+(declaim (ftype (function (simple-string) input) in))
 (defun in (input)
   "Smart constructor for some parser input."
   (declare (optimize (speed 3) (safety 0)))
-  (make-input :head (cl:char input 0) :str input))
+  (make-input :head (schar input 0) :curr 0 :str input))
 
 #+nil
 (in "hello")
+
+(declaim (ftype (function (fixnum input) input) off))
+(defun off (offset input)
+  "Advance the input by some offset."
+  (declare (optimize (speed 3) (safety 0)))
+  (let ((curr (+ offset (input-curr input))))
+    (make-input :head (schar (input-str input) curr)
+                :curr curr
+                :str  (input-str input))))
+
+#+nil
+(off 4 (in "hello there!"))
 
 (deftype maybe-parse ()
   "A parser that might fail."
@@ -67,16 +80,10 @@
   (input nil :type input)
   value)
 
-(declaim (ftype (function (cl:string t) parser) ok))
+(declaim (ftype (function (input t) parser) ok))
 (defun ok (input value)
   "Some successful parsing!"
-  (make-parser :input (in input) :value value))
-
-(declaim (ftype (function (input t) parser) ok-fast))
-(defun ok-fast (old value)
-  "A declaration that the position of the parsing input didn't change, so
-we don't need to reaccess the underlying vector."
-  (make-parser :input old :value value))
+  (make-parser :input input :value value))
 
 (defstruct failure
   "The result of some failed parsing."

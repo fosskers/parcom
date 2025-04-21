@@ -31,7 +31,9 @@
   :parent parsers
   (is equal "" (pc:parse (pc:string "") "a"))
   (is equal "Hello" (pc:parse (pc:string "Hello") "Hello yes"))
-  (fail (pc:parse (pc:string "HellO") "Hello yes")))
+  (fail (pc:parse (pc:string "HellO") "Hello yes"))
+  ;; Request is longer than total input.
+  (fail (pc:parse (pc:string "arstneo") "a")))
 
 (define-test unsigned
   :parent parsers
@@ -63,7 +65,13 @@
 (define-test take-while
   :parent parsers
   (is equal "" (pc:parse (pc:take-while (lambda (c) (equal #\a c))) "bbb"))
-  (is equal "aaa" (pc:parse (pc:take-while (lambda (c) (equal #\a c))) "aaabbb")))
+  (is equal "aaa" (pc:parse (pc:take-while (lambda (c) (equal #\a c))) "aaabbb"))
+  (is equal "bcd" (pc:parse (pc:*> (pc:take-while (lambda (c) (equal #\a c)))
+                                   (pc:take-while (lambda (c)
+                                                    (or (equal #\b c)
+                                                        (equal #\c c)
+                                                        (equal #\d c)))))
+                            "aaabcd!")))
 
 (define-test take-while1
   :parent parsers
@@ -147,7 +155,7 @@
 
 (define-test skip
   :parent combinators
-  (is equal "hi" (pc::input-str (pc:parser-input (funcall (pc:skip (pc:char #\!)) (pc:in "!!!hi"))))))
+  (is = 3 (pc::input-curr (pc:parser-input (funcall (pc:skip (pc:char #\!)) (pc:in "!!!hi"))))))
 
 (define-test peek
   :parent combinators
@@ -202,7 +210,7 @@
 (define-test numbers
   :parent json
   (is = 0.0 (pj:parse "0"))
-  (is equalp "," (pc::input-str (pc:parser-input (pj:scientific (pc:in "1e00,")))))
+  (is equal #\, (pc::input-head (pc:parser-input (pj:scientific (pc:in "1e00,")))))
   (is = 1234567890.0d0 (pj:parse "1234567890"))
   (is = -9876.543210d0 (pj:parse "-9876.543210"))
   (is = 23456789012d66 (pj:parse "23456789012E66"))

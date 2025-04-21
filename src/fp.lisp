@@ -21,7 +21,7 @@
 
 (defmethod fmap ((f function) (p parser))
   "Map some `f' over the inner value of a parser."
-  (ok (input-str (parser-input p))
+  (ok (parser-input p)
       (funcall f (parser-value p))))
 
 (defmethod fmap ((f function) (failure failure))
@@ -99,7 +99,7 @@
     `(lambda (,input)
        ,(labels ((recurse (ps i)
                    (if (null ps)
-                       `(ok (input-str ,i) nil)
+                       `(ok ,i nil)
                        (let ((name (gensym "<*>-INNER")))
                          `(let ((,name (funcall ,(car ps) ,i)))
                             (etypecase ,name

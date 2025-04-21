@@ -6,7 +6,7 @@
 (defun opt (parser)
   "Yield nil if the parser failed, but don't fail the whole process nor consume any
 input."
-  (alt parser (lambda (input) (ok-fast input nil)))) ; Clever.
+  (alt parser (lambda (input) (ok input nil)))) ; Clever.
 
 #+nil
 (funcall (opt (string "Ex")) "Exercitus")
@@ -29,15 +29,15 @@ kept. Good for parsing backets, parentheses, etc."
     (labels ((recurse (acc in)
                (let ((res (funcall parser in)))
                  (etypecase res
-                   (failure (ok (input-str in) acc))
+                   (failure (ok in acc))
                    (parser (recurse (cons (parser-value res) acc)
                                     (parser-input res)))))))
       (fmap #'nreverse (recurse '() input)))))
 
 #+nil
-(funcall (many (string "ovēs")) "ovis")
+(funcall (many (string "ovēs")) (in "ovis"))
 #+nil
-(funcall (many (string "ovēs")) "ovēsovēsovēs!")
+(funcall (many (string "ovēs")) (in "ovēsovēsovēs!"))
 #+nil
 (funcall (many (alt (string "ovēs") (string "avis"))) "ovēsovēsavis!")
 
@@ -62,7 +62,7 @@ kept. Good for parsing backets, parentheses, etc."
     (labels ((recurse (acc in)
                (let ((sep-res (funcall sep in)))
                  (etypecase sep-res
-                   (failure (ok (input-str in) acc))
+                   (failure (ok in acc))
                    (parser  (let ((res (funcall parser (parser-input sep-res))))
                               (etypecase res
                                 (failure res)
@@ -70,18 +70,18 @@ kept. Good for parsing backets, parentheses, etc."
                                                   (parser-input res))))))))))
       (let ((res (funcall parser input)))
         (etypecase res
-          (failure (ok (input-str input) '()))
+          (failure (ok input '()))
           (parser  (fmap #'nreverse (recurse (list (parser-value res))
                                              (parser-input res)))))))))
 
 #+nil
-(funcall (sep (char #\!) (string "pilum")) ".")
+(funcall (sep (char #\!) (string "pilum")) (in "."))
 #+nil
-(funcall (sep (char #\!) (string "pilum")) "pilum.")
+(funcall (sep (char #\!) (string "pilum")) (in "pilum."))
 #+nil
-(funcall (sep (char #\!) (string "pilum")) "pilum!pilum!pilum.")
+(funcall (sep (char #\!) (string "pilum")) (in "pilum!pilum!pilum."))
 #+nil
-(funcall (sep (char #\!) (string "pilum")) "pilum!pilum!pilum!")
+(funcall (sep (char #\!) (string "pilum")) (in "pilum!pilum!pilum!"))
 
 (declaim (ftype (function (maybe-parse maybe-parse) maybe-parse) sep1))
 (defun sep1 (sep parser)
@@ -110,10 +110,10 @@ even if not followed by an instance of the main parser."
     (labels ((recurse (acc in)
                (let ((res (funcall parser in)))
                  (etypecase res
-                   (failure (ok (input-str in) acc))
+                   (failure (ok in acc))
                    (parser (let ((sep-res (funcall sep (parser-input res))))
                              (etypecase sep-res
-                               (failure (ok (input-str (parser-input res))
+                               (failure (ok (parser-input res)
                                             (cons (parser-value res) acc)))
                                (parser (recurse (cons (parser-value res) acc)
                                                 (parser-input sep-res))))))))))
@@ -155,16 +155,16 @@ even if not followed by an instance of the main parser."
     (labels ((recurse (in)
                (let ((res (funcall parser in)))
                  (etypecase res
-                   (failure (ok (input-str in) t))
+                   (failure (ok in t))
                    (parser  (recurse (parser-input res)))))))
       (recurse input))))
 
 #+nil
-(funcall (skip (char #\!)) "")
+(funcall (skip (char #\!)) (in ""))
 #+nil
-(funcall (skip (char #\!)) "a")
+(funcall (skip (char #\!)) (in "a"))
 #+nil
-(funcall (skip (char #\!)) "!!!hi")
+(funcall (skip (char #\!)) (in "!!!hi"))
 
 (declaim (ftype (function (maybe-parse) maybe-parse) peek))
 (defun peek (parser)
@@ -173,7 +173,7 @@ even if not followed by an instance of the main parser."
     (let ((res (funcall parser input)))
       (etypecase res
         (failure res)
-        (parser  (ok-fast input (parser-value res)))))))
+        (parser  (ok input (parser-value res)))))))
 
 #+nil
 (funcall (peek (string "he")) (in "hello"))
@@ -184,7 +184,7 @@ even if not followed by an instance of the main parser."
   (lambda (input)
     (labels ((recurse (acc m i)
                (if (<= m 0)
-                   (ok (input-str i) (nreverse acc))
+                   (ok i (nreverse acc))
                    (let ((res (funcall parser i)))
                      (etypecase res
                        (failure res)
@@ -207,16 +207,17 @@ even if not followed by an instance of the main parser."
     (let ((res (funcall parser input)))
       (etypecase res
         (failure res)
-        (parser  (ok (input-str (parser-input res))
-                     (make-array (- (length (input-str input))
-                                    (length (input-str (parser-input res))))
+        (parser  (ok (parser-input res)
+                     (make-array (- (input-curr (parser-input res))
+                                    (input-curr input))
                                  :element-type 'character
-                                 :displaced-to (input-str input))))))))
+                                 :displaced-to (input-str input)
+                                 :displaced-index-offset (input-curr input))))))))
 
 #+nil
-(funcall (recognize (<*> (string "hi") (string "bye"))) "hibyethere")
+(funcall (recognize (<*> (string "hi") (string "bye"))) (in "hibyethere"))
 #+nil
-(funcall (recognize (<*> (string "hi") (string "bye"))) "hihi")
+(funcall (recognize (<*> (string "hi") (string "bye"))) (in "hihi"))
 
 (defun pair (p0 p1)
   "Combinator: Parse two parsers and yield the results as a cons cell."
