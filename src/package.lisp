@@ -100,14 +100,20 @@ Error reporting code will check the length of this and truncate it if necessary.
   (let ((res (funcall parser (in input))))
     (etypecase res
       (parser  (parser-value res))
-      (failure (error 'parse-failure
-                      :expected (failure-expected res)
-                      :actual (if (< (length (input-str (failure-actual res))) 16)
-                                  (failure-actual res)
-                                  (format nil "~a ... (truncated)"
-                                          (make-array 16
-                                                      :element-type 'character
-                                                      :displaced-to (input-str (failure-actual res))))))))))
+      (failure (let* ((rem (failure-actual res))
+                      (diff (- (length (input-str rem)) (input-curr rem))))
+                 (error 'parse-failure
+                        :expected (failure-expected res)
+                        :actual (if (< diff 16)
+                                    (make-array diff
+                                                :element-type 'character
+                                                :displaced-to (input-str rem)
+                                                :displaced-index-offset (input-curr rem))
+                                    (format nil "~a ... (truncated)"
+                                            (make-array 16
+                                                        :element-type 'character
+                                                        :displaced-to (input-str rem)
+                                                        :displaced-index-offset (input-curr rem))))))))))
 
 ;; --- Utilities --- ;;
 

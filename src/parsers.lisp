@@ -44,7 +44,7 @@
 (declaim (ftype maybe-parse eof))
 (defun eof (input)
   "Recognize the end of the input."
-  (if (empty? (input-str input))
+  (if (= (input-curr input) (length (input-str input)))
       (ok input t)
       (fail "the end of the input" input)))
 
@@ -52,6 +52,12 @@
 (eof (in "hi"))
 #++
 (eof (in ""))
+#+nil
+(parse (*> (string "Mālum") #'eof) "Mālum")
+#+nil
+(parse (*> (string "Mālum") (char #\,)) "Mālum")
+#+nil
+(funcall (*> (string "Mālum") (char #\,)) (in "Mālum"))
 
 (declaim (ftype (function (character) maybe-parse) char))
 (defun char (c)
