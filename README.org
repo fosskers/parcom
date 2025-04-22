@@ -19,6 +19,7 @@ reallocated.
 
 * Table of Contents :TOC_5_gh:noexport:
 - [[#compatibility][Compatibility]]
+- [[#performance][Performance]]
 - [[#api][API]]
   - [[#types-and-running-parsers][Types and Running Parsers]]
   - [[#parsers][Parsers]]
@@ -53,6 +54,7 @@ reallocated.
     - [[#sep-sep1][sep, sep1]]
     - [[#sep-end-sep-end1][sep-end, sep-end1]]
     - [[#skip][skip]]
+    - [[#consume][consume]]
     - [[#peek][peek]]
     - [[#count][count]]
     - [[#recognize][recognize]]
@@ -82,6 +84,15 @@ reallocated.
 | Allegro   | ✅    |
 | LispWorks | ❓    |
 
+* Performance
+
+=parcom= operates over =simple-string= input, accessing its elements with =schar=. As
+it internally signals parsing success or failure via structs, it does a fair
+amount of allocation. That said, its =parcom/json= component has been measured to
+parse JSON at ~10mb/s on a 2016 ThinkPad, which should be sufficient for
+ordinary usage. There are certainly faster parsers out there, but =parcom= is
+expressive and light.
+
 * API
 
 The examples below use =(in-package :parcom)= for brevity, but it's assumed that
@@ -92,29 +103,30 @@ will generally be using =parse= in your own code.
 
 ** Types and Running Parsers
 
-All parsers have the function signature =string -> parser=, where =parser= is a
-struct that holds the value of the parsing success alongside the remaining input
-string.
+All parsers have the function signature =input -> parser=, where =input= keeps track
+of the original string and the current parsing offset, and =parser= is a struct
+that holds the value of the parsing success alongside the updated (i.e. newly
+offset) =input=.
 
 #+begin_src lisp :exports both
 (in-package :parcom)
-(funcall (string "Hello") "Hello there")
+(funcall (string "Hello") (in "Hello there"))
 #+end_src
 
 #+RESULTS:
-: #S(PARSER :INPUT " there" :VALUE "Hello")
+: #S(PARSER :INPUT #S(INPUT :CURR 5 :STR "Hello there") :VALUE "Hello")
 
 Of course, a parser might fail, in which case a =failure= struct is returned:
 
 #+begin_src lisp :exports both
 (in-package :parcom)
-(funcall (string "Hello") "Bye!")
+(funcall (string "Hello") (in "Bye!"))
 #+end_src
 
 #+RESULTS:
-: #S(FAILURE :EXPECTED "string: Hello" :ACTUAL "string: Bye!")
+: #S(FAILURE :EXPECTED "Hello" :ACTUAL #S(INPUT :CURR 0 :STR "Bye!"))
 
-In general though we call =parse= to fully run some combined parsers and yield
+In general though, we call =parse= to fully run some combined parsers and yield
 the final output:
 
 #+begin_src lisp :exports both
@@ -148,7 +160,7 @@ Parse a given character.
 
 **** string
 
-Parse the given string.
+Parse the given string. The parsed string is a slice into the original input.
 
 #+begin_src lisp :exports both
 (in-package :parcom)
@@ -172,7 +184,7 @@ Parse any character.
 
 **** anybut
 
-Parse any character expect the one you don't want.
+Parse any character except the one you don't want.
 
 #+begin_src lisp :exports both
 (in-package :parcom)
@@ -184,11 +196,11 @@ Parse any character expect the one you don't want.
 
 #+begin_src lisp :exports both
 (in-package :parcom)
-(funcall (anybut #\H) "Hello there!")
+(funcall (anybut #\H) (in "Hello there!"))
 #+end_src
 
 #+RESULTS:
-: #S(FAILURE :EXPECTED "anybut: not H" :ACTUAL "Hello there!")
+: #S(FAILURE :EXPECTED #\H :ACTUAL #S(INPUT :CURR 0 :STR "Hello there!"))
 
 **** hex
 
@@ -196,11 +208,11 @@ Parse a hex character of any case.
 
 #+begin_src lisp :exports both
 (in-package :parcom)
-(funcall (many #'hex) "abcd0efgh")
+(parse (many #'hex) "abcd0efgh")
 #+end_src
 
 #+RESULTS:
-: #S(PARSER :INPUT "gh" :VALUE (#\a #\b #\c #\d #\0 #\e #\f))
+: (#\a #\b #\c #\d #\0 #\e #\f)
 
 **** eof
 
@@ -224,11 +236,14 @@ Recognize the end of the input.
 
 #+begin_src lisp :exports both
 (in-package :parcom)
-(funcall (*> (string "Mālum") #'eof) "Mālum rubrum")
+(funcall (*> (string "Mālum") #'eof) (in "Mālum rubrum"))
 #+end_src
 
 #+RESULTS:
-: #S(FAILURE :EXPECTED "the end of the input" :ACTUAL " rubrum")
+: #S(FAILURE
+:    :EXPECTED "the end of the input"
+:    :ACTUAL #S(INPUT :CURR 5 :STR "Mālum rubrum"))
+
 *** Numbers
 **** unsigned
 
@@ -256,7 +271,7 @@ Parse a positive or negative integer into a =fixnum=.
 
 **** float
 
-Parse a positive or negative floating point number into a =float=.
+Parse a positive or negative floating point number into a =double-float=.
 
 #+begin_src lisp :exports both
 (in-package :parcom)
@@ -264,7 +279,8 @@ Parse a positive or negative floating point number into a =float=.
 #+end_src
 
 #+RESULTS:
-: 123.0456
+: 123.0456d0
+
 *** Whitespace
 **** newline
 
@@ -303,11 +319,13 @@ Parse 1 or more ASCII whitespace and tab characters.
 
 #+begin_src lisp :exports both
 (in-package :parcom)
-(funcall #'space1 "Salvē!")
+(funcall #'space1 (in "Salvē!"))
 #+end_src
 
 #+RESULTS:
-: #S(FAILURE :EXPECTED "space1: at least one whitespace" :ACTUAL "Salvē!")
+: #S(FAILURE
+:    :EXPECTED "space1: at least one whitespace"
+:    :ACTUAL #S(INPUT :CURR 0 :STR "Salvē!"))
 
 **** multispace, multispace1
 
@@ -333,13 +351,14 @@ Parse 1 or more ASCII whitespace, tabs, newlines, and carriage returns.
 
 #+begin_src lisp :exports both
 (in-package :parcom)
-(funcall #'multispace1 "Ārcus")
+(funcall #'multispace1 (in "Ārcus"))
 #+end_src
 
 #+RESULTS:
 : #S(FAILURE
 :    :EXPECTED "multispace1: at least one space-like character"
-:    :ACTUAL "Ārcus")
+:    :ACTUAL #S(INPUT :CURR 0 :STR "Ārcus"))
+
 *** Taking in Bulk
 
 These always yield a substring borrowed directly from the original input.
@@ -372,11 +391,13 @@ Take characters while some predicate holds.
 
 #+begin_src lisp :exports both
 (in-package :parcom)
-(funcall (take-while1 (lambda (c) (equal #\a c))) "bbb")
+(funcall (take-while1 (lambda (c) (equal #\a c))) (in "bbb"))
 #+end_src
 
 #+RESULTS:
-: #S(FAILURE :EXPECTED "take-while1: at least one success" :ACTUAL "bbb")
+: #S(FAILURE
+:    :EXPECTED "take-while1: at least one success"
+:    :ACTUAL #S(INPUT :CURR 0 :STR "bbb"))
 
 **** rest
 
@@ -403,11 +424,11 @@ one. =right= is an alias.
 
 #+begin_src lisp :exports both
 (in-package :parcom)
-(funcall (*> (char #\!) #'unsigned) "!123?")
+(parse (*> (char #\!) #'unsigned) "!123?")
 #+end_src
 
 #+RESULTS:
-: #S(PARSER :INPUT "?" :VALUE 123)
+: 123
 
 *** <*, left
 
@@ -416,11 +437,11 @@ one. =left= is an alias.
 
 #+begin_src lisp :exports both
 (in-package :parcom)
-(funcall (<* (char #\!) #'unsigned) "!123?")
+(parse (<* (char #\!) #'unsigned) "!123?")
 #+end_src
 
 #+RESULTS:
-: #S(PARSER :INPUT "?" :VALUE #\!)
+: #\!
 
 *** <*>, all
 
@@ -538,8 +559,13 @@ on the end:
 
 #+begin_src lisp :exports both :results verbatim
 (in-package :parcom)
-(parse (sep (char #\!) (string "pilum")) "pilum!pilum!pilum!")
+(funcall (sep (char #\!) (string "pilum")) (in "pilum!pilum!pilum!"))
 #+end_src
+
+#+RESULTS:
+: #S(FAILURE
+:    :EXPECTED "pilum"
+:    :ACTUAL #S(INPUT :CURR 18 :STR "pilum!pilum!pilum!"))
 
 For more lenient behaviour regarding the separator, see =sep-end=.
 
@@ -550,11 +576,11 @@ Likewise, =sep-end1= demands that at least one parse of the parent succeeds.
 
 #+begin_src lisp :exports both :results verbatim
 (in-package :parcom)
-(funcall (sep-end (char #\!) (string "pilum")) "pilum!pilum!pilum!scūtum")
+(parse (sep-end (char #\!) (string "pilum")) "pilum!pilum!pilum!scūtum")
 #+end_src
 
 #+RESULTS:
-: #S(PARSER :INPUT "scūtum" :VALUE ("pilum" "pilum" "pilum"))
+: ("pilum" "pilum" "pilum")
 
 *** skip
 
@@ -568,17 +594,32 @@ Parse some parser 0 or more times, but throw away all the results.
 #+RESULTS:
 : 123
 
+*** consume
+
+Skip characters according to a given predicate, advancing the parser to a
+further point. Yields =T=, not the characters that were parsed. Can be used as a
+faster variant of =take-while= or =multispace= when you don't actually need the
+parsed characters.
+
+#+begin_src lisp :exports both
+(in-package :parcom)
+(funcall (consume (lambda (c) (eql c #\a))) (in "aaabcd!"))
+#+end_src
+
+#+RESULTS:
+: #S(PARSER :INPUT #S(INPUT :CURR 3 :STR "aaabcd!") :VALUE T)
+
 *** peek
 
 Yield the value of a parser, but don't consume the input.
 
 #+begin_src lisp :exports both
 (in-package :parcom)
-(funcall (peek (string "he")) "hello")
+(funcall (peek (string "he")) (in "hello"))
 #+end_src
 
 #+RESULTS:
-: #S(PARSER :INPUT "hello" :VALUE "he")
+: #S(PARSER :INPUT #S(INPUT :CURR 0 :STR "hello") :VALUE "he")
 
 *** count
 
@@ -586,11 +627,11 @@ Apply a parser a given number of times and collect the results as a list.
 
 #+begin_src lisp :exports both
 (in-package :parcom)
-(funcall (count 3 (char #\a)) "aaaaaa")
+(funcall (count 3 (char #\a)) (in "aaaaaa"))
 #+end_src
 
 #+RESULTS:
-: #S(PARSER :INPUT "aaa" :VALUE (#\a #\a #\a))
+: #S(PARSER :INPUT #S(INPUT :CURR 3 :STR "aaaaaa") :VALUE (#\a #\a #\a))
 
 *** recognize
 
@@ -599,11 +640,11 @@ instead.
 
 #+begin_src lisp :exports both
 (in-package :parcom)
-(funcall (recognize (<*> (string "hi") #'unsigned)) "hi123there")
+(funcall (recognize (<*> (string "hi") #'unsigned)) (in "hi123there"))
 #+end_src
 
 #+RESULTS:
-: #S(PARSER :INPUT "there" :VALUE "hi123")
+: #S(PARSER :INPUT #S(INPUT :CURR 5 :STR "hi123there") :VALUE "hi123")
 
 ** Utilities
 
@@ -637,11 +678,11 @@ Apply a pure function to the inner contents of a parser.
 
 #+begin_src lisp :exports both
 (in-package :parcom)
-(fmap #'1+ (funcall #'unsigned "1"))
+(fmap #'1+ (funcall #'unsigned (in "1")))
 #+end_src
 
 #+RESULTS:
-: #S(PARSER :INPUT "" :VALUE 2)
+: #S(PARSER :INPUT #S(INPUT :CURR 1 :STR "1") :VALUE 2)
 
 *** const
 
@@ -654,16 +695,17 @@ Yield a function that ignores its input and returns some original seed.
 
 #+RESULTS:
 : 1
-** TODO JSON
 
-By depending on the optional =parcom/json= system, you can parse simple JSON or
+** JSON
+
+By depending on the optional =parcom/json= system, you can parse JSON strings or
 include parcom-compatible JSON parsers into your own custom parsing code.
 
 =(in-package :parcom/json)= is used below for brevity, but it's assumed that in
 your own code you will use a nickname, perhaps =pj=.
 
 If you don't care about the individual parsers per se and just want to simply
-parse some JSON, use =parse=.
+parse some JSON, use =pj:parse=.
 
 Conversions:
 
@@ -677,10 +719,12 @@ Conversions:
 | String | String         |
 | =null=   | =:NULL=          |
 
-As with the parent =parcom= library, =parcom/json= works strictly off of strings and
-makes no attempt to be clever or high-performance. For a more "industrial
-strength" JSON parsing library, see [[https://github.com/Zulu-Inuoe/jzon][jzon]]. The strength of =parcom/json= is in its
-simplicity and light weight.
+*Performance Note*
+
+As with the parent =parcom= library, =parcom/json= works strictly off of strings.
+With SBCL it parses JSON at about 10mb/s on my 2016 ThinkPad, which should be
+sufficient for ordinary usage. For a more "industrial strength" JSON parsing
+library, see [[https://github.com/Zulu-Inuoe/jzon][jzon]] which parses about 3-4x faster than =parcom/json=.
 
 *** parse
 
@@ -692,7 +736,7 @@ Attempt to parse any JSON value. Analogous to =parse= from the main library.
 #+end_src
 
 #+RESULTS:
-: #<HASH-TABLE :TEST EQUAL :COUNT 3 {100985EBF3}>
+: #<HASH-TABLE :TEST EQUAL :COUNT 3 {100E9D5F73}>
 
 #+begin_src lisp :exports both :results verbatim
 (in-package :parcom/json)
@@ -718,11 +762,15 @@ Parse any kind of JSON (the actual parser).
 
 #+begin_src lisp :exports both
 (in-package :parcom/json)
-(json "{\"x\": 1, \"y\": 2, \"z\": [1, {\"a\":true}]}  ")
+(json (parcom:in "{\"x\": 1, \"y\": 2, \"z\": [1, {\"a\":true}]}  "))
 #+end_src
 
 #+RESULTS:
-: #S(P:PARSER :INPUT "  " :VALUE #<HASH-TABLE :TEST EQUAL :COUNT 3 {1009D16A63}>)
+: #S(P:PARSER
+:    :INPUT #S(P:INPUT
+:              :CURR 38
+:              :STR "{\"x\": 1, \"y\": 2, \"z\": [1, {\"a\":true}]}  ")
+:    :VALUE #<HASH-TABLE :TEST EQUAL :COUNT 3 {100EBF43E3}>)
 
 There are other subparsers exposed, but they are left out here for brevity.
 Please consult the source code if you need them.
@@ -733,7 +781,7 @@ Please consult the source code if you need them.
 
 The whole point of Parser Combinators is that it becomes simple to write your
 own parsing functions. Recall that a "fully realized" parser has the signature
-=string -> parser=. In the simplest case, a parser of yours could look like:
+=input -> parser=. In the simplest case, a parser of yours could look like:
 
 #+begin_src lisp :exports both
 (in-package :parcom)
@@ -741,11 +789,11 @@ own parsing functions. Recall that a "fully realized" parser has the signature
 (defun excited-apple (input)
   (funcall (<* (string "Mālum") (char #\!)) input))
 
-(funcall #'excited-apple "Mālum! Ō!")
+(funcall #'excited-apple (in "Mālum! Ō!"))
 #+end_src
 
 #+RESULTS:
-: #S(PARSER :INPUT " Ō!" :VALUE "Mālum")
+: #S(PARSER :INPUT #S(INPUT :CURR 6 :STR "Mālum! Ō!") :VALUE "Mālum")
 
 Wherein you utilize the combinators provided by this library to build up
 composite parsers that are useful to you.
@@ -764,16 +812,18 @@ combinators like =count=:
 (defun excited-apples (n)
   "Parse a certain number of excited apples."
   (lambda (input)
-    (funcall (count #'excited-apple n) input)))
+    (funcall (count n #'excited-apple) input)))
 
-(funcall (excited-apples 3) "Mālum!Mālum!Mālum!Mālum!")
+(funcall (excited-apples 3) (in "Mālum!Mālum!Mālum!Mālum!"))
 #+end_src
 
 #+RESULTS:
-: #S(PARSER :INPUT "Mālum!" :VALUE ("Mālum" "Mālum" "Mālum"))
+: #S(PARSER
+:    :INPUT #S(INPUT :CURR 18 :STR "Mālum!Mālum!Mālum!Mālum!")
+:    :VALUE ("Mālum" "Mālum" "Mālum"))
 
 So, if your parser is parameterized by some initial argument, it has to return a
-lambda that accepts an =input= string.
+lambda that accepts an =input=.
 
 ** Failure
 
@@ -786,18 +836,20 @@ with your own diagnostics:
 (defun three-sad-pears (input)
   (let ((res (funcall (many (string "Pirum trīste")) input)))
     (cond ((failure-p res)
-           (fail "Three sad pears" "No pears at all!"))
+           (fail "Three sad pears" input))
           ((< (length (parser-value res)) 3)
-           (fail "Three sad pears" "Not enough pears"))
+           (fail "Three sad pears" input))
           ((> (length (parser-value res)) 3)
-           (fail "Three sad pears" "Way too many pears"))
+           (fail "Three sad pears" input))
           (t res))))
 
-(three-sad-pears "Pirum trīste")
+(three-sad-pears (in "Pirum trīste"))
 #+end_src
 
 #+RESULTS:
-: #S(FAILURE :EXPECTED "Three sad pears" :ACTUAL "Not enough pears")
+: #S(FAILURE
+:    :EXPECTED "Three sad pears"
+:    :ACTUAL #S(INPUT :CURR 0 :STR "Pirum trīste"))
 
 Notice the usage of =parser-value= to access the current inner success value of
 the =parser= result. =parser-input= is likewise used to access the remaining input.
