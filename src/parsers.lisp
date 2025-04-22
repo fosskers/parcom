@@ -125,6 +125,24 @@
 #+nil
 (funcall (take 3) (in "Arbor"))
 
+(declaim (ftype (function ((function (character) boolean)) always-parse) consume))
+(defun consume (p)
+  "Skip characters according to a given predicate, advancing the parser to a
+further point. Yields T, not the characters that were parsed. A faster variant
+of `take-while' when you don't actually need the parsed characters."
+  (lambda (input)
+    (declare (optimize (speed 3) (safety 0))
+             (type input input))
+    (let* ((s    (input-str input))
+           (len  (length s))
+           (keep (loop :for i :from (input-curr input) :below len
+                       :while (funcall p (schar s i))
+                       :finally (return (- i (input-curr input))))))
+      (ok (off keep input) t))))
+
+#+nil
+(funcall (consume (lambda (c) (eql c #\a))) (in "aaabcd!"))
+
 (declaim (ftype (function ((function (character) boolean)) always-parse) take-while))
 (defun take-while (p)
   "Take characters while some predicate holds."
@@ -212,7 +230,7 @@
            input))
 
 #+nil
-(funcall #'multispace (concatenate 'cl:string '(#\tab #\tab #\tab)))
+(funcall #'multispace (in (concatenate 'cl:string '(#\tab #\tab #\tab))))
 
 (declaim (ftype maybe-parse multispace1))
 (defun multispace1 (input)
