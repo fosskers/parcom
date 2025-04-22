@@ -30,11 +30,11 @@
 ;; --- Conditions --- ;;
 
 (define-condition parse-failure (error)
-  ((expected :initarg expected :reader parse-failure-expected)
-   (actual   :initarg actual   :reader parse-failure-actual))
+  ((expected :initarg :expected :reader parse-failure-expected)
+   (actual   :initarg :actual   :reader parse-failure-actual))
   (:documentation "Some parsing failed, so we render why.")
   (:report (lambda (c stream)
-             (format stream "Expected:~%  ~a~%Actual:~%  ~a"
+             (format stream "Expected:~%  ~a~%Actual:~%  ~a~%"
                      (parse-failure-expected c)
                      (parse-failure-actual c)))))
 
