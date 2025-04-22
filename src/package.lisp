@@ -42,7 +42,6 @@
 
 (defstruct input
   "The remaining parser input with a cached reference to its first character."
-  (head nil :type character)
   (curr 0   :type fixnum)
   (str  nil :type simple-string))
 
@@ -50,7 +49,7 @@
 (defun in (input)
   "Smart constructor for some parser input."
   (declare (optimize (speed 3) (safety 0)))
-  (make-input :head (schar input 0) :curr 0 :str input))
+  (make-input :curr 0 :str input))
 
 #+nil
 (in "hello")
@@ -59,10 +58,8 @@
 (defun off (offset input)
   "Advance the input by some offset."
   (declare (optimize (speed 3) (safety 0)))
-  (let ((curr (+ offset (input-curr input))))
-    (make-input :head (schar (input-str input) curr)
-                :curr curr
-                :str  (input-str input))))
+  (make-input :curr (+ offset (input-curr input))
+              :str  (input-str input)))
 
 #+nil
 (off 4 (in "hello there!"))

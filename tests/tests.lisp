@@ -25,7 +25,8 @@
 (define-test char
   :parent parsers
   (is equal #\H (pc:parse (pc:char #\H) "Hello"))
-  (fail (pc:parse (pc:char #\H) "ello")))
+  (fail (pc:parse (pc:char #\H) "ello"))
+  (fail (pc:parse (pc:char #\H) "")))
 
 (define-test string
   :parent parsers
@@ -210,7 +211,8 @@
 (define-test numbers
   :parent json
   (is = 0.0 (pj:parse "0"))
-  (is equal #\, (pc::input-head (pc:parser-input (pj:scientific (pc:in "1e00,")))))
+  (let ((res (pc:parser-input (pj:scientific (pc:in "1e00,")))))
+    (is equal #\, (schar (pc::input-str res) (pc::input-curr res))))
   (is = 1234567890.0d0 (pj:parse "1234567890"))
   (is = -9876.543210d0 (pj:parse "-9876.543210"))
   (is = 23456789012d66 (pj:parse "23456789012E66"))

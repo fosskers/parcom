@@ -142,11 +142,11 @@
                    input)))
 
 #+nil
-(string "\"Hel\\tlo\"")
+(string (p:in "\"Hel\\tlo\""))
 #+nil
-(string "\"\\\"\"")
+(string (p:in "\"\\\"\""))
 #+nil
-(string "\"Hi \\u03B1\"")
+(string (p:in "\"Hi \\u03B1\""))
 
 (defun boolean (input)
   "Parser: Parse `true' as T and `false' as NIL."

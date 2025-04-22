@@ -7,9 +7,9 @@
   "Accept any character."
   (declare (optimize (speed 3) (safety 0)))
   (let ((s (input-str input)))
-    (if (empty? s)
+    (if (>= (input-curr input) (length s))
         (fail "any char" input)
-        (ok (off 1 input) (input-head input)))))
+        (ok (off 1 input) (schar s (input-curr input))))))
 
 #++
 (any (in "hello"))
@@ -65,19 +65,21 @@
   (lambda (input)
     (declare (optimize (speed 3) (safety 0))
              (type input input))
-    (if (empty? (input-str input))
+    (if (>= (input-curr input) (length (input-str input)))
         (fail c input)
-        (let ((head (input-head input)))
+        (let ((head (schar (input-str input) (input-curr input))))
           (if (equal c head)
               (ok (off 1 input) head)
               (fail c input))))))
 
 #++
+(funcall (char #\H) (in ""))
+#++
 (funcall (char #\H) (in "Hello"))
 #++
 (funcall (char #\H) (in "ello"))
 #++
-(funcall (*> (char #\H) (char #\e)) "Hello")
+(funcall (*> (char #\H) (char #\e)) (in "Hello"))
 
 (declaim (ftype (function (cl:string) maybe-parse) string))
 (defun string (s)
@@ -129,19 +131,16 @@
   (lambda (input)
     (declare (optimize (speed 3) (safety 0))
              (type input input))
-    ;; TODO: 2025-04-21 Try to undo the call to head here, might not be needed.
-    (if (not (funcall p (input-head input)))
-        (ok input "")
-        (let* ((s    (input-str input))
-               (len  (length s))
-               (keep (loop :for i :from (1+ (input-curr input)) :below len
-                           :while (funcall p (schar s i))
-                           :finally (return (- i (input-curr input))))))
-          (ok (off keep input)
-              (make-array keep
-                          :element-type 'character
-                          :displaced-to s
-                          :displaced-index-offset (input-curr input)))))))
+    (let* ((s    (input-str input))
+           (len  (length s))
+           (keep (loop :for i :from (input-curr input) :below len
+                       :while (funcall p (schar s i))
+                       :finally (return (- i (input-curr input))))))
+      (ok (off keep input)
+          (make-array keep
+                      :element-type 'character
+                      :displaced-to s
+                      :displaced-index-offset (input-curr input))))))
 
 #+nil
 (funcall (take-while (lambda (c) (equal #\a c))) (in "bbb"))
@@ -264,13 +263,13 @@
         (funcall (recognize (*> #'integer (opt (*> (char #\.) (take-while1 #'digit?))))) input)))
 
 #+nil
-(funcall #'float "-123.0456!")
+(funcall #'float (in "-123.0456!"))
 #+nil
-(funcall #'float "123.0456!")
+(funcall #'float (in "123.0456!"))
 #+nil
-(funcall #'float "123.0456123123123123!")
+(funcall #'float (in "123.0456123123123123!"))
 #+nil
-(funcall #'float "1")
+(funcall #'float (in "1"))
 
 (declaim (ftype always-parse rest))
 (defun rest (input)
