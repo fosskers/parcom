@@ -21,3 +21,7 @@
   :depends-on (:parcom :parcom/json :parachute)
   :components ((:module "tests" :components ((:file "tests"))))
   :perform (test-op (op c) (symbol-call :parachute :test :parcom/tests)))
+
+(defsystem "parcom/benchmarks"
+  :depends-on (:parcom :parcom/json :com.inuoe.jzon :shasht :jsown :yason)
+  :components ((:module "tests" :components ((:file "bench")))))

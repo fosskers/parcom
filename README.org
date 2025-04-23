@@ -20,6 +20,7 @@ reallocated.
 * Table of Contents :TOC_5_gh:noexport:
 - [[#compatibility][Compatibility]]
 - [[#performance][Performance]]
+  - [[#json-benchmarks][JSON Benchmarks]]
 - [[#api][API]]
   - [[#types-and-running-parsers][Types and Running Parsers]]
   - [[#parsers][Parsers]]
@@ -92,6 +93,18 @@ amount of allocation. That said, its =parcom/json= component has been measured t
 parse JSON at ~10mb/s on a 2016 ThinkPad, which should be sufficient for
 ordinary usage. There are certainly faster parsers out there, but =parcom= is
 expressive and light.
+
+** JSON Benchmarks
+
+In parsing a [[https://raw.githubusercontent.com/json-iterator/test-data/master/large-file.json][25mb JSON file]] from an in-memory string:
+
+| Method      | Time (ms) | Memory (bytes) |
+|-------------+-----------+----------------|
+| jsown       |       150 | 135m           |
+| jzon        |       300 | 132m           |
+| shasht      |       600 | 400m           |
+| yason       |      1700 | 400m           |
+| parcom/json |      3500 | 6500m          |
 
 * API
 
@@ -724,7 +737,7 @@ Conversions:
 As with the parent =parcom= library, =parcom/json= works strictly off of strings.
 With SBCL it parses JSON at about 10mb/s on my 2016 ThinkPad, which should be
 sufficient for ordinary usage. For a more "industrial strength" JSON parsing
-library, see [[https://github.com/Zulu-Inuoe/jzon][jzon]] which parses about 3-4x faster than =parcom/json=.
+library, see [[https://github.com/Zulu-Inuoe/jzon][jzon]] which parses about 10x faster than =parcom/json=.
 
 *** parse
 
