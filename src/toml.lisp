@@ -28,7 +28,33 @@
            input))
 
 #+nil
-(string (p:in "\"hello\""))
+(string (p:in "\"hel\\u00E9lo\""))
+
+(defun basic-string (input)
+  "Parser: Parse the simplest kind of string."
+  (p:fmap (lambda (chars) (concatenate 'cl:string chars))
+          (funcall (p:between (p:char #\")
+                              (p:many #'compound-char)
+                              (p:char #\"))
+                   input)))
+
+#+nil
+(basic-string (p:in "\"hel\\u00E9lo\""))
+
+(defun compound-char (input)
+  "Parser: Parse a char while being wary of escaping."
+  (funcall (p:alt #'escaped-char (p:anybut #\")) input))
+
+(defun escaped-char (input)
+  (funcall (*> (p:peek (p:char #\\))
+               (p:alt #'special-char #'p:control-char #'p:unicode))
+           input))
+
+(defun special-char (input)
+  "Parser: Backslashes and quotes."
+  (funcall (*> (p:char #\\)
+               (p:alt (p:char #\\) (p:char #\")))
+           input))
 
 (defun pair (input)
   "Parser: A key-value pair."
