@@ -56,6 +56,22 @@
                (p:alt (p:char #\\) (p:char #\")))
            input))
 
+(defun multiline-basic-string (input)
+  "Parser: Easily include newlines characters into strings and preserve them."
+  (p:fmap (lambda (chars) (concatenate 'cl:string chars))
+          (funcall (p:between (p:string "\"\"\"")
+                              (*> (p:opt #'p:newline)
+                                  (p:many (*> (p:opt (*> (p:char #\\)
+                                                         #'p:multispace1))
+                                              #'compound-char)))
+                              (p:string "\"\"\""))
+                   input)))
+
+#+nil
+(multiline-basic-string (p:in "\"\"\"hel\\u00E9lo\"\"\""))
+#+nil
+(multiline-basic-string (p:in "\"\"\"\\ a  \"\"\""))
+
 (defun pair (input)
   "Parser: A key-value pair."
   (funcall (p:pair #'key (*> #'skip-space
