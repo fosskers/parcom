@@ -156,12 +156,7 @@
 
 (defun skip-space (input)
   "A faster variant of `multispace' that just advances over the space chars."
-  (funcall (p:consume (lambda (c)
-                        (or (equal c #\space)
-                            (equal c #\newline)
-                            (equal c #\tab)
-                            (equal c #\return))))
-           input))
+  (funcall (p:consume #'p:space?) input))
 
 #+nil
 (funcall #'skip-space (p:in "   abc"))

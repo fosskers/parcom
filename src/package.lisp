@@ -6,7 +6,7 @@
            #:failure #:failure-expected #:failure-actual
            #:input #:in
            #:ok #:fail #:parse
-           #:empty? #:digit? #:ascii-letter?)
+           #:empty? #:digit? #:ascii-letter? #:space?)
   ;; --- Functional Programming --- ;;
   (:export #:fmap #:const
            #:all #:right #:left #:instead
@@ -152,3 +152,11 @@ Error reporting code will check the length of this and truncate it if necessary.
 (hex? #\7)
 #+nil
 (hex? #\J)
+
+(declaim (ftype (function (character) boolean) space?))
+(defun space? (char)
+  "Is a given character some sort of whitespace?"
+  (or (equal char #\space)
+      (equal char #\newline)
+      (equal char #\tab)
+      (equal char #\return)))
