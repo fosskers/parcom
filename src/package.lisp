@@ -6,7 +6,7 @@
            #:failure #:failure-expected #:failure-actual
            #:input #:in
            #:ok #:fail #:parse
-           #:empty? #:digit?)
+           #:empty? #:digit? #:ascii-letter?)
   ;; --- Functional Programming --- ;;
   (:export #:fmap #:const
            #:all #:right #:left #:instead
@@ -121,6 +121,17 @@ Error reporting code will check the length of this and truncate it if necessary.
 
 #++
 (empty? "")
+
+(declaim (ftype (function (character) boolean) ascii-letter?))
+(defun ascii-letter? (char)
+  "A-Za-z"
+  (or (char<= #\a char #\z)
+      (char<= #\A char #\Z)))
+
+#+nil
+(ascii-letter? #\h)
+#+nil
+(ascii-letter? #\1)
 
 (declaim (ftype (function (character) boolean) digit?))
 (defun digit? (char)

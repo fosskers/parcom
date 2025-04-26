@@ -17,8 +17,13 @@
   :components ((:module "src" :components ((:file "json"))))
   :in-order-to ((test-op (test-op :parcom/tests))))
 
+(defsystem "parcom/toml"
+  :depends-on (:parcom)
+  :components ((:module "src" :components ((:file "toml"))))
+  :in-order-to ((test-op (test-op :parcom/tests))))
+
 (defsystem "parcom/tests"
-  :depends-on (:parcom :parcom/json :parachute)
+  :depends-on (:parcom :parcom/json :parcom/toml :parachute)
   :components ((:module "tests" :components ((:file "tests"))))
   :perform (test-op (op c) (symbol-call :parachute :test :parcom/tests)))
 

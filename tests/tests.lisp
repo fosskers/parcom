@@ -1,7 +1,8 @@
 (defpackage parcom/tests
   (:use :cl :parachute)
   (:local-nicknames (#:pc #:parcom)
-                    (#:pj #:parcom/json)))
+                    (#:pj #:parcom/json)
+                    (#:pt #:parcom/toml)))
 
 (in-package :parcom/tests)
 
@@ -225,3 +226,10 @@
   (true (arrayp (pj:parse (uiop:read-file-string "tests/data/pass1.json"))))
   (true (arrayp (pj:parse (uiop:read-file-string "tests/data/pass2.json"))))
   (true (hash-table-p (pj:parse (uiop:read-file-string "tests/data/beam-18.json")))))
+
+(define-test toml)
+
+(define-test toml-keys
+  :parent toml
+  (is equal "alex-h" (pc:parser-value (pt::bare-key (pc:in "alex-h"))))
+  (is equal "123" (pc:parser-value (pt::bare-key (pc:in "123")))))
