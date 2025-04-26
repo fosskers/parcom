@@ -86,7 +86,7 @@
 
 (defun escaped-char (input)
   (funcall (*> (p:peek (p:char #\\))
-               (p:alt #'special-char #'control-char #'unicode))
+               (p:alt #'special-char #'p:control-char #'p:unicode))
            input))
 
 (defun special-char (input)
@@ -101,37 +101,6 @@
 (special-char "\\\"")
 #+nil
 (special-char "\\'")
-
-(defun control-char (input)
-  "Parser: Newlines and whatnot."
-  (funcall (*> (p:char #\\)
-               (p:alt (<$ #\newline (p:char #\n))
-                      (<$ #\tab (p:char #\t))
-                      (<$ #\return (p:char #\r))
-                      (<$ #\backspace (p:char #\b))
-                      (<$ #\page (p:char #\f))))
-           input))
-
-#+nil
-(control-char "\\n")
-
-(defun unicode (input)
-  "Parser: Parse a unicode char of 4 hex values."
-  (p:fmap (lambda (chars)
-            (destructuring-bind (a b c d) chars
-              (code-char (+ (* 4096 (digit-char-p a 16))
-                            (* 256 (digit-char-p b 16))
-                            (* 16 (digit-char-p c 16))
-                            (digit-char-p d 16)))))
-          (funcall (*> (p:char #\\)
-                       (p:alt (p:char #\u) (p:char #\U))
-                       (p:count 4 #'p:hex))
-                   input)))
-
-#+nil
-(unicode "\\u0022")
-#+nil
-(unicode "\\U0022")
 
 (defun string (input)
   "Parser: Parse any string."

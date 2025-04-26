@@ -12,7 +12,7 @@
            #:all #:right #:left #:instead
            #:*> #:<* #:<*> #:<$ #:alt)
   ;; --- Parsers --- ;;
-  (:export #:any #:anybut #:hex #:eof
+  (:export #:any #:anybut #:hex #:unicode #:control-char #:eof
            #:char #:string
            #:unsigned #:integer #:float
            #:newline #:space #:space1 #:multispace #:multispace1

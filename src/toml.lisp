@@ -1,5 +1,6 @@
 (defpackage parcom/toml
   (:use :cl)
+  (:shadow #:string)
   (:import-from :parcom #:<*> #:<* #:*> #:<$)
   (:local-nicknames (#:p #:parcom)))
 
@@ -17,6 +18,17 @@
 
 #+nil
 (comment (p:in "# yes"))
+
+(defun string (input)
+  "Parser: One of the four TOML string types."
+  (funcall (p:alt #'basic-string
+                  #'multiline-basic-string
+                  #'literal-string
+                  #'multiline-literal-string)
+           input))
+
+#+nil
+(string (p:in "\"hello\""))
 
 (defun pair (input)
   "Parser: A key-value pair."

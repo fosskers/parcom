@@ -41,9 +41,40 @@
 #+nil
 (funcall (many #'hex) "abcdefgh")
 
+(defun unicode (input)
+  "Parser: Parse a unicode char of 4 hex values."
+  (fmap (lambda (chars)
+          (destructuring-bind (a b c d) chars
+            (code-char (+ (* 4096 (digit-char-p a 16))
+                          (* 256 (digit-char-p b 16))
+                          (* 16 (digit-char-p c 16))
+                          (digit-char-p d 16)))))
+        (funcall (*> (char #\\)
+                     (alt (char #\u) (char #\U))
+                     (count 4 #'hex))
+                 input)))
+
+#+nil
+(unicode (in "\\u0022"))
+#+nil
+(unicode (in "\\U0022"))
+
+(defun control-char (input)
+  "Parser: Newlines and whatnot."
+  (funcall (*> (char #\\)
+               (alt (<$ #\newline (char #\n))
+                    (<$ #\tab (char #\t))
+                    (<$ #\return (char #\r))
+                    (<$ #\backspace (char #\b))
+                    (<$ #\page (char #\f))))
+           input))
+
+#+nil
+(control-char (in "\\n"))
+
 (declaim (ftype maybe-parse eof))
 (defun eof (input)
-  "Recognize the end of the input."
+  "Parser: Recognize the end of the input."
   (if (= (input-curr input) (length (input-str input)))
       (ok input t)
       (fail "the end of the input" input)))
