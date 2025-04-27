@@ -59,11 +59,10 @@
 (defun multiline-basic-string (input)
   "Parser: Easily include newlines characters into strings and preserve them."
   (p:fmap (lambda (chars) (concatenate 'cl:string chars))
-          (funcall (p:between (p:string "\"\"\"")
-                              (*> (p:opt #'p:newline)
-                                  (p:many (*> (p:opt (*> (p:char #\\)
-                                                         #'p:multispace1))
-                                              #'compound-char)))
+          (funcall (p:between (<* (p:string "\"\"\"") (p:opt #'p:newline))
+                              (p:many (*> (p:opt (*> (p:char #\\)
+                                                     #'p:multispace1))
+                                          #'compound-char))
                               (p:string "\"\"\""))
                    input)))
 
@@ -86,6 +85,16 @@ memory efficient than `basic-string'."
 #+nil
 (time (dotimes (n 10000)
         (basic-string (p:in "\"yes indeed\""))))
+
+(defun multiline-literal-string (input)
+  "Parser: Multiline strings with no escaping."
+  (funcall (p:between (<* (p:string "'''") (p:opt #'p:newline))
+                      (p:take-until (p:string "'''"))
+                      (p:string "'''"))
+           input))
+
+#+nil
+(multiline-literal-string (p:in "'''the cat's catnip'''"))
 
 (defun pair (input)
   "Parser: A key-value pair."
