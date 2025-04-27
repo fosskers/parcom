@@ -176,7 +176,7 @@ of `take-while' when you don't actually need the parsed characters."
 
 (declaim (ftype (function ((function (character) boolean)) always-parse) take-while))
 (defun take-while (p)
-  "Take characters while some predicate holds."
+  "Parser: Take characters while some predicate holds."
   (lambda (input)
     (declare (optimize (speed 3) (safety 0))
              (type input input))
@@ -205,7 +205,7 @@ of `take-while' when you don't actually need the parsed characters."
 
 (declaim (ftype (function ((function (character) boolean)) maybe-parse) take-while1))
 (defun take-while1 (p)
-  "Take characters while some predicate holds. Must succeed at least once."
+  "Parser: Take characters while some predicate holds. Must succeed at least once."
   (lambda (input)
     (let ((res (funcall (take-while p) input)))
       (cond ((failure-p res) res)
@@ -219,7 +219,7 @@ of `take-while' when you don't actually need the parsed characters."
 
 (declaim (ftype maybe-parse newline))
 (defun newline (input)
-  "Matches a single newline character."
+  "Parser: Matches a single newline character."
   (funcall (char #\newline) input))
 
 #+nil

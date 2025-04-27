@@ -166,6 +166,26 @@ even if not followed by an instance of the main parser."
 #+nil
 (funcall (skip (char #\!)) (in "!!!hi"))
 
+(defun take-until (parser)
+  "Combinator: Take characters until another parser succeeds. Does not consume the
+input of the subparser."
+  (lambda (input)
+    (let* ((s (input-str input))
+           (len (length s))
+           (working (make-input :curr (input-curr input) :str s))
+           (keep (loop :for i :from (input-curr input) :below len
+                       :while (when (failure-p (funcall parser working))
+                                (incf (input-curr working)))
+                       :finally (return (- i (input-curr input))))))
+      (ok (off keep input)
+          (make-array keep
+                      :element-type 'character
+                      :displaced-to s
+                      :displaced-index-offset (input-curr input))))))
+
+#+nil
+(funcall (*> (string "!!!") (take-until (char #\'))) (in "!!!abcd'"))
+
 (declaim (ftype (function (maybe-parse) maybe-parse) peek))
 (defun peek (parser)
   "Yield the value of a parser, but don't consume the input."
