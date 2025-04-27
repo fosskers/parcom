@@ -72,6 +72,21 @@
 #+nil
 (multiline-basic-string (p:in "\"\"\"\\ a  \"\"\""))
 
+(defun literal-string (input)
+  "Parser: Strings with no escaping. These parse much faster and are more
+memory efficient than `basic-string'."
+  (funcall (p:between (p:char #\')
+                      (p:take-while (lambda (c) (not (equal c #\'))))
+                      (p:char #\'))
+           input))
+
+#+nil
+(time (dotimes (n 10000)
+        (literal-string (p:in "'yes indeed'"))))
+#+nil
+(time (dotimes (n 10000)
+        (basic-string (p:in "\"yes indeed\""))))
+
 (defun pair (input)
   "Parser: A key-value pair."
   (funcall (p:pair #'key (*> #'skip-space
