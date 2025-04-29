@@ -1,6 +1,6 @@
 (defpackage parcom/toml
   (:use :cl)
-  (:shadow #:string #:integer)
+  (:shadow #:string #:integer #:number #:boolean)
   (:import-from :parcom #:<*> #:<* #:*> #:<$)
   (:local-nicknames (#:p #:parcom)))
 
@@ -141,7 +141,14 @@ memory efficient than `basic-string'."
 ;; Array
 ;; Inline table
 (defun value (input)
-  "Parser: The value portion of a key-value pair.")
+  "Parser: The value portion of a key-value pair."
+  (funcall (p:alt #'string #'number)
+           input))
+
+(defun number (input)
+  "Parser: Any number."
+  (funcall (p:alt #'integer #'hex #'octal #'binary)
+           input))
 
 (defun integer (input)
   "Parser: Whole numbers."
@@ -199,3 +206,11 @@ memory efficient than `basic-string'."
 
 #+nil
 (binary (p:in "0b1010"))
+
+(defun boolean (input)
+  (funcall (p:alt (<$ t (p:string "true"))
+                  (<$ nil (p:string "false")))
+           input))
+
+#+nil
+(boolean (p:in "true"))
