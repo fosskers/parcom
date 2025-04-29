@@ -253,4 +253,6 @@
            (pc:parser-value (pt::hex (pc:in "0xdeadbeef")))
            (pc:parser-value (pt::hex (pc:in "0xdead_beef")))))
   (is = 342391 (pc:parser-value (pt::octal (pc:in "0o01234567"))))
-  (true (pc::failure-p (pt::octal (pc:in "0o8")))))
+  (true (pc::failure-p (pt::octal (pc:in "0o8"))))
+  (is = 10 (pc:parser-value (pt::binary (pc:in "0b1010"))))
+  (is = 20 (pc:parser-value (pt::binary (pc:in "0b1010_0")))))

@@ -188,3 +188,14 @@ memory efficient than `basic-string'."
 (octal (p:in "0o01234567"))
 #+nil
 (octal (p:in "0o8"))
+
+(defun binary (input)
+  "Parser: A positive base-2 number."
+  (p:fmap (lambda (ns) (read-from-string (format nil "#b~{~a~}" ns)))
+          (funcall (*> (p:string "0b")
+                       (p:sep1 (p:char #\_)
+                               (p:take-while1 #'p:binary?)))
+                   input)))
+
+#+nil
+(binary (p:in "0b1010"))
