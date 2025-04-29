@@ -6,7 +6,9 @@
            #:failure #:failure-expected #:failure-actual
            #:input #:in
            #:ok #:fail #:parse
-           #:empty? #:digit? #:hex? #:ascii-letter? #:space?)
+           #:empty?
+           #:digit? #:hex? #:octal? #:binary?
+           #:ascii-letter? #:space?)
   ;; --- Functional Programming --- ;;
   (:export #:fmap #:const
            #:all #:right #:left #:instead
@@ -152,6 +154,16 @@ Error reporting code will check the length of this and truncate it if necessary.
 (hex? #\7)
 #+nil
 (hex? #\J)
+
+(declaim (ftype (function (character) boolean) octal?))
+(defun octal? (char)
+  "Is a given character an octal digit?"
+  (char<= #\0 char #\7))
+
+(declaim (ftype (function (character) boolean) binary?))
+(defun binary? (char)
+  "Is a given character a binary digit?"
+  (char<= #\0 char #\1))
 
 (declaim (ftype (function (character) boolean) space?))
 (defun space? (char)

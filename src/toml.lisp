@@ -169,10 +169,22 @@ memory efficient than `basic-string'."
   "Parser: A positive hexadecimal number."
   (p:fmap (lambda (ns) (read-from-string (format nil "#x~{~a~}" ns)))
           (funcall (*> (p:string "0x")
-                       (p:sep (p:char #\_)
-                              (p:take-while1 #'p:hex?)))
+                       (p:sep1 (p:char #\_)
+                               (p:take-while1 #'p:hex?)))
                    input)))
 
 #+nil
 (hex (p:in "0xdead_beef"))
 
+(defun octal (input)
+  "Parser: A positive base-8 number."
+  (p:fmap (lambda (ns) (read-from-string (format nil "#o~{~a~}" ns)))
+          (funcall (*> (p:string "0o")
+                       (p:sep1 (p:char #\_)
+                               (p:take-while1 #'p:octal?)))
+                   input)))
+
+#+nil
+(octal (p:in "0o01234567"))
+#+nil
+(octal (p:in "0o8"))
