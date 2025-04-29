@@ -2,7 +2,8 @@
   (:use :cl :parachute)
   (:local-nicknames (#:pc #:parcom)
                     (#:pj #:parcom/json)
-                    (#:pt #:parcom/toml)))
+                    (#:pt #:parcom/toml)
+                    (#:pd #:parcom/datetime)))
 
 (in-package :parcom/tests)
 
@@ -231,30 +232,35 @@
 
 (define-test toml-keys
   :parent toml
-  (is equal "alex-h" (pc:parser-value (pt::bare-key (pc:in "alex-h"))))
-  (is equal "123" (pc:parser-value (pt::bare-key (pc:in "123")))))
+  (is equal "alex-h" (pc:parse #'pt::bare-key "alex-h"))
+  (is equal "123" (pc:parse #'pt::bare-key "123")))
 
 (define-test toml-strings
   :parent toml
-  (is equal "the cat's catnip" (pc:parser-value (pt::multiline-literal-string (pc:in "'''the cat's catnip'''")))))
+  (is equal "the cat's catnip" (pc:parse #'pt::multiline-literal-string "'''the cat's catnip'''")))
 
 (define-test toml-numbers
   :parent toml
-  (is = 123 (pc:parser-value (pt::integer (pc:in "+123"))))
-  (is = -17 (pc:parser-value (pt::integer (pc:in "-17"))))
-  (is = 0 (pc:parser-value (pt::integer (pc:in "-0"))))
-  (is = 0 (pc:parser-value (pt::integer (pc:in "+0"))))
-  (is = 1000 (pc:parser-value (pt::integer (pc:in "1_000"))))
-  (is = 5349221 (pc:parser-value (pt::integer (pc:in "5_349_221"))))
-  (is = 5349221 (pc:parser-value (pt::integer (pc:in "53_49_221"))))
-  (is = 0 (pc:parser-value (pt::hex (pc:in "0x0000_0000"))))
-  (true (pc:failure? (pt::hex (pc:in "0x"))))
-  (true (= (pc:parser-value (pt::hex (pc:in "0xDEADBEEF")))
-           (pc:parser-value (pt::hex (pc:in "0xdeadbeef")))
-           (pc:parser-value (pt::hex (pc:in "0xdead_beef")))))
-  (is = 342391 (pc:parser-value (pt::octal (pc:in "0o01234567"))))
-  (true (pc:failure? (pt::octal (pc:in "0o8"))))
-  (is = 10 (pc:parser-value (pt::binary (pc:in "0b1010"))))
-  (is = 20 (pc:parser-value (pt::binary (pc:in "0b1010_0")))))
+  (is = 123 (pc:parse #'pt::integer "+123"))
+  (is = -17 (pc:parse #'pt::integer "-17"))
+  (is = 0 (pc:parse #'pt::integer "-0"))
+  (is = 0 (pc:parse #'pt::integer "+0"))
+  (is = 1000 (pc:parse #'pt::integer "1_000"))
+  (is = 5349221 (pc:parse #'pt::integer "5_349_221"))
+  (is = 5349221 (pc:parse #'pt::integer "53_49_221"))
+  (is = 0 (pc:parse #'pt::hex "0x0000_0000"))
+  (fail (pc:parse #'pt::hex "0x"))
+  (true (= (pc:parse #'pt::hex "0xDEADBEEF")
+           (pc:parse #'pt::hex "0xdeadbeef")
+           (pc:parse #'pt::hex "0xdead_beef")))
+  (is = 342391 (pc:parse #'pt::octal "0o01234567"))
+  (fail (pc:parse #'pt::octal "0o8"))
+  (is = 10 (pc:parse #'pt::binary "0b1010"))
+  (is = 20 (pc:parse #'pt::binary "0b1010_0")))
 
 (define-test datetime)
+
+(define-test local-date
+  :parent datetime
+  (is equalp (pd::make-local-date :year 1979 :month 1 :day 2)
+      (pc:parse #'pd:local-date "1979-01-02")))
