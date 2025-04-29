@@ -1,6 +1,6 @@
 (defpackage parcom/toml
   (:use :cl)
-  (:shadow #:string)
+  (:shadow #:string #:integer)
   (:import-from :parcom #:<*> #:<* #:*> #:<$)
   (:local-nicknames (#:p #:parcom)))
 
@@ -142,3 +142,25 @@ memory efficient than `basic-string'."
 ;; Inline table
 (defun value (input)
   "Parser: The value portion of a key-value pair.")
+
+(defun integer (input)
+  "Parser: Whole numbers."
+  (p:fmap (lambda (ns)
+            (destructuring-bind (head rest) ns
+              (if (null rest)
+                  head
+                  (read-from-string (format nil "~{~a~}" (cons head rest))))))
+          (funcall (<*> (p:alt (*> (p:opt (p:char #\+)) #'p:unsigned)
+                               #'p:integer)
+                        (p:opt (*> (p:char #\_)
+                                   (p:sep (p:char #\_) (p:take-while1 #'p:digit?)))))
+                   input)))
+
+#+nil
+(integer (p:in "+123"))
+#+nil
+(integer (p:in "-17"))
+#+nil
+(integer (p:in "53_49_221"))
+#+nil
+(integer (p:in "1_001"))

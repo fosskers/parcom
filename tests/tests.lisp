@@ -233,3 +233,17 @@
   :parent toml
   (is equal "alex-h" (pc:parser-value (pt::bare-key (pc:in "alex-h"))))
   (is equal "123" (pc:parser-value (pt::bare-key (pc:in "123")))))
+
+(define-test toml-strings
+  :parent toml
+  (is equal "the cat's catnip" (pc:parser-value (pt::multiline-literal-string (pc:in "'''the cat's catnip'''")))))
+
+(define-test toml-numbers
+  :parent toml
+  (is = 123 (pc:parser-value (pt::integer (pc:in "+123"))))
+  (is = -17 (pc:parser-value (pt::integer (pc:in "-17"))))
+  (is = 0 (pc:parser-value (pt::integer (pc:in "-0"))))
+  (is = 0 (pc:parser-value (pt::integer (pc:in "+0"))))
+  (is = 1000 (pc:parser-value (pt::integer (pc:in "1_000"))))
+  (is = 5349221 (pc:parser-value (pt::integer (pc:in "5_349_221"))))
+  (is = 5349221 (pc:parser-value (pt::integer (pc:in "53_49_221")))))
