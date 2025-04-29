@@ -21,7 +21,7 @@
   "Parser: Any character except the given one."
   (lambda (input)
     (let ((res (any input)))
-      (cond ((failure-p res) res)
+      (cond ((failure? res) res)
             ((eql char (parser-value res)) (fail char input))
             (t res)))))
 
@@ -34,7 +34,7 @@
 (defun hex (input)
   "Parser: A hex character of any case."
   (let ((res (any input)))
-    (cond ((failure-p res) res)
+    (cond ((failure? res) res)
           ((hex? (parser-value res)) res)
           (t (fail "hex: 0-9 or A-F" input)))))
 
@@ -208,7 +208,7 @@ of `take-while' when you don't actually need the parsed characters."
   "Parser: Take characters while some predicate holds. Must succeed at least once."
   (lambda (input)
     (let ((res (funcall (take-while p) input)))
-      (cond ((failure-p res) res)
+      (cond ((failure? res) res)
             ((empty? (parser-value res)) (fail "take-while1: at least one success" input))
             (t res)))))
 
@@ -241,7 +241,7 @@ of `take-while' when you don't actually need the parsed characters."
 (defun space1 (input)
   "Parse 1 or more ASCII whitespace and tab characters."
   (let ((res (funcall #'space input)))
-    (cond ((failure-p res) res)
+    (cond ((failure? res) res)
           ((empty? (parser-value res)) (fail "space1: at least one whitespace" input))
           (t res))))
 
@@ -267,7 +267,7 @@ of `take-while' when you don't actually need the parsed characters."
 (defun multispace1 (input)
   "Parse 1 or more ASCII whitespace, tabs, newlines, and carriage returns."
   (let ((res (funcall #'multispace input)))
-    (cond ((failure-p res) res)
+    (cond ((failure? res) res)
           ((empty? (parser-value res)) (fail "multispace1: at least one space-like character" input))
           (t res))))
 
@@ -279,7 +279,7 @@ of `take-while' when you don't actually need the parsed characters."
   "Parse a positive integer."
   (declare (optimize (speed 3) (safety 0)))
   (let ((res (funcall (take-while1 #'digit?) input)))
-    (cond ((failure-p res) res)
+    (cond ((failure? res) res)
           ((and (char-equal #\0 (cl:char (parser-value res) 0))
                 (> (length (parser-value res)) 1))
            (fail "unsigned: an integer not starting with 0" input))

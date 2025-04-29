@@ -46,7 +46,7 @@ kept. Good for parsing backets, parentheses, etc."
   "Parse 1 or more occurrences of a `parser'."
   (lambda (input)
     (let ((res (funcall (many parser) input)))
-      (cond ((failure-p res) res)
+      (cond ((failure? res) res)
             ((null (parser-value res)) (fail "many1: at least one success" input))
             (t res)))))
 
@@ -88,7 +88,7 @@ kept. Good for parsing backets, parentheses, etc."
   "Parse 1 or more instances of a `parser' separated by some `sep' parser."
   (lambda (input)
     (let ((res (funcall (sep sep parser) input)))
-      (cond ((failure-p res) res)
+      (cond ((failure? res) res)
             ((null (parser-value res)) (fail "sep1: at least one success" input))
             (t res)))))
 
@@ -135,7 +135,7 @@ the separator eagerly, such that a final instance of it will also be parsed,
 even if not followed by an instance of the main parser."
   (lambda (input)
     (let ((res (funcall (sep-end sep parser) input)))
-      (cond ((failure-p res) res)
+      (cond ((failure? res) res)
             ((null (parser-value res)) (fail "sep-end1: at least one success" input))
             (t res)))))
 
@@ -174,7 +174,7 @@ input of the subparser."
            (len (length s))
            (working (make-input :curr (input-curr input) :str s))
            (keep (loop :for i :from (input-curr input) :below len
-                       :while (when (failure-p (funcall parser working))
+                       :while (when (failure? (funcall parser working))
                                 (incf (input-curr working)))
                        :finally (return (- i (input-curr input))))))
       (ok (off keep input)

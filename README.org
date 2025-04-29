@@ -848,7 +848,7 @@ with your own diagnostics:
 
 (defun three-sad-pears (input)
   (let ((res (funcall (many (string "Pirum trīste")) input)))
-    (cond ((failure-p res)
+    (cond ((failure? res)
            (fail "Three sad pears" input))
           ((< (length (parser-value res)) 3)
            (fail "Three sad pears" input))

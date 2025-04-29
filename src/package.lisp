@@ -2,8 +2,8 @@
   (:use :cl)
   (:shadow #:char #:string #:integer #:float #:count #:rest #:space)
   ;; --- Types --- ;;
-  (:export #:parser #:parser-input #:parser-value
-           #:failure #:failure-expected #:failure-actual
+  (:export #:parser #:parser? #:parser-input #:parser-value
+           #:failure #:failure? #:failure-expected #:failure-actual
            #:input #:in
            #:ok #:fail #:parse
            #:empty?
@@ -74,7 +74,7 @@
   "A parser that always succeeds."
   '(function (input) parser))
 
-(defstruct parser
+(defstruct (parser (:predicate parser?))
   "The result of some successful parsing. Tracks the remaining input."
   (input nil :type input)
   value)
@@ -84,7 +84,7 @@
   "Some successful parsing!"
   (make-parser :input input :value value))
 
-(defstruct failure
+(defstruct (failure (:predicate failure?))
   "The result of some failed parsing."
   expected
   (actual nil :type input))
