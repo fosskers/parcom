@@ -28,7 +28,7 @@ reallocated.
       - [[#char][char]]
       - [[#string][string]]
       - [[#any][any]]
-      - [[#anybut][anybut]]
+      - [[#any-but][any-but]]
       - [[#hex][hex]]
       - [[#eof][eof]]
     - [[#numbers][Numbers]]
@@ -195,13 +195,13 @@ Parse any character.
 #+RESULTS:
 : #\H
 
-**** anybut
+**** any-but
 
 Parse any character except the one you don't want.
 
 #+begin_src lisp :exports both
 (in-package :parcom)
-(parse (anybut #\!) "Hello there!")
+(parse (any-but #\!) "Hello there!")
 #+end_src
 
 #+RESULTS:
@@ -209,7 +209,7 @@ Parse any character except the one you don't want.
 
 #+begin_src lisp :exports both
 (in-package :parcom)
-(funcall (anybut #\H) (in "Hello there!"))
+(funcall (any-but #\H) (in "Hello there!"))
 #+end_src
 
 #+RESULTS:

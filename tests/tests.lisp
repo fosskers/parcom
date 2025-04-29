@@ -262,5 +262,7 @@
 
 (define-test local-date
   :parent datetime
+  (is equalp (pd::make-local-date :year 70 :month 7 :day 20)
+      (pc:parse #'pd:local-date "0070-07-20"))
   (is equalp (pd::make-local-date :year 1979 :month 1 :day 2)
       (pc:parse #'pd:local-date "1979-01-02")))

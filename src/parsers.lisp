@@ -16,8 +16,13 @@
 #++
 (any (in ""))
 
-(declaim (ftype (function (character) maybe-parse) anybut))
-(defun anybut (char)
+(defmacro anybut (char)
+  "Deprecated: Use `any-but'."
+  (warn "`anybut' is deprecated; use `any-but' instead.")
+  `(any-but ,char))
+
+(declaim (ftype (function (character) maybe-parse) any-but))
+(defun any-but (char)
   "Parser: Any character except the given one."
   (lambda (input)
     (let ((res (any input)))
@@ -26,9 +31,20 @@
             (t res)))))
 
 #+nil
-(funcall (anybut #\") (in "hi"))
+(funcall (any-but #\") (in "hi"))
 #+nil
-(funcall (anybut #\") (in "\"hi"))
+(funcall (any-but #\") (in "\"hi"))
+
+(defun any-if (pred)
+  "Parser: Any character, as long as it passes the predicate."
+  (lambda (input)
+    (let ((res (any input)))
+      (cond ((failure? res) res)
+            ((funcall pred (parser-value res)) res)
+            (t (fail "any-if: should have passed the predicate" input))))))
+
+#+nil
+(funcall (any-if #'digit?) (in "8a"))
 
 (declaim (ftype maybe-parse hex))
 (defun hex (input)
@@ -160,7 +176,8 @@
 (defun consume (p)
   "Skip characters according to a given predicate, advancing the parser to a
 further point. Yields T, not the characters that were parsed. A faster variant
-of `take-while' when you don't actually need the parsed characters."
+of `take-while' when you don't actually need the parsed characters, and `skip'
+when you don't need to parse something complex."
   (lambda (input)
     (declare (optimize (speed 3) (safety 0))
              (type input input))
@@ -276,7 +293,7 @@ of `take-while' when you don't actually need the parsed characters."
 
 (declaim (ftype maybe-parse unsigned))
 (defun unsigned (input)
-  "Parse a positive integer."
+  "Parser: A positive integer."
   (declare (optimize (speed 3) (safety 0)))
   (let ((res (funcall (take-while1 #'digit?) input)))
     (cond ((failure? res) res)
@@ -294,7 +311,7 @@ of `take-while' when you don't actually need the parsed characters."
 
 (declaim (ftype maybe-parse integer))
 (defun integer (input)
-  "Parse a positive or negative integer."
+  "Parser: A positive or negative integer."
   (fmap (lambda (pair) (if (null (car pair)) (cdr pair) (- (cdr pair))))
         (funcall (pair (opt (char #\-)) #'unsigned) input)))
 
@@ -305,7 +322,7 @@ of `take-while' when you don't actually need the parsed characters."
 
 (declaim (ftype maybe-parse float))
 (defun float (input)
-  "Parse a positive or negative floating point number."
+  "Parser: A positive or negative floating point number."
   (fmap (lambda (s)
           (let ((*read-default-float-format* 'double-float))
             (read-from-string s)))
@@ -322,7 +339,7 @@ of `take-while' when you don't actually need the parsed characters."
 
 (declaim (ftype always-parse rest))
 (defun rest (input)
-  "Consume the rest of the input. Always succeeds."
+  "Parser: Consume the rest of the input. Always succeeds."
   (let ((len (- (length (input-str input)) (input-curr input))))
     (ok (off len input)
         (make-array len

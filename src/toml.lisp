@@ -43,7 +43,7 @@
 
 (defun compound-char (input)
   "Parser: Parse a char while being wary of escaping."
-  (funcall (p:alt #'escaped-char (p:anybut #\")) input))
+  (funcall (p:alt #'escaped-char (p:any-but #\")) input))
 
 (defun escaped-char (input)
   (funcall (*> (p:peek (p:char #\\))
