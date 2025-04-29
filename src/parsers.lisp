@@ -39,7 +39,7 @@
           (t (fail "hex: 0-9 or A-F" input)))))
 
 #+nil
-(funcall (many #'hex) "abcdefgh")
+(funcall (many #'hex) (in "abcdefgh"))
 
 (defun unicode (input)
   "Parser: Parse a unicode char of 4 hex values."

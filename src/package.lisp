@@ -6,7 +6,7 @@
            #:failure #:failure-expected #:failure-actual
            #:input #:in
            #:ok #:fail #:parse
-           #:empty? #:digit? #:ascii-letter? #:space?)
+           #:empty? #:digit? #:hex? #:ascii-letter? #:space?)
   ;; --- Functional Programming --- ;;
   (:export #:fmap #:const
            #:all #:right #:left #:instead

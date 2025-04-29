@@ -164,3 +164,15 @@ memory efficient than `basic-string'."
 (integer (p:in "53_49_221"))
 #+nil
 (integer (p:in "1_001"))
+
+(defun hex (input)
+  "Parser: A positive hexadecimal number."
+  (p:fmap (lambda (ns) (read-from-string (format nil "#x~{~a~}" ns)))
+          (funcall (*> (p:string "0x")
+                       (p:sep (p:char #\_)
+                              (p:take-while1 #'p:hex?)))
+                   input)))
+
+#+nil
+(hex (p:in "0xdead_beef"))
+
