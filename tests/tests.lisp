@@ -265,4 +265,20 @@
   (is equalp (pd::make-local-date :year 70 :month 7 :day 20)
       (pc:parse #'pd:local-date "0070-07-20"))
   (is equalp (pd::make-local-date :year 1979 :month 1 :day 2)
-      (pc:parse #'pd:local-date "1979-01-02")))
+      (pc:parse #'pd:local-date "1979-01-02"))
+  (fail (pc:parse #'pd:local-date "79-01-02")))
+
+(define-test local-time
+  :parent datetime
+  (is equalp (pd::make-local-time :hour 0 :minute 32 :second 0 :millis 123)
+      (pc:parse #'pd:local-time "00:32:00.123"))
+  (is equalp (pd::make-local-time :hour 0 :minute 32 :second 0 :millis 123)
+      (pc:parse #'pd:local-time "00:32:00.123456"))
+  (is equalp (pd::make-local-time :hour 0 :minute 32 :second 0 :millis 100)
+      (pc:parse #'pd:local-time "00:32:00.1"))
+  (is equalp (pd::make-local-time :hour 0 :minute 32 :second 0 :millis 0)
+      (pc:parse #'pd:local-time "00:32:00"))
+  (is equalp (pd::make-local-time :hour 23 :minute 59 :second 60 :millis 0)
+      (pc:parse #'pd:local-time "23:59:60"))
+  (fail (pc:parse #'pd:local-time "00:76:00.123"))
+  (fail (pc:parse #'pd:local-time "0:76:00.123")))
