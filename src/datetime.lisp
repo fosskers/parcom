@@ -31,22 +31,31 @@
 
 (defun local-date (input)
   "Parser: The YYYY-MM-DD portion."
-  (let ((res (funcall (<*> (*> (p:consume (lambda (c) (equal c #\0))) #'p:unsigned)
+  (let ((res (funcall (<*> (*> (p:count 4 (p:any-if #'p:digit?)))
                            (*> (p:char #\-) (p:opt (p:char #\0)) #'p:unsigned)
                            (*> (p:char #\-) (p:opt (p:char #\0)) #'p:unsigned))
                       input)))
     (if (p:failure? res)
         res
         (destructuring-bind (year month day) (p:parser-value res)
-          (cond ((not (<= 0 year 9999)) (p:fail "A year between 0 and 9999" input))
-                ((not (<= 1 month 12)) (p:fail "A month between 1 and 12" input))
-                ((not (<= 1 day (days-in-month-by-year year month)))
-                 (p:fail (format nil "~d-~2,'0d does not have ~a days" year month day) input))
-                (t (p:ok (p:parser-input res)
-                         (make-local-date :year year :month month :day day))))))))
+          (let ((year (chars->year year)))
+            (cond ((not (<= 0 year 9999)) (p:fail "A year between 0 and 9999" input))
+                  ((not (<= 1 month 12)) (p:fail "A month between 1 and 12" input))
+                  ((not (<= 1 day (days-in-month-by-year year month)))
+                   (p:fail (format nil "~d-~2,'0d does not have ~a days" year month day) input))
+                  (t (p:ok (p:parser-input res)
+                           (make-local-date :year year :month month :day day)))))))))
 
 #+nil
 (local-date (p:in "1979-01-02"))
+
+(declaim (ftype (function (list) fixnum) chars->year))
+(defun chars->year (chars)
+  (destructuring-bind (a b c d) chars
+    (+ (* 1000 (digit-char-p a))
+       (*  100 (digit-char-p b))
+       (*   10 (digit-char-p c))
+       (digit-char-p d))))
 
 (defstruct local-time
   "A time without any timezone considerations."
@@ -116,7 +125,3 @@ known here."
     (11 30)
     (12 31)))
 
-;; https://www.nist.gov/pml/time-and-frequency-division/time-realization/leap-seconds
-(defun hour-needs-leap-second? (year month day)
-  ""
-  ())
