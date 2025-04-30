@@ -32,13 +32,15 @@
 (defun local-date (input)
   "Parser: The YYYY-MM-DD portion."
   (let ((res (funcall (<*> (*> (p:count 4 (p:any-if #'p:digit?)))
-                           (*> (p:char #\-) (p:opt (p:char #\0)) #'p:unsigned)
-                           (*> (p:char #\-) (p:opt (p:char #\0)) #'p:unsigned))
+                           (*> (p:char #\-) (p:count 2 (p:any-if #'p:digit?)))
+                           (*> (p:char #\-) (p:count 2 (p:any-if #'p:digit?))))
                       input)))
     (if (p:failure? res)
         res
         (destructuring-bind (year month day) (p:parser-value res)
-          (let ((year (chars->year year)))
+          (let ((year  (chars->year year))
+                (month (chars->2-digits month))
+                (day   (chars->2-digits day)))
             (cond ((not (<= 0 year 9999)) (p:fail "A year between 0 and 9999" input))
                   ((not (<= 1 month 12)) (p:fail "A month between 1 and 12" input))
                   ((not (<= 1 day (days-in-month-by-year year month)))
@@ -56,6 +58,12 @@
        (*  100 (digit-char-p b))
        (*   10 (digit-char-p c))
        (digit-char-p d))))
+
+(declaim (ftype (function (list) fixnum) chars->2-digits))
+(defun chars->2-digits (chars)
+  (destructuring-bind (a b) chars
+    (+ (* 10 (digit-char-p a))
+       (digit-char-p b))))
 
 (defstruct local-time
   "A time without any timezone considerations."
@@ -124,4 +132,3 @@ known here."
     (10 31)
     (11 30)
     (12 31)))
-
