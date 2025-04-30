@@ -11,7 +11,8 @@
   (:local-nicknames (#:p #:parcom))
   ;; --- Types --- ;;
   (:export #:local-date #:local-date-year #:local-date-month #:local-date-day
-           #:local-time #:local-time-hour #:local-time-minute #:local-time-second #:local-time-millis)
+           #:local-time #:local-time-hour #:local-time-minute #:local-time-second #:local-time-millis
+           #:local-date-time #:local-date-time-date #:local-date-time-time)
   ;; --- Utilities --- ;;
   (:export #:leap-year?))
 
@@ -105,6 +106,22 @@ known here."
 (local-time (p:in "00:32:00.123"))
 #+nil
 (local-time (p:in "23:59:60"))
+
+(defstruct local-date-time
+  (date nil :type local-date)
+  (time nil :type local-time))
+
+(defun local-date-time (input)
+  "Parser: A time and date with no indicated timezone offset."
+  (p:fmap (lambda (xs)
+            (destructuring-bind (date time) xs
+              (make-local-date-time :date date :time time)))
+          (funcall (<*> #'local-date
+                        (*> (p:char #\T) #'local-time))
+                   input)))
+
+#+nil
+(local-date-time (p:in "1979-05-27T07:32:00"))
 
 ;; --- Utilities --- ;;
 

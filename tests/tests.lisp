@@ -283,4 +283,11 @@
   (is equalp (pd::make-local-time :hour 23 :minute 59 :second 60 :millis 0)
       (pc:parse #'pd:local-time "23:59:60"))
   (fail (pc:parse #'pd:local-time "00:76:00.123"))
-  (fail (pc:parse #'pd:local-time "0:76:00.123")))
+  (fail (pc:parse #'pd:local-time "0:10:00.123")))
+
+(define-test local-date-time
+  :parent datetime
+  (is equalp (pd::make-local-date-time
+              :date (pd::make-local-date :year 1979 :month 5 :day 27)
+              :time (pd::make-local-time :hour 7 :minute 32 :second 0 :millis 0))
+      (pc:parse #'pd:local-date-time "1979-05-27T07:32:00")))
