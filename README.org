@@ -67,6 +67,12 @@ reallocated.
   - [[#json][JSON]]
     - [[#parse][parse]]
     - [[#json-1][json]]
+  - [[#dates-and-times][Dates and Times]]
+    - [[#parse-1][parse]]
+    - [[#now][now]]
+    - [[#date][date]]
+    - [[#time][time]]
+    - [[#format][format]]
 - [[#writing-your-own-parsers][Writing your own Parsers]]
   - [[#basics][Basics]]
   - [[#parameterized-parsers][Parameterized Parsers]]
@@ -787,6 +793,96 @@ Parse any kind of JSON (the actual parser).
 
 There are other subparsers exposed, but they are left out here for brevity.
 Please consult the source code if you need them.
+** Dates and Times
+
+The =parcom/datetime= system provides types and parsers for [[https://datatracker.ietf.org/doc/html/rfc3339][RFC3339]] timestamps.
+
+=(in-package :parcom/datetime)= is used below for brevity, but it's assumed that
+in your own code you will use a nickname, perhaps =pd=.
+
+As with the other =parcom= libraries, this has no external dependencies, which is
+an advantage over the otherwise excellent [[https://github.com/dlowe-net/local-time][local-time]] library, which depends on
+heavy =uiop=.
+
+*** parse
+
+=parse= is lenient, and will parse any kind of date or time you give it.
+
+#+begin_src lisp :exports both
+(in-package :parcom/datetime)
+(parse "1975-04-05")
+#+end_src
+
+#+RESULTS:
+: #S(LOCAL-DATE :YEAR 1975 :MONTH 4 :DAY 5)
+
+#+begin_src lisp :exports both
+(in-package :parcom/datetime)
+(parse "1975-04-05T04:05:06+03:00")
+#+end_src
+
+#+RESULTS:
+: #S(OFFSET-DATE-TIME
+:    :DATE #S(LOCAL-DATE :YEAR 1975 :MONTH 4 :DAY 5)
+:    :TIME #S(LOCAL-TIME :HOUR 4 :MINUTE 5 :SECOND 6 :MILLIS 0)
+:    :OFFSET #S(OFFSET :HOUR 3 :MINUTE 0))
+
+It's up to you to handle the concrete type that you're returned. See the =date=
+and =time= generic functions below.
+
+*** now
+
+Right now!
+
+#+begin_src lisp :exports both
+(in-package :parcom/datetime)
+(now)
+#+end_src
+
+#+RESULTS:
+: #S(OFFSET-DATE-TIME
+:    :DATE #S(LOCAL-DATE :YEAR 2025 :MONTH 5 :DAY 2)
+:    :TIME #S(LOCAL-TIME :HOUR 7 :MINUTE 26 :SECOND 13 :MILLIS 0)
+:    :OFFSET #S(OFFSET :HOUR 9 :MINUTE 0))
+
+It's a cloudy May morning.
+
+*** date
+
+Regardless of what parsed, you can usually pull a =local-date= out of it.
+
+#+begin_src lisp :exports both
+(in-package :parcom/datetime)
+(date (parse "1975-04-05T04:05:06+03:00"))
+#+end_src
+
+#+RESULTS:
+: #S(LOCAL-DATE :YEAR 1975 :MONTH 4 :DAY 5)
+
+*** time
+
+Regardless of what parsed, you can usually pull a =local-time= out of it.
+
+#+begin_src lisp :exports both
+(in-package :parcom/datetime)
+(time (parse "1975-04-05T04:05:06+03:00"))
+#+end_src
+
+#+RESULTS:
+: #S(LOCAL-TIME :HOUR 4 :MINUTE 5 :SECOND 6 :MILLIS 0)
+
+*** format
+
+To convert your object back into something human-readable. Note that this is
+different from =cl:format=!
+
+#+begin_src lisp :exports both
+(in-package :parcom/datetime)
+(format nil (date (parse "1975-04-05T04:05:06+03:00")))
+#+end_src
+
+#+RESULTS:
+: 1975-04-05
 
 * Writing your own Parsers
 

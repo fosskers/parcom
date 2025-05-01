@@ -212,6 +212,9 @@ known here."
 (defmethod date ((x local-date-time))
   (local-date-time-date x))
 
+(defmethod date ((x local-date))
+  x)
+
 (defgeneric time (x)
   (:documentation "The `time' slot of some type, without any timezone information."))
 
@@ -220,6 +223,9 @@ known here."
 
 (defmethod time ((x local-date-time))
   (local-date-time-time x))
+
+(defmethod time ((x local-time))
+  x)
 
 (defgeneric format (stream obj)
   (:documentation "Pretty-print a date/time object."))
