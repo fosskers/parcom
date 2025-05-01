@@ -6,7 +6,7 @@
 
 (defpackage parcom/datetime
   (:use :cl)
-  (:shadow #:time)
+  (:shadow #:time #:format)
   (:import-from :parcom #:<*> #:<* #:*> #:<$)
   (:local-nicknames (#:p #:parcom))
   ;; --- Types --- ;;
@@ -46,6 +46,9 @@
   (year  0 :type fixnum)
   (month 1 :type fixnum)
   (day   1 :type fixnum))
+
+#+nil
+(format nil "~a" (p:parse #'local-date "1988-07-05"))
 
 (defun local-date (input)
   "Parser: The YYYY-MM-DD portion."
@@ -211,6 +214,48 @@ known here."
 
 (defmethod time ((x local-date-time))
   (local-date-time-time x))
+
+(defgeneric format (stream obj)
+  (:documentation "Pretty-print a date/time object."))
+
+(defmethod format (stream (obj local-date))
+  (cl:format stream "~4,'0d-~2,'0d-~2,'0d"
+             (local-date-year obj)
+             (local-date-month obj)
+             (local-date-day obj)))
+
+#+nil
+(format nil (p:parse #'local-date "1988-07-05"))
+
+(defmethod format (stream (obj local-time))
+  (cl:format stream "~2,'0d:~2,'0d:~2,'0d.~3,'0d"
+             (local-time-hour obj)
+             (local-time-minute obj)
+             (local-time-second obj)
+             (local-time-millis obj)))
+
+#+nil
+(format nil (p:parse #'local-time "06:59:04"))
+
+(defmethod format (stream (obj local-date-time))
+  (cl:format stream "~aT~a"
+             (format stream (local-date-time-date obj))
+             (format stream (local-date-time-time obj))))
+
+#+nil
+(format nil (p:parse #'local-date-time "2025-05-02T06:59:04"))
+
+(defmethod format (stream (obj offset-date-time))
+  (let ((hour (offset-hours (offset-date-time-offset obj))))
+    (cl:format stream "~aT~a~a~2,'0d:~2,'0d"
+               (format stream (offset-date-time-date obj))
+               (format stream (offset-date-time-time obj))
+               (if (< hour 0) #\- #\+)
+               hour
+               (offset-mins (offset-date-time-offset obj)))))
+
+#+nil
+(format nil (p:parse #'offset-date-time "2025-05-02T06:59:04Z"))
 
 ;; --- Utilities --- ;;
 
