@@ -28,6 +28,19 @@
 #+nil
 (decode-universal-time (get-universal-time))
 
+(defun now ()
+  "A full offset date time representing the current moment."
+  (multiple-value-bind (second minute hour day month year dow dst off)
+      (decode-universal-time (get-universal-time))
+    (declare (ignore dow dst))
+    (make-offset-date-time
+     :date (make-local-date :year year :month month :day day)
+     :time (make-local-time :hour hour :minute minute :second second :millis 0)
+     :offset (make-offset :hours (- off) :mins 0))))
+
+#+nil
+(now)
+
 (defstruct local-date
   "A simple calendar date."
   (year  0 :type fixnum)
