@@ -9,24 +9,30 @@
   (:shadow #:time #:format)
   (:import-from :parcom #:<*> #:<* #:*> #:<$)
   (:local-nicknames (#:p #:parcom))
+  ;; --- Entrypoints --- ;;
+  (:export #:now #:parse)
   ;; --- Types --- ;;
   (:export #:local-date #:local-date-year #:local-date-month #:local-date-day
            #:local-time #:local-time-hour #:local-time-minute #:local-time-second #:local-time-millis
            #:local-date-time #:local-date-time-date #:local-date-time-time
            #:offset-date-time #:offset-date-time-date #:offset-date-time-time
-           #:offset #:offset-hours #:offset-mins)
+           #:offset #:offset-hour #:offset-minute)
   ;; --- Generics --- ;;
-  (:export #:date #:time)
+  (:export #:date #:time #:format)
   ;; --- Utilities --- ;;
   (:export #:leap-year?))
 
 (in-package :parcom/datetime)
 
-#+nil
-(get-universal-time)
+(defun parse (input)
+  "Leniently parse some kind of date/time. It's up to the user to detect what they
+actually received."
+  (p:parse (p:alt #'offset-date-time #'local-date-time #'local-date #'local-time) input))
 
 #+nil
-(decode-universal-time (get-universal-time))
+(parse "1975-07-06")
+#+nil
+(parse "07:13:15")
 
 (defun now ()
   "A full offset date time representing the current moment."
@@ -36,7 +42,7 @@
     (make-offset-date-time
      :date (make-local-date :year year :month month :day day)
      :time (make-local-time :hour hour :minute minute :second second :millis 0)
-     :offset (make-offset :hours (- off) :mins 0))))
+     :offset (make-offset :hour (- off) :minute 0))))
 
 #+nil
 (now)
@@ -63,7 +69,7 @@
             (cond ((not (<= 0 year 9999)) (p:fail "A year between 0 and 9999" input))
                   ((not (<= 1 month 12)) (p:fail "A month between 1 and 12" input))
                   ((not (<= 1 day (days-in-month-by-year year month)))
-                   (p:fail (format nil "~d-~2,'0d does not have ~a days" year month day) input))
+                   (p:fail (cl:format nil "~d-~2,'0d does not have ~a days" year month day) input))
                   (t (p:ok (p:parser-input res)
                            (make-local-date :year year :month month :day day)))))))))
 
@@ -150,17 +156,17 @@ known here."
 
 (defstruct offset
   "A timezone offset from UTC."
-  (hours 0 :type fixnum)
-  (mins  0 :type fixnum))
+  (hour   0 :type fixnum)
+  (minute 0 :type fixnum))
 
 (defun offset (input)
   "Parser: A timezone offset."
   (p:fmap (lambda (off)
             (if (equal #\Z off)
-                (make-offset :hours 0 :mins 0)
+                (make-offset :hour 0 :minute 0)
                 (destructuring-bind (sign hours mins) off
-                  (make-offset :hours (if (equal #\- sign) (- hours) hours)
-                               :mins mins))))
+                  (make-offset :hour (if (equal #\- sign) (- hours) hours)
+                               :minute mins))))
           (funcall (p:alt (p:char #\Z)
                           (<*> (p:alt (p:char #\+)
                                       (p:char #\-))
@@ -246,13 +252,13 @@ known here."
 (format nil (p:parse #'local-date-time "2025-05-02T06:59:04"))
 
 (defmethod format (stream (obj offset-date-time))
-  (let ((hour (offset-hours (offset-date-time-offset obj))))
+  (let ((hour (offset-hour (offset-date-time-offset obj))))
     (cl:format stream "~aT~a~a~2,'0d:~2,'0d"
                (format stream (offset-date-time-date obj))
                (format stream (offset-date-time-time obj))
                (if (< hour 0) #\- #\+)
                hour
-               (offset-mins (offset-date-time-offset obj)))))
+               (offset-minute (offset-date-time-offset obj)))))
 
 #+nil
 (format nil (p:parse #'offset-date-time "2025-05-02T06:59:04Z"))

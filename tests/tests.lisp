@@ -302,15 +302,15 @@
   (is equalp (pd::make-offset-date-time
               :date (pd::make-local-date :year 1979 :month 5 :day 27)
               :time (pd::make-local-time :hour 7 :minute 32 :second 0 :millis 0)
-              :offset (pd::make-offset :hours 0 :mins 0))
+              :offset (pd::make-offset :hour 0 :minute 0))
       (pc:parse #'pd:offset-date-time "1979-05-27T07:32:00Z"))
   (is equalp (pd::make-offset-date-time
               :date (pd::make-local-date :year 1979 :month 5 :day 27)
               :time (pd::make-local-time :hour 7 :minute 32 :second 0 :millis 0)
-              :offset (pd::make-offset :hours 7 :mins 0))
+              :offset (pd::make-offset :hour 7 :minute 0))
       (pc:parse #'pd:offset-date-time "1979-05-27T07:32:00+07:00"))
   (is equalp (pd::make-offset-date-time
               :date (pd::make-local-date :year 1979 :month 5 :day 27)
               :time (pd::make-local-time :hour 7 :minute 32 :second 0 :millis 0)
-              :offset (pd::make-offset :hours -7 :mins 0))
+              :offset (pd::make-offset :hour -7 :minute 0))
       (pc:parse #'pd:offset-date-time "1979-05-27T07:32:00-07:00")))
