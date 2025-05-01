@@ -6,7 +6,7 @@
 
 (defpackage parcom/datetime
   (:use :cl)
-  (:shadow)
+  (:shadow #:time)
   (:import-from :parcom #:<*> #:<* #:*> #:<$)
   (:local-nicknames (#:p #:parcom))
   ;; --- Types --- ;;
@@ -15,6 +15,8 @@
            #:local-date-time #:local-date-time-date #:local-date-time-time
            #:offset-date-time #:offset-date-time-date #:offset-date-time-time
            #:offset #:offset-hours #:offset-mins)
+  ;; --- Generics --- ;;
+  (:export #:date #:time)
   ;; --- Utilities --- ;;
   (:export #:leap-year?))
 
@@ -176,6 +178,26 @@ known here."
 
 #+nil
 (offset-date-time (p:in "1979-05-27T00:32:00-07:00"))
+
+;; --- Generics --- ;;
+
+(defgeneric date (x)
+  (:documentation "The `date' slot of some type."))
+
+(defmethod date ((x offset-date-time))
+  (offset-date-time-date x))
+
+(defmethod date ((x local-date-time))
+  (local-date-time-date x))
+
+(defgeneric time (x)
+  (:documentation "The `time' slot of some type, without any timezone information."))
+
+(defmethod time ((x offset-date-time))
+  (offset-date-time-time x))
+
+(defmethod time ((x local-date-time))
+  (local-date-time-time x))
 
 ;; --- Utilities --- ;;
 
