@@ -2,10 +2,10 @@
   (:use :cl)
   (:shadow #:char #:string #:integer #:float #:count #:rest #:space)
   ;; --- Types --- ;;
-  (:export #:parser #:parser? #:parser-input #:parser-value
+  (:export #:parser? #:parser-input #:parser-value
            #:failure #:failure? #:failure-expected #:failure-actual
            #:input #:in
-           #:ok #:fail #:parse
+           #:ok #:ok? #:fail #:parse
            #:empty?
            #:digit? #:hex? #:octal? #:binary?
            #:ascii-letter? #:space?)
@@ -42,7 +42,7 @@
 
 ;; --- Types --- ;;
 
-(defstruct input
+(defstruct (input (:predicate input?))
   "The remaining parser input with a cached reference to its first character."
   (curr 0   :type fixnum)
   (str  nil :type simple-string))
@@ -66,23 +66,27 @@
 #+nil
 (off 4 (in "hello there!"))
 
-(deftype maybe-parse ()
+(deftype parsing ()
   "A parser that might fail."
-  '(function (input) (or parser cons)))
+  '(function (input) cons))
 
-(deftype always-parse ()
-  "A parser that always succeeds."
-  '(function (input) parser))
+(defmacro parser-input (res)
+  `(car ,res))
 
-(defstruct (parser (:predicate parser?))
-  "The result of some successful parsing. Tracks the remaining input."
-  (input nil :type input)
-  value)
+(defmacro parser-value (res)
+  `(cdr ,res))
 
-(declaim (ftype (function (input t) parser) ok))
-(defun ok (input value)
+(defmacro ok (input value)
   "Some successful parsing!"
-  (make-parser :input input :value value))
+  `(cons ,input ,value))
+
+(defmacro ok? (x)
+  "Did parsing succeed?"
+  `(input? (car ,x)))
+
+(defmacro parser? (x)
+  "Deprecated: Use `ok?'"
+  `(ok? ,x))
 
 (defmacro fail (loc act)
   "It's assumed that you pass back the entire remaining input as the 'actual' value.
@@ -90,7 +94,7 @@ Error reporting code will check the length of this and truncate it if necessary.
   `(cons ,loc ,act))
 
 (defmacro failure? (x)
-  `(consp ,x))
+  `(not (ok? ,x)))
 
 (defmacro failure-actual (x)
   `(cdr ,x))
@@ -101,22 +105,22 @@ Error reporting code will check the length of this and truncate it if necessary.
 (defun parse (parser input)
   "Run a parser and attempt to extract its final value."
   (let ((res (funcall parser (in input))))
-    (etypecase res
-      (parser  (parser-value res))
-      (cons (let* ((rem (failure-actual res))
-                   (diff (- (length (input-str rem)) (input-curr rem))))
-              (error 'parse-failure
-                     :expected (failure-expected res)
-                     :actual (if (< diff 16)
-                                 (make-array diff
-                                             :element-type 'character
-                                             :displaced-to (input-str rem)
-                                             :displaced-index-offset (input-curr rem))
-                                 (format nil "~a ... (truncated)"
-                                         (make-array 16
-                                                     :element-type 'character
-                                                     :displaced-to (input-str rem)
-                                                     :displaced-index-offset (input-curr rem))))))))))
+    (if (ok? res)
+        (parser-value res)
+        (let* ((rem (failure-actual res))
+               (diff (- (length (input-str rem)) (input-curr rem))))
+          (error 'parse-failure
+                 :expected (failure-expected res)
+                 :actual (if (< diff 16)
+                             (make-array diff
+                                         :element-type 'character
+                                         :displaced-to (input-str rem)
+                                         :displaced-index-offset (input-curr rem))
+                             (format nil "~a ... (truncated)"
+                                     (make-array 16
+                                                 :element-type 'character
+                                                 :displaced-to (input-str rem)
+                                                 :displaced-index-offset (input-curr rem)))))))))
 
 ;; --- Utilities --- ;;
 

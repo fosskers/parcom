@@ -59,3 +59,4 @@
 ;; (1) Base: 6.5b bytes, 3.5s
 ;; (2) Failure cons cell: 6.0b bytes, 3.35s
 ;; (3) Avoid alloc in `string': 6.0b bytes, 3.35s (but it is faster in microbenches)
+;; (4) Avoid `make-parser': 5.4b bytes, 2.55s

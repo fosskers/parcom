@@ -16,22 +16,18 @@
 #++
 (funcall (comp #'1+ #'length) '(1 2 3))
 
-(defgeneric fmap (f thing)
-  (:documentation "Apply a pure function to the inner contents of some `thing'."))
-
-(defmethod fmap ((f function) (p parser))
-  "Map some `f' over the inner value of a parser."
-  (ok (parser-input p)
-      (funcall f (parser-value p))))
-
-(defmethod fmap ((f function) (failure cons))
-  "Don't map anything, since this was a parse failure."
-  failure)
+(declaim (ftype (function ((function (t) *) cons) cons) fmap))
+(defun fmap (f thing)
+  "Apply a pure function to the inner contents of some `thing'."
+  (if (ok? thing)
+      (ok (parser-input thing)
+          (funcall f (parser-value thing)))
+      thing))
 
 #++
-(fmap #'1+ (ok "" 1))
+(fmap #'1+ (ok (in "") 1))
 #++
-(fmap #'1+ (fail "greatness" "failure"))
+(fmap #'1+ (fail "greatness" (in "failure")))
 
 (defun const (x)
   "Yield a function that ignores its input and returns some original seed."
@@ -49,9 +45,9 @@
        ,(reduce (lambda (i p)
                   (let ((name (gensym "*>-INNER")))
                     `(let ((,name ,i))
-                       (etypecase ,name
-                         (parser (funcall ,p (parser-input ,name)))
-                         (cons ,name)))))
+                       (if (ok? ,name)
+                           (funcall ,p (parser-input ,name))
+                           ,name))))
                 parsers
                 :initial-value `(funcall ,parser ,input)))))
 
@@ -73,10 +69,10 @@
        ,(reduce (lambda (i p)
                   (let ((name (gensym "*>-INNER")))
                     `(let ((,name ,i))
-                       (etypecase ,name
-                         (parser (fmap (const (parser-value ,name))
-                                       (funcall ,p (parser-input ,name))))
-                         (cons ,name)))))
+                       (if (ok? ,name)
+                           (fmap (const (parser-value ,name))
+                                 (funcall ,p (parser-input ,name)))
+                           ,name))))
                 parsers
                 :initial-value `(funcall ,parser ,input)))))
 
@@ -102,10 +98,10 @@
                        `(ok ,i nil)
                        (let ((name (gensym "<*>-INNER")))
                          `(let ((,name (funcall ,(car ps) ,i)))
-                            (etypecase ,name
-                              (cons ,name)
-                              (parser  (let ((res ,(recurse (cdr ps) `(parser-input ,name))))
-                                         (fmap (lambda (xs) (cons (parser-value ,name) xs)) res)))))))))
+                            (if (failure? ,name)
+                                ,name
+                                (let ((res ,(recurse (cdr ps) `(parser-input ,name))))
+                                  (fmap (lambda (xs) (cons (parser-value ,name) xs)) res))))))))
           (recurse (cons parser parsers) input)))))
 
 #+nil
@@ -124,7 +120,7 @@
 
 (defun <$ (item parser)
   "Run some parser, but substitute its inner value with some `item' if parsing was
-successful."
+  successful."
   (lambda (input) (fmap (const item) (funcall parser input))))
 
 #++
@@ -132,7 +128,7 @@ successful."
 
 (defmacro instead (item parser)
   "Run some parser, but substitute its inner value with some `item' if parsing was
-successful."
+  successful."
   `(<$ ,item ,parser))
 
 (defmacro alt (parser &rest parsers)
@@ -143,9 +139,9 @@ successful."
                    (if (null ps)
                        `(fail "alt: something to succeed" ,input)
                        `(let ((res (funcall ,(car ps) ,input)))
-                          (etypecase res
-                            (parser res)
-                            (cons ,(recurse (cdr ps))))))))
+                          (if (ok? res)
+                              res
+                              ,(recurse (cdr ps)))))))
           (recurse (cons parser parsers))))))
 
 #++
