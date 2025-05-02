@@ -130,20 +130,16 @@
 
 (declaim (ftype (function (cl:string) maybe-parse) string))
 (defun string (s)
-  "Parse the given string."
   (lambda (input)
-    (let ((lens (length s))
-          (leni (- (length (input-str input))
-                   (input-curr input))))
-      (if (> lens leni)
-          (fail s input)
-          (let ((subs (make-array lens
-                                  :element-type 'character
-                                  :displaced-to (input-str input)
-                                  :displaced-index-offset (input-curr input))))
-            (if (equal s subs)
-                (ok (off lens input) subs)
-                (fail s input)))))))
+    (declare (optimize (speed 3) (safety 0)))
+    (let* ((off (input-curr input))
+           (ins (input-str input))
+           (i (loop :for i :from 0 :below (length s)
+                    :while (equal (schar s i) (schar ins (+ i off)))
+                    :finally (return i))))
+      (if (= i (length s))
+          (ok (off (length s) input) s)
+          (fail s input)))))
 
 #++
 (funcall (string "") (in "a"))

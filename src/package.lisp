@@ -89,8 +89,8 @@
 Error reporting code will check the length of this and truncate it if necessary."
   `(cons ,loc ,act))
 
-(defun failure? (x)
-  (consp x))
+(defmacro failure? (x)
+  `(consp ,x))
 
 (defmacro failure-actual (x)
   `(cdr ,x))
