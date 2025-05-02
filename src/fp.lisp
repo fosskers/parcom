@@ -24,7 +24,7 @@
   (ok (parser-input p)
       (funcall f (parser-value p))))
 
-(defmethod fmap ((f function) (failure failure))
+(defmethod fmap ((f function) (failure cons))
   "Don't map anything, since this was a parse failure."
   failure)
 
@@ -51,7 +51,7 @@
                     `(let ((,name ,i))
                        (etypecase ,name
                          (parser (funcall ,p (parser-input ,name)))
-                         (failure ,name)))))
+                         (cons ,name)))))
                 parsers
                 :initial-value `(funcall ,parser ,input)))))
 
@@ -76,7 +76,7 @@
                        (etypecase ,name
                          (parser (fmap (const (parser-value ,name))
                                        (funcall ,p (parser-input ,name))))
-                         (failure ,name)))))
+                         (cons ,name)))))
                 parsers
                 :initial-value `(funcall ,parser ,input)))))
 
@@ -103,7 +103,7 @@
                        (let ((name (gensym "<*>-INNER")))
                          `(let ((,name (funcall ,(car ps) ,i)))
                             (etypecase ,name
-                              (failure ,name)
+                              (cons ,name)
                               (parser  (let ((res ,(recurse (cdr ps) `(parser-input ,name))))
                                          (fmap (lambda (xs) (cons (parser-value ,name) xs)) res)))))))))
           (recurse (cons parser parsers) input)))))
@@ -145,7 +145,7 @@ successful."
                        `(let ((res (funcall ,(car ps) ,input)))
                           (etypecase res
                             (parser res)
-                            (failure ,(recurse (cdr ps))))))))
+                            (cons ,(recurse (cdr ps))))))))
           (recurse (cons parser parsers))))))
 
 #++

@@ -68,7 +68,7 @@
 
 (deftype maybe-parse ()
   "A parser that might fail."
-  '(function (input) (or parser failure)))
+  '(function (input) (or parser cons)))
 
 (deftype always-parse ()
   "A parser that always succeeds."
@@ -84,35 +84,39 @@
   "Some successful parsing!"
   (make-parser :input input :value value))
 
-(defstruct (failure (:predicate failure?))
-  "The result of some failed parsing."
-  expected
-  (actual nil :type input))
-
-(defun fail (exp act)
+(defmacro fail (loc act)
   "It's assumed that you pass back the entire remaining input as the 'actual' value.
 Error reporting code will check the length of this and truncate it if necessary."
-  (make-failure :expected exp :actual act))
+  `(cons ,loc ,act))
+
+(defun failure? (x)
+  (consp x))
+
+(defmacro failure-actual (x)
+  `(cdr ,x))
+
+(defmacro failure-expected (x)
+  `(car ,x))
 
 (defun parse (parser input)
   "Run a parser and attempt to extract its final value."
   (let ((res (funcall parser (in input))))
     (etypecase res
       (parser  (parser-value res))
-      (failure (let* ((rem (failure-actual res))
-                      (diff (- (length (input-str rem)) (input-curr rem))))
-                 (error 'parse-failure
-                        :expected (failure-expected res)
-                        :actual (if (< diff 16)
-                                    (make-array diff
-                                                :element-type 'character
-                                                :displaced-to (input-str rem)
-                                                :displaced-index-offset (input-curr rem))
-                                    (format nil "~a ... (truncated)"
-                                            (make-array 16
-                                                        :element-type 'character
-                                                        :displaced-to (input-str rem)
-                                                        :displaced-index-offset (input-curr rem))))))))))
+      (cons (let* ((rem (failure-actual res))
+                   (diff (- (length (input-str rem)) (input-curr rem))))
+              (error 'parse-failure
+                     :expected (failure-expected res)
+                     :actual (if (< diff 16)
+                                 (make-array diff
+                                             :element-type 'character
+                                             :displaced-to (input-str rem)
+                                             :displaced-index-offset (input-curr rem))
+                                 (format nil "~a ... (truncated)"
+                                         (make-array 16
+                                                     :element-type 'character
+                                                     :displaced-to (input-str rem)
+                                                     :displaced-index-offset (input-curr rem))))))))))
 
 ;; --- Utilities --- ;;
 

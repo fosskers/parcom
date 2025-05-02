@@ -17,9 +17,9 @@
   (let ((res (json (p:in input))))
     (etypecase res
       (p:parser (p:parser-value res))
-      (p:failure (error "Parsing json failed. Expected: ~a, but got: ~a"
-                        (p:failure-expected res)
-                        (p:failure-actual res))))))
+      (cons (error "Parsing json failed. Expected: ~a, but got: ~a"
+                   (p:failure-expected res)
+                   (p:failure-actual res))))))
 
 #+nil
 (parse "{\"x\": 1, \"y\": 2, \"z\": [1, {\"a\":true}]}")

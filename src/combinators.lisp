@@ -29,7 +29,7 @@ kept. Good for parsing backets, parentheses, etc."
     (labels ((recurse (acc in)
                (let ((res (funcall parser in)))
                  (etypecase res
-                   (failure (ok in acc))
+                   (cons (ok in acc))
                    (parser (recurse (cons (parser-value res) acc)
                                     (parser-input res)))))))
       (fmap #'nreverse (recurse '() input)))))
@@ -62,15 +62,15 @@ kept. Good for parsing backets, parentheses, etc."
     (labels ((recurse (acc in)
                (let ((sep-res (funcall sep in)))
                  (etypecase sep-res
-                   (failure (ok in acc))
+                   (cons (ok in acc))
                    (parser  (let ((res (funcall parser (parser-input sep-res))))
                               (etypecase res
-                                (failure res)
+                                (cons res)
                                 (parser  (recurse (cons (parser-value res) acc)
                                                   (parser-input res))))))))))
       (let ((res (funcall parser input)))
         (etypecase res
-          (failure (ok input '()))
+          (cons (ok input '()))
           (parser  (fmap #'nreverse (recurse (list (parser-value res))
                                              (parser-input res)))))))))
 
@@ -110,11 +110,11 @@ even if not followed by an instance of the main parser."
     (labels ((recurse (acc in)
                (let ((res (funcall parser in)))
                  (etypecase res
-                   (failure (ok in acc))
+                   (cons (ok in acc))
                    (parser (let ((sep-res (funcall sep (parser-input res))))
                              (etypecase sep-res
-                               (failure (ok (parser-input res)
-                                            (cons (parser-value res) acc)))
+                               (cons (ok (parser-input res)
+                                         (cons (parser-value res) acc)))
                                (parser (recurse (cons (parser-value res) acc)
                                                 (parser-input sep-res))))))))))
       (fmap #'nreverse (recurse '() input)))))
@@ -155,7 +155,7 @@ even if not followed by an instance of the main parser."
     (labels ((recurse (in)
                (let ((res (funcall parser in)))
                  (etypecase res
-                   (failure (ok in t))
+                   (cons (ok in t))
                    (parser  (recurse (parser-input res)))))))
       (recurse input))))
 
@@ -192,7 +192,7 @@ input of the subparser."
   (lambda (input)
     (let ((res (funcall parser input)))
       (etypecase res
-        (failure res)
+        (cons res)
         (parser  (ok input (parser-value res)))))))
 
 #+nil
@@ -207,7 +207,7 @@ input of the subparser."
                    (ok i (nreverse acc))
                    (let ((res (funcall parser i)))
                      (etypecase res
-                       (failure res)
+                       (cons res)
                        (parser  (recurse (cons (parser-value res) acc)
                                          (1- m)
                                          (parser-input res))))))))
@@ -226,7 +226,7 @@ input of the subparser."
   (lambda (input)
     (let ((res (funcall parser input)))
       (etypecase res
-        (failure res)
+        (cons res)
         (parser  (ok (parser-input res)
                      (make-array (- (input-curr (parser-input res))
                                     (input-curr input))

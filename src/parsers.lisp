@@ -303,11 +303,11 @@ when you don't need to parse something complex."
           (t (fmap #'parse-integer res)))))
 
 #+nil
-(unsigned "0!")
+(unsigned (in "0!"))
 #+nil
-(unsigned "0123!")
+(unsigned (in "0123!"))
 #+nil
-(unsigned "123!")
+(unsigned (in "123!"))
 
 (declaim (ftype maybe-parse integer))
 (defun integer (input)
