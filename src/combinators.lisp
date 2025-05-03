@@ -200,6 +200,17 @@ input of the subparser."
 #+nil
 (funcall (peek (string "he")) (in "hello"))
 
+(declaim (ftype (function (character) maybe-parse) sneak))
+(defun sneak (c)
+  "Combinator: Like `peek' but specialized for characters and thus more performant."
+  (or (gethash c +sneak-cache+)
+      (let ((f (lambda (input)
+                 (if (failure? (funcall (char c) input))
+                     :fail
+                     (ok input t)))))
+        (setf (gethash c +sneak-cache+) f)
+        f)))
+
 (declaim (ftype (function (fixnum maybe-parse) maybe-parse) count))
 (defun count (n parser)
   "Apply a `parser' a given number of times."

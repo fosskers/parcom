@@ -87,7 +87,7 @@
   (funcall (p:alt #'escaped-char (p:any-but #\")) input))
 
 (defun escaped-char (input)
-  (funcall (*> (p:peek (p:char #\\))
+  (funcall (*> (p:sneak #\\)
                (p:alt #'special-char #'p:control-char #'p:unicode))
            input))
 

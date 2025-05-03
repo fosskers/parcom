@@ -65,3 +65,4 @@
 ;; (7) Avoid recursion in `many': 4.87b bytes, 2.4s?
 ;; (8) Cache on `char': 3.95b bytes, 2.4s
 ;; (9) Cache on `any-but': 3.2b bytes, 2.7s
+;; (10) Add `sneak': 2.48b bytes, 2.8s

@@ -22,7 +22,7 @@
   ;; --- Combinators --- ;;
   (:export #:opt #:between #:pair
            #:many #:many1 #:sep #:sep1 #:sep-end #:sep-end1 #:take-until
-           #:consume #:skip #:peek #:count #:recognize)
+           #:consume #:skip #:peek #:sneak #:count #:recognize)
   ;; --- Conditions --- ;;
   (:export #:parse-failure)
   (:documentation "A simple parser combinator library."))
@@ -33,6 +33,7 @@
 
 (defparameter +char-cache+ (make-hash-table :test #'eql))
 (defparameter +any-but-cache+ (make-hash-table :test #'eql))
+(defparameter +sneak-cache+ (make-hash-table :test #'eql))
 
 ;; --- Conditions --- ;;
 
