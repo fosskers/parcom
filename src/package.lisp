@@ -66,9 +66,13 @@
 #+nil
 (off 4 (in "hello there!"))
 
-(deftype parsing ()
-  "A parser that might fail."
+(deftype always-parse ()
+  "A parser that always succeeds."
   '(function (input) cons))
+
+(deftype maybe-parse ()
+  "A parser that might fail."
+  '(function (input) (or cons keyword)))
 
 (defmacro parser-input (res)
   `(car ,res))
@@ -82,7 +86,7 @@
 
 (defmacro ok? (x)
   "Did parsing succeed?"
-  `(input? (car ,x)))
+  `(not (failure? ,x)))
 
 (defmacro parser? (x)
   "Deprecated: Use `ok?'"
@@ -91,31 +95,32 @@
 (defmacro fail (loc act)
   "It's assumed that you pass back the entire remaining input as the 'actual' value.
 Error reporting code will check the length of this and truncate it if necessary."
-  `(cons ,loc ,act))
+  (declare (ignore loc act))
+  :fail)
+
+#+nil
+(fail 1 2)
 
 (defmacro failure? (x)
-  `(not (ok? ,x)))
-
-(defmacro failure-actual (x)
-  `(cdr ,x))
-
-(defmacro failure-expected (x)
-  `(car ,x))
+  `(eq :fail ,x))
 
 (defun parse (parser input)
   "Run a parser and attempt to extract its final value."
-  (let ((res (funcall parser (in input))))
+  (let* ((inp (in input))
+         (res (funcall parser inp)))
     (if (ok? res)
         (parser-value res)
-        (let* ((rem (failure-actual res))
-               (diff (- (length (input-str rem)) (input-curr rem))))
+        (error "Oh no!")
+        #+nil
+        (let ((diff (- (length (input-str inp)) (input-curr inp))))
+          #+nil
           (error 'parse-failure
                  :expected (failure-expected res)
                  :actual (if (< diff 16)
                              (make-array diff
                                          :element-type 'character
-                                         :displaced-to (input-str rem)
-                                         :displaced-index-offset (input-curr rem))
+                                         :displaced-to (input-str inp)
+                                         :displaced-index-offset (input-curr inp))
                              (format nil "~a ... (truncated)"
                                      (make-array 16
                                                  :element-type 'character

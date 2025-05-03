@@ -16,7 +16,7 @@
 #++
 (funcall (comp #'1+ #'length) '(1 2 3))
 
-(declaim (ftype (function ((function (t) *) cons) cons) fmap))
+;; (declaim (ftype (function ((function (t) *) cons) (or cons keyword)) fmap))
 (defun fmap (f thing)
   "Apply a pure function to the inner contents of some `thing'."
   (if (ok? thing)

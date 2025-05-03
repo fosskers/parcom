@@ -2,7 +2,7 @@
 
 (in-package :parcom)
 
-(declaim (ftype (function (parsing) parsing) opt))
+(declaim (ftype (function (maybe-parse) maybe-parse) opt))
 (defun opt (parser)
   "Yield nil if the parser failed, but don't fail the whole process nor consume any
 input."
@@ -21,7 +21,7 @@ kept. Good for parsing backets, parentheses, etc."
 #+nil
 (funcall (between (char #\!) (string "Salvē") (char #\!)) "!Salvē!")
 
-(declaim (ftype (function (parsing) parsing) many))
+(declaim (ftype (function (maybe-parse) always-parse) many))
 (defun many (parser)
   "Parse 0 or more occurrences of a `parser'."
   (lambda (input)
@@ -41,7 +41,7 @@ kept. Good for parsing backets, parentheses, etc."
 #+nil
 (funcall (many (alt (string "ovēs") (string "avis"))) "ovēsovēsavis!")
 
-(declaim (ftype (function (parsing) parsing) many1))
+(declaim (ftype (function (maybe-parse) maybe-parse) many1))
 (defun many1 (parser)
   "Parse 1 or more occurrences of a `parser'."
   (lambda (input)
@@ -55,7 +55,7 @@ kept. Good for parsing backets, parentheses, etc."
 #+nil
 (funcall (many1 (string "ovēs")) "ovēsovēsovēs!")
 
-(declaim (ftype (function (parsing parsing) parsing) sep))
+(declaim (ftype (function (maybe-parse maybe-parse) always-parse) sep))
 (defun sep (sep parser)
   "Parse 0 or more instances of a `parser' separated by some `sep' parser."
   (lambda (input)
@@ -83,7 +83,7 @@ kept. Good for parsing backets, parentheses, etc."
 #+nil
 (funcall (sep (char #\!) (string "pilum")) (in "pilum!pilum!pilum!"))
 
-(declaim (ftype (function (parsing parsing) parsing) sep1))
+(declaim (ftype (function (maybe-parse maybe-parse) maybe-parse) sep1))
 (defun sep1 (sep parser)
   "Parse 1 or more instances of a `parser' separated by some `sep' parser."
   (lambda (input)
@@ -101,7 +101,7 @@ kept. Good for parsing backets, parentheses, etc."
 #+nil
 (funcall (sep1 (char #\!) (string "pilum")) "pilum!pilum!pilum!")
 
-(declaim (ftype (function (parsing parsing) parsing) sep-end))
+(declaim (ftype (function (maybe-parse maybe-parse) always-parse) sep-end))
 (defun sep-end (sep parser)
   "Parse 0 or more instances of a `parser' separated by some `sep' parser. Parses
 the separator eagerly, such that a final instance of it will also be parsed,
@@ -128,7 +128,7 @@ even if not followed by an instance of the main parser."
 #+nil
 (funcall (sep-end (char #\!) (string "pilum")) "pilum!pilum!pilum!")
 
-(declaim (ftype (function (parsing parsing) parsing) sep-end1))
+(declaim (ftype (function (maybe-parse maybe-parse) maybe-parse) sep-end1))
 (defun sep-end1 (sep parser)
   "Parse 1 or more instances of a `parser' separated by some `sep' parser. Parses
 the separator eagerly, such that a final instance of it will also be parsed,
@@ -148,7 +148,7 @@ even if not followed by an instance of the main parser."
 #+nil
 (funcall (sep-end1 (char #\!) (string "pilum")) "pilum!pilum!pilum!")
 
-(declaim (ftype (function (parsing) parsing) skip))
+(declaim (ftype (function (maybe-parse) always-parse) skip))
 (defun skip (parser)
   "Parse some `parser' 0 or more times, but throw away all the results."
   (lambda (input)
@@ -186,7 +186,7 @@ input of the subparser."
 #+nil
 (funcall (*> (string "!!!") (take-until (char #\'))) (in "!!!abcd'"))
 
-(declaim (ftype (function (parsing) parsing) peek))
+(declaim (ftype (function (maybe-parse) maybe-parse) peek))
 (defun peek (parser)
   "Yield the value of a parser, but don't consume the input."
   (lambda (input)
@@ -198,7 +198,7 @@ input of the subparser."
 #+nil
 (funcall (peek (string "he")) (in "hello"))
 
-(declaim (ftype (function (fixnum parsing) parsing) count))
+(declaim (ftype (function (fixnum maybe-parse) maybe-parse) count))
 (defun count (n parser)
   "Apply a `parser' a given number of times."
   (lambda (input)
@@ -220,7 +220,7 @@ input of the subparser."
 #+nil
 (funcall (count 0 (char #\a)) (in "aa"))
 
-(declaim (ftype (function (parsing) parsing) recognize))
+(declaim (ftype (function (maybe-parse) maybe-parse) recognize))
 (defun recognize (parser)
   "If the given `parser' was successful, return the consumed input instead."
   (lambda (input)

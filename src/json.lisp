@@ -17,6 +17,8 @@
   (let ((res (json (p:in input))))
     (if (p:ok? res)
         (p:parser-value res)
+        (error "Oh no!")
+        #+nil
         (error "Parsing json failed. Expected: ~a, but got: ~a"
                (p:failure-expected res)
                (p:failure-actual res)))))
