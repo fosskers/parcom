@@ -19,10 +19,9 @@
 ;; (declaim (ftype (function ((function (t) *) cons) (or cons keyword)) fmap))
 (defun fmap (f thing)
   "Apply a pure function to the inner contents of some `thing'."
-  (if (ok? thing)
-      (ok (parser-input thing)
-          (funcall f (parser-value thing)))
-      thing))
+  (when (ok? thing)
+    (setf (parser-value thing) (funcall f (parser-value thing))))
+  thing)
 
 #++
 (fmap #'1+ (ok (in "") 1))
