@@ -174,7 +174,7 @@ input of the subparser."
   (lambda (input)
     (let* ((s (input-str input))
            (len (length s))
-           (working (make-input :curr (input-curr input) :str s))
+           (working (cons (input-curr input) s))
            (keep (loop :for i :from (input-curr input) :below len
                        :while (when (failure? (funcall parser working))
                                 (incf (input-curr working)))

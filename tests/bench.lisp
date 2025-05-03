@@ -67,3 +67,4 @@
 ;; (9) Cache on `any-but': 3.2b bytes, 2.7s
 ;; (10) Add `sneak': 2.48b bytes, 2.8s
 ;; (11) `fmap' mutates: 2.39b bytes, 2.7s
+;; (12) Avoid `make-input': 1.96b bytes, 2.65s

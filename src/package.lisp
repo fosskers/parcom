@@ -48,19 +48,18 @@
 
 ;; --- Types --- ;;
 
-(defstruct (input (:predicate input?))
-  "The remaining parser input with a cached reference to its first character."
-  (curr 0   :type fixnum)
-  (str  nil :type simple-string))
-
-(declaim (ftype (function (simple-string) input) in))
-(defun in (input)
+(defmacro in (input)
   "Smart constructor for some parser input."
-  (declare (optimize (speed 3) (safety 0)))
-  (make-input :curr 0 :str input))
+  `(cons 0 ,input))
 
 #+nil
 (in "hello")
+
+(defmacro input-curr (input)
+  `(car ,input))
+
+(defmacro input-str (input)
+  `(cdr ,input))
 
 (declaim (ftype (function (fixnum input) input) off))
 (defun off (offset input)
@@ -68,11 +67,14 @@
   (declare (optimize (speed 3) (safety 0)))
   (if (zerop offset)
       input
-      (make-input :curr (+ offset (input-curr input))
-                  :str  (input-str input))))
+      (cons (+ offset (input-curr input))
+            (input-str input))))
 
 #+nil
 (off 4 (in "hello there!"))
+
+(deftype input ()
+  'cons)
 
 (deftype always-parse ()
   "A parser that always succeeds."
