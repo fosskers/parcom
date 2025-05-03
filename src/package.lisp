@@ -29,6 +29,10 @@
 
 (in-package :parcom)
 
+;; --- Lambda Caches --- ;;
+
+(defparameter +char-cache+ (make-hash-table :test #'equal))
+
 ;; --- Conditions --- ;;
 
 (define-condition parse-failure (error)
