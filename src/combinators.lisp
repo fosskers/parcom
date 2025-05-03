@@ -122,13 +122,13 @@ even if not followed by an instance of the main parser."
       (fmap #'nreverse (recurse '() input)))))
 
 #+nil
-(funcall (sep-end (char #\!) (string "pilum")) ".")
+(funcall (sep-end (char #\!) (string "pilum")) (in "."))
 #+nil
-(funcall (sep-end (char #\!) (string "pilum")) "pilum.")
+(funcall (sep-end (char #\!) (string "pilum")) (in "pilum."))
 #+nil
-(funcall (sep-end (char #\!) (string "pilum")) "pilum!pilum!pilum.")
+(funcall (sep-end (char #\!) (string "pilum")) (in "pilum!pilum!pilum."))
 #+nil
-(funcall (sep-end (char #\!) (string "pilum")) "pilum!pilum!pilum!")
+(funcall (sep-end (char #\!) (string "pilum")) (in "pilum!pilum!pilum!"))
 
 (declaim (ftype (function (maybe-parse maybe-parse) maybe-parse) sep-end1))
 (defun sep-end1 (sep parser)

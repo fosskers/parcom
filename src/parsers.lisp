@@ -138,14 +138,17 @@ successful, in order to save on memory."
     (declare (optimize (speed 3) (safety 0)))
     (let* ((off (input-curr input))
            (ins (input-str input))
-           (i (loop :for i :from 0 :below (length s)
-                    :while (equal (schar s i) (schar ins (+ i off)))
-                    :finally (return i))))
+           (i (if (>= off (length ins))
+                  0
+                  (loop :for i :from 0 :below (length s)
+                        :while (equal (schar s i) (schar ins (+ i off)))
+                        :finally (return i)))))
       (if (= i (length s))
           (ok (off (length s) input) s)
           (fail s input)))))
 
 #+nil
+(funcall (string "Pāstor") (in ""))
 #++
 (funcall (string "") (in "a"))
 #++
@@ -155,16 +158,18 @@ successful, in order to save on memory."
 
 (declaim (ftype (function (fixnum) maybe-parse) take))
 (defun take (n)
-  "Take `n' characters from the input."
+  "Take `n' characters from the input. Lenient, in that if `n' is larger than the
+remaining amount of characters, only the remaining ones will be yielded."
   (lambda (input)
     (let ((s (input-str input)))
       (cond ((< n 0) (error "~a must be a positive number" n))
-            ((zerop n) (ok input ""))
-            ((< (length s) n) (fail "multiple characters" input))
-            (t (ok (off n input)
-                   (make-array n
-                               :element-type 'character
-                               :displaced-to s)))))))
+            ((zerop n) (ok input +empty-string+))
+            (t (let ((m (min n (- (length s) (input-curr input)))))
+                 (ok (off m input)
+                     (make-array m
+                                 :element-type 'character
+                                 :displaced-to s
+                                 :displaced-index-offset (input-curr input)))))))))
 
 #+nil
 (funcall (take -5) (in "Arbor"))
@@ -172,6 +177,10 @@ successful, in order to save on memory."
 (funcall (take 0) (in "Arbor"))
 #+nil
 (funcall (take 3) (in "Arbor"))
+#+nil
+(funcall (take 100) (in "Arbor"))
+#+nil
+(funcall (*> (take 3) (take 2)) (in "Arbor"))
 
 (declaim (ftype (function ((function (character) boolean)) always-parse) consume))
 (defun consume (p)

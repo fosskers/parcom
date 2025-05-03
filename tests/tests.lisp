@@ -34,6 +34,7 @@
   :parent parsers
   (is equal "" (pc:parse (pc:string "") "a"))
   (is equal "Hello" (pc:parse (pc:string "Hello") "Hello yes"))
+  (is eq :fail (funcall (pc:string "Hello") (pc:in "")))
   (fail (pc:parse (pc:string "HellO") "Hello yes"))
   ;; Request is longer than total input.
   (fail (pc:parse (pc:string "arstneo") "a")))
@@ -63,6 +64,9 @@
   :parent parsers
   (is equal "" (pc:parse (pc:take 0) "Arbor"))
   (is equal "Arb" (pc:parse (pc:take 3) "Arbor"))
+  (is equal "Arbor" (pc:parse (pc:take 100) "Arbor"))
+  (is equal "or" (pc:parse (pc:*> (pc:take 3) (pc:take 2)) "Arbor"))
+  (is equal "or" (pc:parse (pc:*> (pc:take 3) (pc:take 3)) "Arbor"))
   (fail (pc:parse (pc:take -5) "Arbor")))
 
 (define-test take-while
