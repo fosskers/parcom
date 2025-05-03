@@ -60,8 +60,10 @@
 (defun off (offset input)
   "Advance the input by some offset."
   (declare (optimize (speed 3) (safety 0)))
-  (make-input :curr (+ offset (input-curr input))
-              :str  (input-str input)))
+  (if (zerop offset)
+      input
+      (make-input :curr (+ offset (input-curr input))
+                  :str  (input-str input))))
 
 #+nil
 (off 4 (in "hello there!"))

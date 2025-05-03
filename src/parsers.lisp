@@ -2,6 +2,8 @@
 
 (in-package :parcom)
 
+(defparameter +empty-string+ "")
+
 (declaim (ftype maybe-parse any))
 (defun any (input)
   "Accept any character."
@@ -200,10 +202,12 @@ when you don't need to parse something complex."
                        :while (funcall p (schar s i))
                        :finally (return (- i (input-curr input))))))
       (ok (off keep input)
-          (make-array keep
-                      :element-type 'character
-                      :displaced-to s
-                      :displaced-index-offset (input-curr input))))))
+          (if (zerop keep)
+              +empty-string+
+              (make-array keep
+                          :element-type 'character
+                          :displaced-to s
+                          :displaced-index-offset (input-curr input)))))))
 
 #+nil
 (funcall (take-while (lambda (c) (equal #\a c))) (in "bbb"))

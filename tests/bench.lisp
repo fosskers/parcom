@@ -61,3 +61,4 @@
 ;; (3) Avoid alloc in `string': 6.0b bytes, 3.35s (but it is faster in microbenches)
 ;; (4) Avoid `make-parser': 5.4b bytes, 2.55s
 ;; (5) Failing is just `:fail': 5.0b bytes, 2.5s
+;; (6) Avoiding minor allocs: 4.9b bytes, 2.5s
