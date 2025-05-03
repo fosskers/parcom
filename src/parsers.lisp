@@ -130,8 +130,10 @@
 #++
 (funcall (*> (char #\H) (char #\e)) (in "Hello"))
 
-(declaim (ftype (function (cl:string) maybe-parse) string))
+(declaim (ftype (function (simple-string) maybe-parse) string))
 (defun string (s)
+  "Parser: Parse a given string. Yields the original string itself if parsing was
+successful, in order to save on memory."
   (lambda (input)
     (declare (optimize (speed 3) (safety 0)))
     (let* ((off (input-curr input))

@@ -62,3 +62,4 @@
 ;; (4) Avoid `make-parser': 5.4b bytes, 2.55s
 ;; (5) Failing is just `:fail': 5.0b bytes, 2.5s
 ;; (6) Avoiding minor allocs: 4.9b bytes, 2.5s
+;; (7) Avoid recursion in `many': 4.87 bytes, 2.4s?

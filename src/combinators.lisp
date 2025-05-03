@@ -26,20 +26,22 @@ kept. Good for parsing backets, parentheses, etc."
   "Parse 0 or more occurrences of a `parser'."
   (lambda (input)
     (declare (optimize (speed 3)))
-    (labels ((recurse (acc in)
-               (let ((res (funcall parser in)))
-                 (if (failure? res)
-                     (ok in acc)
-                     (recurse (cons (parser-value res) acc)
-                              (parser-input res))))))
-      (fmap #'nreverse (recurse '() input)))))
+    (let ((res (funcall parser input)))
+      (if (failure? res)
+          (ok input '())
+          (let* ((inp (parser-input res))
+                 (final (loop :while (ok? res)
+                              :collect (parser-value res)
+                              :do (progn (setf inp (parser-input res))
+                                         (setf res (funcall parser inp))))))
+            (ok inp final))))))
 
 #+nil
 (funcall (many (string "ovēs")) (in "ovis"))
 #+nil
 (funcall (many (string "ovēs")) (in "ovēsovēsovēs!"))
 #+nil
-(funcall (many (alt (string "ovēs") (string "avis"))) "ovēsovēsavis!")
+(funcall (many (alt (string "ovēs") (string "avis"))) (in "ovēsovēsavis!"))
 
 (declaim (ftype (function (maybe-parse) maybe-parse) many1))
 (defun many1 (parser)
