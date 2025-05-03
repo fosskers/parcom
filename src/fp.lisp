@@ -69,20 +69,23 @@
                   (let ((name (gensym "*>-INNER")))
                     `(let ((,name ,i))
                        (if (ok? ,name)
-                           (fmap (const (parser-value ,name))
-                                 (funcall ,p (parser-input ,name)))
+                           (let ((res (funcall ,p (parser-input ,name))))
+                             (if (ok? res)
+                                 (progn (setf (parser-value res) (parser-value ,name))
+                                        res)
+                                 res))
                            ,name))))
                 parsers
                 :initial-value `(funcall ,parser ,input)))))
 
 #++
-(funcall (<* #'any) "H")
+(funcall (<* #'any) (in "H"))
 #++
-(funcall (<* #'any #'eof) "H")  ; Should get 'H'.
+(funcall (<* #'any #'eof) (in "H"))  ; Should get 'H'.
 #++
-(funcall (<* #'any #'any #'eof) "Ho")  ; Should get 'H'.
+(funcall (<* #'any #'any #'eof) (in "Ho"))  ; Should get 'H'.
 #++
-(funcall (*> #'any (<* #'any #'eof)) "Ho")  ; Should get 'o'.
+(funcall (*> #'any (<* #'any #'eof)) (in "Ho"))  ; Should get 'o'.
 
 (defmacro left (parser &rest parsers)
   "Combination of parsers yielding the result of the leftmost one."

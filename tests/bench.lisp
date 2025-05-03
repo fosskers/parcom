@@ -68,3 +68,4 @@
 ;; (10) Add `sneak': 2.48b bytes, 2.8s
 ;; (11) `fmap' mutates: 2.39b bytes, 2.7s
 ;; (12) Avoid `make-input': 1.96b bytes, 2.65s
+;; (13) Avoid fmap/const in `<*': 1.91b bytes, 2.65s
