@@ -31,7 +31,8 @@
 
 ;; --- Lambda Caches --- ;;
 
-(defparameter +char-cache+ (make-hash-table :test #'equal))
+(defparameter +char-cache+ (make-hash-table :test #'eql))
+(defparameter +any-but-cache+ (make-hash-table :test #'eql))
 
 ;; --- Conditions --- ;;
 

@@ -64,3 +64,4 @@
 ;; (6) Avoiding minor allocs: 4.9b bytes, 2.5s
 ;; (7) Avoid recursion in `many': 4.87b bytes, 2.4s?
 ;; (8) Cache on `char': 3.95b bytes, 2.4s
+;; (9) Cache on `any-but': 3.2b bytes, 2.7s

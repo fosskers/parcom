@@ -26,11 +26,14 @@
 (declaim (ftype (function (character) maybe-parse) any-but))
 (defun any-but (char)
   "Parser: Any character except the given one."
-  (lambda (input)
-    (let ((res (any input)))
-      (cond ((failure? res) res)
-            ((eql char (parser-value res)) (fail char input))
-            (t res)))))
+  (or (gethash char +any-but-cache+)
+      (let ((f (lambda (input)
+                 (let ((res (any input)))
+                   (cond ((failure? res) res)
+                         ((eql char (parser-value res)) (fail char input))
+                         (t res))))))
+        (setf (gethash char +any-but-cache+) f)
+        f)))
 
 #+nil
 (funcall (any-but #\") (in "hi"))
