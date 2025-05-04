@@ -52,7 +52,7 @@
 
 #+nil
 (let ((s (uiop:read-file-string "tests/data/large-file.json")))
-  (sb-sprof:with-profiling (:max-samples 20000 :sample-interval 0.0001 :report :graph)
+  (sb-sprof:with-profiling (:max-samples 100000 :sample-interval 0.00001 :report :graph)
     (pj:parse s)
     t))
 
@@ -69,3 +69,4 @@
 ;; (11) `fmap' mutates: 2.39b bytes, 2.7s
 ;; (12) Avoid `make-input': 1.96b bytes, 2.65s
 ;; (13) Avoid fmap/const in `<*': 1.91b bytes, 2.65s
+;; (14) `multiple-value-bind': 1.35b bytes, 3.3s

@@ -16,13 +16,23 @@
 #++
 (funcall (comp #'1+ #'length) '(1 2 3))
 
-;; (declaim (ftype (function ((function (t) *) cons) (or cons keyword)) fmap))
-(defun fmap (f thing)
-  "Apply a pure function to the inner contents of some `thing'."
-  (when (ok? thing)
-    (setf (parser-value thing) (funcall f (parser-value thing))))
-  thing)
+(defmacro fmap (f thing)
+  "Apply a pure function to the inner contents of some parsing operation, if the
+parsing itself was successful."
+  `(multiple-value-bind (res next) ,thing
+     (if (failure? res)
+         res
+         (values (funcall ,f res) next))))
 
+;; (declaim (ftype (function ((function (t) *) cons) (or cons keyword)) fmap))
+;; (defun fmap (f thing)
+;;   "Apply a pure function to the inner contents of some `thing'."
+;;   (when (ok? thing)
+;;     (setf (parser-value thing) (funcall f (parser-value thing))))
+;;   thing)
+
+#+nil
+(fmap #'char-upcase (any (in "hello")))
 #++
 (fmap #'1+ (ok (in "") 1))
 #++
@@ -42,11 +52,12 @@
   (let ((input (gensym "*>-INPUT")))
     `(lambda (,input)
        ,(reduce (lambda (i p)
-                  (let ((name (gensym "*>-INNER")))
-                    `(let ((,name ,i))
-                       (if (ok? ,name)
-                           (funcall ,p (parser-input ,name))
-                           ,name))))
+                  (let ((res  (gensym "*>-RES"))
+                        (next (gensym "*>-NEXT")))
+                    `(multiple-value-bind (,res ,next) ,i
+                       (if (ok? ,res)
+                           (funcall ,p ,next)
+                           ,res))))
                 parsers
                 :initial-value `(funcall ,parser ,input)))))
 
@@ -63,18 +74,18 @@
 
 (defmacro <* (parser &rest parsers)
   "Combination of parsers yielding the result of the leftmost one."
-  (let ((input (gensym "*>-INPUT")))
+  (let ((input (gensym "<*-INPUT")))
     `(lambda (,input)
        ,(reduce (lambda (i p)
-                  (let ((name (gensym "*>-INNER")))
-                    `(let ((,name ,i))
-                       (if (ok? ,name)
-                           (let ((res (funcall ,p (parser-input ,name))))
+                  (let ((res0 (gensym "<*-RES"))
+                        (next (gensym "<*-NEXT")))
+                    `(multiple-value-bind (,res0 ,next) ,i
+                       (if (ok? ,res0)
+                           (multiple-value-bind (res next) (funcall ,p ,next)
                              (if (ok? res)
-                                 (progn (setf (parser-value res) (parser-value ,name))
-                                        res)
+                                 (values ,res0 next)
                                  res))
-                           ,name))))
+                           ,res0))))
                 parsers
                 :initial-value `(funcall ,parser ,input)))))
 
@@ -98,12 +109,13 @@
        ,(labels ((recurse (ps i)
                    (if (null ps)
                        `(ok ,i nil)
-                       (let ((name (gensym "<*>-INNER")))
-                         `(let ((,name (funcall ,(car ps) ,i)))
-                            (if (failure? ,name)
-                                ,name
-                                (let ((res ,(recurse (cdr ps) `(parser-input ,name))))
-                                  (fmap (lambda (xs) (cons (parser-value ,name) xs)) res))))))))
+                       (let ((res  (gensym "<*>-RES"))
+                             (next (gensym "<*>-NEXT")))
+                         `(multiple-value-bind (,res ,next) (funcall ,(car ps) ,i)
+                            (if (failure? ,res)
+                                ,res
+                                (fmap (lambda (xs) (cons ,res xs))
+                                      ,(recurse (cdr ps) `,next))))))))
           (recurse (cons parser parsers) input)))))
 
 #+nil
@@ -126,7 +138,7 @@
   (lambda (input) (fmap (const item) (funcall parser input))))
 
 #++
-(funcall (<$ 1 #'any) "Ho")
+(funcall (<$ 1 #'any) (in "Ho"))
 
 (defmacro instead (item parser)
   "Run some parser, but substitute its inner value with some `item' if parsing was
@@ -140,15 +152,17 @@
        ,(labels ((recurse (ps)
                    (if (null ps)
                        `(fail "alt: something to succeed" ,input)
-                       `(let ((res (funcall ,(car ps) ,input)))
-                          (if (ok? res)
-                              res
-                              ,(recurse (cdr ps)))))))
+                       (let ((res  (gensym "ALT-RES"))
+                             (next (gensym "ALT-NEXT")))
+                         `(multiple-value-bind (,res ,next) (funcall ,(car ps) ,input)
+                            (if (ok? ,res)
+                                (values ,res ,next)
+                                ,(recurse (cdr ps))))))))
           (recurse (cons parser parsers))))))
 
 #++
-(funcall (alt (char #\H) (char #\h)) "Hello")
+(funcall (alt (char #\H) (char #\h)) (in "Hello"))
 #++
-(funcall (alt (char #\H) (char #\h)) "hello")
+(funcall (alt (char #\H) (char #\h)) (in "hello"))
 #++
-(funcall (alt (char #\H) (char #\h)) "ello")
+(funcall (alt (char #\H) (char #\h)) (in "ello"))

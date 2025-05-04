@@ -58,19 +58,19 @@ actually received."
 
 (defun local-date (input)
   "Parser: The YYYY-MM-DD portion."
-  (let ((res (funcall (<*> (*> (p:count 4 (p:any-if #'p:digit?)))
-                           (*> (p:char #\-) #'2-digits)
-                           (*> (p:char #\-) #'2-digits))
-                      input)))
+  (multiple-value-bind (res next) (funcall (<*> (*> (p:count 4 (p:any-if #'p:digit?)))
+                                                (*> (p:char #\-) #'2-digits)
+                                                (*> (p:char #\-) #'2-digits))
+                                           input)
     (if (p:failure? res)
         res
-        (destructuring-bind (year month day) (p:parser-value res)
+        (destructuring-bind (year month day) res
           (let ((year (chars->year year)))
             (cond ((not (<= 0 year 9999)) (p:fail "A year between 0 and 9999" input))
                   ((not (<= 1 month 12)) (p:fail "A month between 1 and 12" input))
                   ((not (<= 1 day (days-in-month-by-year year month)))
                    (p:fail (cl:format nil "~d-~2,'0d does not have ~a days" year month day) input))
-                  (t (p:ok (p:parser-input res)
+                  (t (p:ok next
                            (make-local-date :year year :month month :day day)))))))))
 
 #+nil
@@ -107,14 +107,14 @@ actually received."
 additional factional seconds are present, the value will be truncated. Parsing
 of a leap second is generally permitted, since the year/month/day cannot be
 known here."
-  (let ((res (funcall (<*> #'2-digits
-                           (*> (p:char #\:) #'2-digits)
-                           (*> (p:char #\:) #'2-digits)
-                           (p:opt (*> (p:char #\.) (p:many1 (p:any-if #'p:digit?)))))
-                      input)))
+  (multiple-value-bind (res next) (funcall (<*> #'2-digits
+                                                (*> (p:char #\:) #'2-digits)
+                                                (*> (p:char #\:) #'2-digits)
+                                                (p:opt (*> (p:char #\.) (p:many1 (p:any-if #'p:digit?)))))
+                                           input)
     (if (p:failure? res)
         res
-        (destructuring-bind (h m s millis) (p:parser-value res)
+        (destructuring-bind (h m s millis) res
           (cond ((not (<= 0 h 23)) (p:fail "An hour between 0 and 23" input))
                 ((not (<= 0 m 59)) (p:fail "A minute between 0 and 59" input))
                 ((or (and (= h 23) (= m 59) (> s 60))
@@ -122,7 +122,7 @@ known here."
                           (not (= m 59))
                           (not (<= 0 s 59))))
                  (p:fail "A legal second value" input))
-                (t (p:ok (p:parser-input res)
+                (t (p:ok next
                          (make-local-time :hour h :minute m :second s
                                           :millis (let ((a (nth 0 millis))
                                                         (b (nth 1 millis))

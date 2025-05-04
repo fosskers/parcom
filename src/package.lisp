@@ -78,21 +78,15 @@
 
 (deftype always-parse ()
   "A parser that always succeeds."
-  '(function (input) cons))
+  '(function (input) (values t fixnum)))
 
 (deftype maybe-parse ()
   "A parser that might fail."
-  '(function (input) (or cons keyword)))
-
-(defmacro parser-input (res)
-  `(car ,res))
-
-(defmacro parser-value (res)
-  `(cdr ,res))
+  '(function (input) (values (or keyword t) fixnum)))
 
 (defmacro ok (input value)
   "Some successful parsing!"
-  `(cons ,input ,value))
+  `(values ,value ,input))
 
 (defmacro ok? (x)
   "Did parsing succeed?"
@@ -116,10 +110,10 @@ Error reporting code will check the length of this and truncate it if necessary.
 
 (defun parse (parser input)
   "Run a parser and attempt to extract its final value."
-  (let* ((inp (in input))
-         (res (funcall parser inp)))
+  (multiple-value-bind (res next) (funcall parser (in input))
+    (declare (ignore next))
     (if (ok? res)
-        (parser-value res)
+        res
         (error "Oh no!")
         #+nil
         (let ((diff (- (length (input-str inp)) (input-curr inp))))

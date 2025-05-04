@@ -2,16 +2,16 @@
 
 (in-package :parcom)
 
-(declaim (ftype (function (maybe-parse) maybe-parse) opt))
+;; (declaim (ftype (function (maybe-parse) maybe-parse) opt))
 (defun opt (parser)
   "Yield nil if the parser failed, but don't fail the whole process nor consume any
 input."
   (alt parser (lambda (input) (ok input nil)))) ; Clever.
 
 #+nil
-(funcall (opt (string "Ex")) "Exercitus")
+(funcall (opt (string "Ex")) (in "Exercitus"))
 #+nil
-(funcall (opt (string "Ex")) "Facēre")
+(funcall (opt (string "Ex")) (in "Facēre"))
 
 (defun between (a parser b)
   "A main parser flanked by two other ones. Only the value of the main parser is
@@ -19,21 +19,23 @@ kept. Good for parsing backets, parentheses, etc."
   (*> a (<* parser b)))
 
 #+nil
-(funcall (between (char #\!) (string "Salvē") (char #\!)) "!Salvē!")
+(funcall (between (char #\!) (string "Salvē") (char #\!)) (in "!Salvē!"))
 
-(declaim (ftype (function (maybe-parse) always-parse) many))
+;; (declaim (ftype (function (maybe-parse) always-parse) many))
 (defun many (parser)
   "Parse 0 or more occurrences of a `parser'."
   (lambda (input)
     (declare (optimize (speed 3)))
-    (let ((res (funcall parser input)))
+    (multiple-value-bind (res next) (funcall parser input)
       (if (failure? res)
           (ok input '())
-          (let* ((inp (parser-input res))
+          (let* ((inp next)
+                 (res res)
                  (final (loop :while (ok? res)
-                              :collect (parser-value res)
-                              :do (progn (setf inp (parser-input res))
-                                         (setf res (funcall parser inp))))))
+                              :collect res
+                              :do (multiple-value-bind (r i) (funcall parser inp)
+                                    (setf res r)
+                                    (when i (setf inp i))))))
             (ok inp final))))))
 
 #+nil
@@ -43,38 +45,36 @@ kept. Good for parsing backets, parentheses, etc."
 #+nil
 (funcall (many (alt (string "ovēs") (string "avis"))) (in "ovēsovēsavis!"))
 
-(declaim (ftype (function (maybe-parse) maybe-parse) many1))
+;; (declaim (ftype (function (maybe-parse) maybe-parse) many1))
 (defun many1 (parser)
   "Parse 1 or more occurrences of a `parser'."
   (lambda (input)
-    (let ((res (funcall (many parser) input)))
+    (multiple-value-bind (res next) (funcall (many parser) input)
       (cond ((failure? res) res)
-            ((null (parser-value res)) (fail "many1: at least one success" input))
-            (t res)))))
+            ((null res) (fail "many1: at least one success" input))
+            (t (values res next))))))
 
 #+nil
-(funcall (many1 (string "ovēs")) "ovis")
+(funcall (many1 (string "ovēs")) (in "ovis"))
 #+nil
-(funcall (many1 (string "ovēs")) "ovēsovēsovēs!")
+(funcall (many1 (string "ovēs")) (in "ovēsovēsovēs!"))
 
-(declaim (ftype (function (maybe-parse maybe-parse) always-parse) sep))
+;; (declaim (ftype (function (maybe-parse maybe-parse) always-parse) sep))
 (defun sep (sep parser)
   "Parse 0 or more instances of a `parser' separated by some `sep' parser."
   (lambda (input)
     (labels ((recurse (acc in)
-               (let ((sep-res (funcall sep in)))
+               (multiple-value-bind (sep-res sep-next) (funcall sep in)
                  (if (failure? sep-res)
                      (ok in acc)
-                     (let ((res (funcall parser (parser-input sep-res))))
+                     (multiple-value-bind (res next) (funcall parser sep-next)
                        (if (failure? res)
                            res
-                           (recurse (cons (parser-value res) acc)
-                                    (parser-input res))))))))
-      (let ((res (funcall parser input)))
+                           (recurse (cons res acc) next)))))))
+      (multiple-value-bind (res next) (funcall parser input)
         (if (failure? res)
             (ok input '())
-            (fmap #'nreverse (recurse (list (parser-value res))
-                                      (parser-input res))))))))
+            (fmap #'nreverse (recurse (list res) next)))))))
 
 #+nil
 (funcall (sep (char #\!) (string "pilum")) (in "."))
@@ -85,40 +85,38 @@ kept. Good for parsing backets, parentheses, etc."
 #+nil
 (funcall (sep (char #\!) (string "pilum")) (in "pilum!pilum!pilum!"))
 
-(declaim (ftype (function (maybe-parse maybe-parse) maybe-parse) sep1))
+;; (declaim (ftype (function (maybe-parse maybe-parse) maybe-parse) sep1))
 (defun sep1 (sep parser)
   "Parse 1 or more instances of a `parser' separated by some `sep' parser."
   (lambda (input)
-    (let ((res (funcall (sep sep parser) input)))
+    (multiple-value-bind (res next) (funcall (sep sep parser) input)
       (cond ((failure? res) res)
-            ((null (parser-value res)) (fail "sep1: at least one success" input))
-            (t res)))))
+            ((null res) (fail "sep1: at least one success" input))
+            (t (values res next))))))
 
 #+nil
-(funcall (sep1 (char #\!) (string "pilum")) ".")
+(funcall (sep1 (char #\!) (string "pilum")) (in "."))
 #+nil
-(funcall (sep1 (char #\!) (string "pilum")) "pilum.")
+(funcall (sep1 (char #\!) (string "pilum")) (in "pilum."))
 #+nil
-(funcall (sep1 (char #\!) (string "pilum")) "pilum!pilum!pilum.")
+(funcall (sep1 (char #\!) (string "pilum")) (in "pilum!pilum!pilum."))
 #+nil
-(funcall (sep1 (char #\!) (string "pilum")) "pilum!pilum!pilum!")
+(funcall (sep1 (char #\!) (string "pilum")) (in "pilum!pilum!pilum!"))
 
-(declaim (ftype (function (maybe-parse maybe-parse) always-parse) sep-end))
+;; (declaim (ftype (function (maybe-parse maybe-parse) always-parse) sep-end))
 (defun sep-end (sep parser)
   "Parse 0 or more instances of a `parser' separated by some `sep' parser. Parses
 the separator eagerly, such that a final instance of it will also be parsed,
 even if not followed by an instance of the main parser."
   (lambda (input)
     (labels ((recurse (acc in)
-               (let ((res (funcall parser in)))
+               (multiple-value-bind (res next) (funcall parser in)
                  (if (failure? res)
                      (ok in acc)
-                     (let ((sep-res (funcall sep (parser-input res))))
+                     (multiple-value-bind (sep-res sep-next) (funcall sep next)
                        (if (failure? sep-res)
-                           (ok (parser-input res)
-                               (cons (parser-value res) acc))
-                           (recurse (cons (parser-value res) acc)
-                                    (parser-input sep-res))))))))
+                           (ok next (cons res acc))
+                           (recurse (cons res acc) sep-next)))))))
       (fmap #'nreverse (recurse '() input)))))
 
 #+nil
@@ -130,35 +128,35 @@ even if not followed by an instance of the main parser."
 #+nil
 (funcall (sep-end (char #\!) (string "pilum")) (in "pilum!pilum!pilum!"))
 
-(declaim (ftype (function (maybe-parse maybe-parse) maybe-parse) sep-end1))
+;; (declaim (ftype (function (maybe-parse maybe-parse) maybe-parse) sep-end1))
 (defun sep-end1 (sep parser)
   "Parse 1 or more instances of a `parser' separated by some `sep' parser. Parses
 the separator eagerly, such that a final instance of it will also be parsed,
 even if not followed by an instance of the main parser."
   (lambda (input)
-    (let ((res (funcall (sep-end sep parser) input)))
+    (multiple-value-bind (res next) (funcall (sep-end sep parser) input)
       (cond ((failure? res) res)
-            ((null (parser-value res)) (fail "sep-end1: at least one success" input))
-            (t res)))))
+            ((null res) (fail "sep-end1: at least one success" input))
+            (t (values res next))))))
 
 #+nil
-(funcall (sep-end1 (char #\!) (string "pilum")) ".")
+(funcall (sep-end1 (char #\!) (string "pilum")) (in "."))
 #+nil
-(funcall (sep-end1 (char #\!) (string "pilum")) "pilum.")
+(funcall (sep-end1 (char #\!) (string "pilum")) (in "pilum."))
 #+nil
-(funcall (sep-end1 (char #\!) (string "pilum")) "pilum!pilum!pilum.")
+(funcall (sep-end1 (char #\!) (string "pilum")) (in "pilum!pilum!pilum."))
 #+nil
-(funcall (sep-end1 (char #\!) (string "pilum")) "pilum!pilum!pilum!")
+(funcall (sep-end1 (char #\!) (string "pilum")) (in "pilum!pilum!pilum!"))
 
-(declaim (ftype (function (maybe-parse) always-parse) skip))
+;; (declaim (ftype (function (maybe-parse) always-parse) skip))
 (defun skip (parser)
   "Parse some `parser' 0 or more times, but throw away all the results."
   (lambda (input)
     (labels ((recurse (in)
-               (let ((res (funcall parser in)))
+               (multiple-value-bind (res next) (funcall parser in)
                  (if (failure? res)
                      (ok in t)
-                     (recurse (parser-input res))))))
+                     (recurse next)))))
       (recurse input))))
 
 #+nil
@@ -188,42 +186,46 @@ input of the subparser."
 #+nil
 (funcall (*> (string "!!!") (take-until (char #\'))) (in "!!!abcd'"))
 
-(declaim (ftype (function (maybe-parse) maybe-parse) peek))
+;; (declaim (ftype (function (maybe-parse) maybe-parse) peek))
 (defun peek (parser)
   "Yield the value of a parser, but don't consume the input."
   (lambda (input)
-    (let ((res (funcall parser input)))
+    (multiple-value-bind (res next) (funcall parser input)
+      (declare (ignore next))
       (if (failure? res)
           res
-          (ok input (parser-value res))))))
+          (ok input res)))))
 
 #+nil
 (funcall (peek (string "he")) (in "hello"))
 
-(declaim (ftype (function (character) maybe-parse) sneak))
+;; (declaim (ftype (function (character) maybe-parse) sneak))
 (defun sneak (c)
   "Combinator: Like `peek' but specialized for characters and thus more performant."
   (or (gethash c +sneak-cache+)
       (let ((f (lambda (input)
-                 (if (failure? (funcall (char c) input))
-                     :fail
-                     (ok input t)))))
+                 (multiple-value-bind (res next) (funcall (char c) input)
+                   (declare (ignore next))
+                   (if (failure? res)
+                       :fail
+                       (ok input res))))))
         (setf (gethash c +sneak-cache+) f)
         f)))
 
-(declaim (ftype (function (fixnum maybe-parse) maybe-parse) count))
+#+nil
+(funcall (sneak #\a) (in "aaabcd"))
+
+;; (declaim (ftype (function (fixnum maybe-parse) maybe-parse) count))
 (defun count (n parser)
   "Apply a `parser' a given number of times."
   (lambda (input)
     (labels ((recurse (acc m i)
                (if (<= m 0)
                    (ok i (nreverse acc))
-                   (let ((res (funcall parser i)))
+                   (multiple-value-bind (res next) (funcall parser i)
                      (if (failure? res)
                          res
-                         (recurse (cons (parser-value res) acc)
-                                  (1- m)
-                                  (parser-input res)))))))
+                         (recurse (cons res acc) (1- m) next))))))
       (recurse '() n input))))
 
 #+nil
@@ -233,15 +235,15 @@ input of the subparser."
 #+nil
 (funcall (count 0 (char #\a)) (in "aa"))
 
-(declaim (ftype (function (maybe-parse) maybe-parse) recognize))
+;; (declaim (ftype (function (maybe-parse) maybe-parse) recognize))
 (defun recognize (parser)
   "If the given `parser' was successful, return the consumed input instead."
   (lambda (input)
-    (let ((res (funcall parser input)))
+    (multiple-value-bind (res next) (funcall parser input)
       (if (failure? res)
           res
-          (ok (parser-input res)
-              (make-array (- (input-curr (parser-input res))
+          (ok next
+              (make-array (- (input-curr next)
                              (input-curr input))
                           :element-type 'character
                           :displaced-to (input-str input)
@@ -259,4 +261,4 @@ input of the subparser."
           (funcall (<*> p0 p1) input))))
 
 #+nil
-(funcall (pair #'any #'any) "hi")
+(funcall (pair #'any #'any) (in "hi"))

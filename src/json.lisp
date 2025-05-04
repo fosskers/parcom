@@ -14,9 +14,10 @@
 
 (defun parse (input)
   "Attempt to parse any JSON value."
-  (let ((res (json (p:in input))))
+  (multiple-value-bind (res next) (json (p:in input))
+    (declare (ignore next))
     (if (p:ok? res)
-        (p:parser-value res)
+        res
         (error "Oh no!")
         #+nil
         (error "Parsing json failed. Expected: ~a, but got: ~a"

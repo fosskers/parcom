@@ -162,13 +162,16 @@
 
 (define-test skip
   :parent combinators
-  (is = 3 (pc::input-curr (pc:parser-input (funcall (pc:skip (pc:char #\!)) (pc:in "!!!hi"))))))
+  (multiple-value-bind (res next)
+      (funcall (pc:skip (pc:char #\!)) (pc:in "!!!hi"))
+    (declare (ignore res))
+    (is = 3 (pc::input-curr next))))
 
 (define-test peek
   :parent combinators
-  (let ((res (funcall (pc:peek (pc:string "he")) (pc:in "hello"))))
-    (is equal "he" (pc:parser-value res))
-    (is equal "hello" (pc::input-str (pc:parser-input res)))))
+  (multiple-value-bind (res next) (funcall (pc:peek (pc:string "he")) (pc:in "hello"))
+    (is equal "he" res)
+    (is equal "hello" (pc::input-str next))))
 
 (define-test count
   :parent combinators
@@ -217,8 +220,9 @@
 (define-test numbers
   :parent json
   (is = 0.0 (pj:parse "0"))
-  (let ((res (pc:parser-input (pj:scientific (pc:in "1e00,")))))
-    (is equal #\, (schar (pc::input-str res) (pc::input-curr res))))
+  (multiple-value-bind (res next) (pj:scientific (pc:in "1e00,"))
+    (declare (ignore res))
+    (is equal #\, (schar (pc::input-str next) (pc::input-curr next))))
   (is = 1234567890.0d0 (pj:parse "1234567890"))
   (is = -9876.543210d0 (pj:parse "-9876.543210"))
   (is = 23456789012d66 (pj:parse "23456789012E66"))
