@@ -54,7 +54,8 @@
   (p:fmap (lambda (list) (coerce list 'vector))
           (funcall (p:between (*> (p:char #\[) #'skip-space)
                               (p:sep (*> (p:char #\,) #'skip-space)
-                                     (<* #'json #'skip-space))
+                                     (<* #'json #'skip-space)
+                                     :id :json-array)
                               (*> #'skip-space (p:char #\]))
                               :id :json-array)
                    offset)))
@@ -79,7 +80,8 @@
                                      (<*> #'string (*> #'skip-space
                                                        (p:char #\:)
                                                        #'skip-space
-                                                       (<* #'json #'skip-space))))
+                                                       (<* #'json #'skip-space)))
+                                     :id :json-object)
                               (*> #'skip-space (p:char #\}))
                               :id :json-object)
                    offset)))

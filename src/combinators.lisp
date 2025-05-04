@@ -60,21 +60,25 @@ kept. Good for parsing backets, parentheses, etc."
 #+nil
 (funcall (many1 (string "ovēs")) (in "ovēsovēsovēs!"))
 
-(defun sep (sep parser)
+(defun sep (sep parser &key (id nil))
   "Parse 0 or more instances of a `parser' separated by some `sep' parser."
-  (lambda (offset)
-    (labels ((recurse (acc in)
-               (multiple-value-bind (sep-res sep-next) (funcall sep in)
-                 (if (failure? sep-res)
-                     (ok in acc)
-                     (multiple-value-bind (res next) (funcall parser sep-next)
-                       (if (failure? res)
-                           res
-                           (recurse (cons res acc) next)))))))
-      (multiple-value-bind (res next) (funcall parser offset)
-        (if (failure? res)
-            (ok offset '())
-            (fmap #'nreverse (recurse (list res) next)))))))
+  (or (gethash id +sep-cache+)
+      (let ((f (lambda (offset)
+                 (labels ((recurse (acc in)
+                            (multiple-value-bind (sep-res sep-next) (funcall sep in)
+                              (if (failure? sep-res)
+                                  (ok in acc)
+                                  (multiple-value-bind (res next) (funcall parser sep-next)
+                                    (if (failure? res)
+                                        res
+                                        (recurse (cons res acc) next)))))))
+                   (multiple-value-bind (res next) (funcall parser offset)
+                     (if (failure? res)
+                         (ok offset '())
+                         (fmap #'nreverse (recurse (list res) next))))))))
+        (when id
+          (setf (gethash id +sep-cache+) f))
+        f)))
 
 #+nil
 (funcall (sep (char #\!) (string "pilum")) (in "."))
