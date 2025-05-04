@@ -76,13 +76,9 @@
 (deftype input ()
   'cons)
 
-(deftype always-parse ()
-  "A parser that always succeeds."
-  '(function (input) (values t fixnum)))
-
 (deftype maybe-parse ()
   "A parser that might fail."
-  '(function (input) (values (or keyword t) fixnum)))
+  '(function (input) (values (or t (member :fail)) &optional cons)))
 
 (defmacro ok (input value)
   "Some successful parsing!"

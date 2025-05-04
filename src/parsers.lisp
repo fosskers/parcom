@@ -5,6 +5,8 @@
 (defparameter +empty-string+ "")
 
 ;; (declaim (ftype maybe-parse any))
+
+(declaim (ftype (function (input) (values (or character (member :fail)) &optional cons)) any))
 (defun any (input)
   "Accept any character."
   (declare (optimize (speed 3) (safety 0)))
@@ -23,7 +25,7 @@
   (warn "`anybut' is deprecated; use `any-but' instead.")
   `(any-but ,char))
 
-;; (declaim (ftype (function (character) maybe-parse) any-but))
+(declaim (ftype (function (character) (function (input) (values (or character (member :fail)) &optional cons))) any-but))
 (defun any-but (c)
   "Parser: Any character except the given one."
   (or (gethash c +any-but-cache+)
@@ -40,6 +42,7 @@
 #+nil
 (funcall (any-but #\") (in "\"hi"))
 
+(declaim (ftype (function ((function (character) boolean)) (function (input) (values (or character (member :fail)) &optional cons))) any-if))
 (defun any-if (pred)
   "Parser: Any character, as long as it passes the predicate."
   (lambda (input)
@@ -51,7 +54,7 @@
 #+nil
 (funcall (any-if #'digit?) (in "8a"))
 
-;; (declaim (ftype maybe-parse hex))
+(declaim (ftype (function (input) (values (or character (member :fail)) &optional cons)) hex))
 (defun hex (input)
   "Parser: A hex character of any case."
   (multiple-value-bind (res next) (any input)
@@ -64,6 +67,7 @@
 #+nil
 (funcall (many #'hex) (in "abcdefgh"))
 
+(declaim (ftype (function (input) (values (or character (member :fail)) &optional cons)) unicode))
 (defun unicode (input)
   "Parser: Parse a unicode char of 4 hex values."
   (fmap (lambda (chars)
@@ -82,6 +86,7 @@
 #+nil
 (unicode (in "\\U0022"))
 
+(declaim (ftype (function (input) (values (or character (member :fail)) &optional cons)) control-char))
 (defun control-char (input)
   "Parser: Newlines and whatnot."
   (funcall (*> (char #\\)
@@ -95,7 +100,7 @@
 #+nil
 (control-char (in "\\n"))
 
-;; (declaim (ftype maybe-parse eof))
+(declaim (ftype (function (input) (values (or t (member :fail)) &optional cons)) eof))
 (defun eof (input)
   "Parser: Recognize the end of the input."
   (if (= (input-curr input) (length (input-str input)))
@@ -113,7 +118,7 @@
 #+nil
 (funcall (*> (string "Mālum") (char #\,)) (in "Mālum"))
 
-;; (declaim (ftype (function (character) maybe-parse) char))
+(declaim (ftype (function (character) (function (input) (values (or character (member :fail)) &optional cons))) char))
 (defun char (c)
   "Parse a given character."
   (or (gethash c +char-cache+)
@@ -137,7 +142,7 @@
 #++
 (funcall (*> (char #\H) (char #\e)) (in "Hello"))
 
-;; (declaim (ftype (function (simple-string) maybe-parse) string))
+(declaim (ftype (function (simple-string) (function (input) (values (or simple-string (member :fail)) &optional cons))) string))
 (defun string (s)
   "Parser: Parse a given string. Yields the original string itself if parsing was
 successful, in order to save on memory."
@@ -163,7 +168,7 @@ successful, in order to save on memory."
 #++
 (funcall (string "HellO") (in "Hello yes"))
 
-;; (declaim (ftype (function (fixnum) maybe-parse) take))
+(declaim (ftype (function (fixnum) (function (input) (values (or cl:string (member :fail)) &optional cons))) take))
 (defun take (n)
   "Take `n' characters from the input. Lenient, in that if `n' is larger than the
 remaining amount of characters, only the remaining ones will be yielded."
@@ -189,15 +194,14 @@ remaining amount of characters, only the remaining ones will be yielded."
 #+nil
 (funcall (*> (take 3) (take 2)) (in "Arbor"))
 
-;; (declaim (ftype (function ((function (character) boolean)) always-parse) consume))
+(declaim (ftype (function ((function (character) boolean)) (function (input) (values t cons))) consume))
 (defun consume (p)
   "Skip characters according to a given predicate, advancing the parser to a
 further point. Yields T, not the characters that were parsed. A faster variant
 of `take-while' when you don't actually need the parsed characters, and `skip'
 when you don't need to parse something complex."
   (lambda (input)
-    (declare (optimize (speed 3) (safety 0))
-             (type input input))
+    (declare (optimize (speed 3) (safety 0)))
     (let* ((s    (input-str input))
            (len  (length s))
            (keep (loop :for i :from (input-curr input) :below len
@@ -208,7 +212,7 @@ when you don't need to parse something complex."
 #+nil
 (funcall (consume (lambda (c) (eql c #\a))) (in "aaabcd!"))
 
-;; (declaim (ftype (function ((function (character) boolean)) always-parse) take-while))
+(declaim (ftype (function ((function (character) boolean)) (function (input) (values cl:string cons))) take-while))
 (defun take-while (p)
   "Parser: Take characters while some predicate holds."
   (lambda (input)
@@ -238,7 +242,7 @@ when you don't need to parse something complex."
                                (equal #\d c)))))
          (in "aaabcd!"))
 
-;; (declaim (ftype (function ((function (character) boolean)) maybe-parse) take-while1))
+(declaim (ftype (function ((function (character) boolean)) (function (input) (values (or cl:string (member :fail)) &optional cons))) take-while1))
 (defun take-while1 (p)
   "Parser: Take characters while some predicate holds. Must succeed at least once."
   (lambda (input)
@@ -252,7 +256,7 @@ when you don't need to parse something complex."
 #+nil
 (funcall (take-while1 #'digit?) (in "123!"))
 
-;; (declaim (ftype maybe-parse newline))
+(declaim (ftype (function (input) (values (or character (member :fail)) &optional cons)) newline))
 (defun newline (input)
   "Parser: Matches a single newline character."
   (funcall (char #\newline) input))
@@ -260,7 +264,7 @@ when you don't need to parse something complex."
 #+nil
 (newline (in "Hello"))
 
-;; (declaim (ftype always-parse space))
+(declaim (ftype (function (input) (values cl:string cons)) space))
 (defun space (input)
   "Parse 0 or more ASCII whitespace and tab characters."
   (funcall (take-while (lambda (c) (or (equal c #\space) (equal c #\tab)))) input))
@@ -268,7 +272,7 @@ when you don't need to parse something complex."
 #+nil
 (funcall #'space (in "   hi"))
 
-;; (declaim (ftype maybe-parse space1))
+(declaim (ftype (function (input) (values (or cl:string (member :fail)) &optional cons)) space1))
 (defun space1 (input)
   "Parse 1 or more ASCII whitespace and tab characters."
   (multiple-value-bind (res next) (funcall #'space input)
@@ -281,7 +285,7 @@ when you don't need to parse something complex."
 #+nil
 (funcall #'space1 (in "   abc"))
 
-;; (declaim (ftype always-parse multispace))
+(declaim (ftype (function (input) (values cl:string cons)) multispace))
 (defun multispace (input)
   "Parse 0 or more ASCII whitespace, tabs, newlines, and carriage returns."
   (funcall (take-while (lambda (c)
@@ -294,7 +298,7 @@ when you don't need to parse something complex."
 #+nil
 (funcall #'multispace (in (concatenate 'cl:string '(#\tab #\tab #\tab))))
 
-;; (declaim (ftype maybe-parse multispace1))
+(declaim (ftype (function (input) (values (or cl:string (member :fail)) &optional cons)) multispace1))
 (defun multispace1 (input)
   "Parse 1 or more ASCII whitespace, tabs, newlines, and carriage returns."
   (multiple-value-bind (res next) (funcall #'multispace input)
@@ -305,7 +309,7 @@ when you don't need to parse something complex."
 #+nil
 (funcall #'multispace1 (in (concatenate 'cl:string '(#\tab #\tab #\tab))))
 
-;; (declaim (ftype maybe-parse unsigned))
+(declaim (ftype (function (input) (values (or fixnum (member :fail)) &optional cons)) unsigned))
 (defun unsigned (input)
   "Parser: A positive integer."
   (declare (optimize (speed 3) (safety 0)))
@@ -323,7 +327,7 @@ when you don't need to parse something complex."
 #+nil
 (unsigned (in "123!"))
 
-;; (declaim (ftype maybe-parse integer))
+(declaim (ftype (function (input) (values (or fixnum (member :fail)) &optional cons)) integer))
 (defun integer (input)
   "Parser: A positive or negative integer."
   (fmap (lambda (pair) (if (null (car pair)) (cdr pair) (- (cdr pair))))
@@ -334,12 +338,12 @@ when you don't need to parse something complex."
 #+nil
 (integer (in "-123!"))
 
-;; (declaim (ftype maybe-parse float))
+(declaim (ftype (function (input) (values (or double-float (member :fail)) &optional cons)) float))
 (defun float (input)
   "Parser: A positive or negative floating point number."
   (fmap (lambda (s)
           (let ((*read-default-float-format* 'double-float))
-            (read-from-string s)))
+            (cl:float (read-from-string s) 1.0d0)))
         (funcall (recognize (*> #'integer (opt (*> (char #\.) (take-while1 #'digit?))))) input)))
 
 #+nil
@@ -351,7 +355,7 @@ when you don't need to parse something complex."
 #+nil
 (funcall #'float (in "1"))
 
-;; (declaim (ftype always-parse rest))
+(declaim (ftype (function (input) (values cl:string cons)) rest))
 (defun rest (input)
   "Parser: Consume the rest of the input. Always succeeds."
   (let ((len (- (length (input-str input)) (input-curr input))))

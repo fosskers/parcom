@@ -52,7 +52,7 @@
 
 #+nil
 (let ((s (uiop:read-file-string "tests/data/large-file.json")))
-  (sb-sprof:with-profiling (:max-samples 100000 :sample-interval 0.00001 :report :graph)
+  (sb-sprof:with-profiling (:max-samples 100000 :sample-interval 0.00001 :report :graph :mode :alloc)
     (pj:parse s)
     t))
 
