@@ -320,8 +320,8 @@ when you don't need to parse something complex."
 (declaim (ftype (function (fixnum) (values (or fixnum (member :fail)) &optional fixnum)) integer))
 (defun integer (offset)
   "Parser: A positive or negative integer."
-  (fmap (lambda (pair) (if (null (car pair)) (cdr pair) (- (cdr pair))))
-        (funcall (pair (opt (char #\-)) #'unsigned) offset)))
+  (fmap (lambda (pair) (if (null (car pair)) (cadr pair) (- (cadr pair))))
+        (funcall (<*> (opt (char #\-)) #'unsigned) offset)))
 
 #+nil
 (integer (in "123!"))

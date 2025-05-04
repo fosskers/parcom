@@ -68,14 +68,14 @@
   (p:fmap (lambda (pairs)
             (let ((ht (make-hash-table :size 8 :test #'equal)))
               (dolist (pair pairs)
-                (setf (gethash (car pair) ht) (cdr pair)))
+                (setf (gethash (car pair) ht) (cadr pair)))
               ht))
           (funcall (p:between (*> (p:char #\{) #'skip-space)
                               (p:sep (*> (p:char #\,) #'skip-space)
-                                     (p:pair #'string (*> #'skip-space
-                                                          (p:char #\:)
-                                                          #'skip-space
-                                                          (<* #'json #'skip-space))))
+                                     (<*> #'string (*> #'skip-space
+                                                       (p:char #\:)
+                                                       #'skip-space
+                                                       (<* #'json #'skip-space))))
                               (*> #'skip-space (p:char #\})))
                    offset)))
 
