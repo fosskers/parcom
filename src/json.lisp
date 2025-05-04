@@ -55,7 +55,8 @@
           (funcall (p:between (*> (p:char #\[) #'skip-space)
                               (p:sep (*> (p:char #\,) #'skip-space)
                                      (<* #'json #'skip-space))
-                              (*> #'skip-space (p:char #\])))
+                              (*> #'skip-space (p:char #\]))
+                              :id :json-array)
                    offset)))
 
 #+nil
@@ -79,7 +80,8 @@
                                                        (p:char #\:)
                                                        #'skip-space
                                                        (<* #'json #'skip-space))))
-                              (*> #'skip-space (p:char #\})))
+                              (*> #'skip-space (p:char #\}))
+                              :id :json-object)
                    offset)))
 
 #+nil
@@ -186,7 +188,8 @@
                                              ((eql c #\") nil)
                                              (t t)))
                                      :id :json-string)
-                          (p:char #\"))
+                          (p:char #\")
+                          :id :json-string)
                offset)
     (if (p:failure? res)
         res
@@ -243,7 +246,7 @@
 (null "null")
 
 #+nil
-(array (uiop:read-file-string "tests/data/pass2.json"))
+(array (p:in (uiop:read-file-string "tests/data/pass2.json")))
 
 (declaim (ftype (function (fixnum) (values t fixnum)) skip-space))
 (defun skip-space (offset)

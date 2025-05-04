@@ -82,3 +82,4 @@
 ;; (18) Avoid `take-while': 0.62b bytes, 0.95s
 ;; (19) Avoid `pair': 0.59b bytes, 0.90s
 ;; (20) Cache on `consume': 0.41b bytes, 0.87s
+;; (21) Cache on `between': 0.29b bytes, 0.90s

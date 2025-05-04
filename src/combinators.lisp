@@ -12,10 +12,14 @@ input."
 #+nil
 (funcall (opt (string "Ex")) (in "Facēre"))
 
-(defun between (a parser b)
+(defun between (a parser b &key (id nil))
   "A main parser flanked by two other ones. Only the value of the main parser is
 kept. Good for parsing backets, parentheses, etc."
-  (*> a (<* parser b)))
+  (or (gethash id +between-cache+)
+      (let ((f (*> a (<* parser b))))
+        (when id
+          (setf (gethash id +between-cache+) f))
+        f)))
 
 #+nil
 (funcall (between (char #\!) (string "Salvē") (char #\!)) (in "!Salvē!"))
