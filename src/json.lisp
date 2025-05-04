@@ -124,30 +124,30 @@
     (#\b #\backspace)
     (#\f #\page)))
 
-(declaim (ftype (function (cl:string) simple-string) escaped))
-(defun escaped (s)
+(declaim (ftype (function (simple-string fixnum fixnum) simple-string) escaped))
+(defun escaped (s from to)
   "Escape a string."
   (declare (optimize (speed 3) (safety 0)))
-  (let* ((len  (length s))
+  (let* ((len  (- to from))
          (work (make-array len :element-type 'character))
          (i 0)
-         (j 0))
+         (j from))
     (declare (dynamic-extent work))
     ;; --- Escape the original characters --- ;;
-    (loop :while (< j len)
-          :do (progn (let ((curr (char s j)))
+    (loop :while (< j to)
+          :do (progn (let ((curr (schar s j)))
                        (cond ((eql #\\ curr)
-                              (let* ((next (char s (1+ j)))
+                              (let* ((next (schar s (1+ j)))
                                      (escp (escaped-variant next)))
                                 (cond (escp
                                        (setf (aref work i) escp)
                                        (incf j 2))
                                       ((or (eql next #\u)
                                            (eql next #\U))
-                                       (let ((ex (code-char (+ (* 4096 (digit-char-p (char s (+ 2 j)) 16))
-                                                               (*  256 (digit-char-p (char s (+ 3 j)) 16))
-                                                               (*   16 (digit-char-p (char s (+ 4 j)) 16))
-                                                               (digit-char-p (char s (+ 5 j)) 16)))))
+                                       (let ((ex (code-char (+ (* 4096 (digit-char-p (schar s (+ 2 j)) 16))
+                                                               (*  256 (digit-char-p (schar s (+ 3 j)) 16))
+                                                               (*   16 (digit-char-p (schar s (+ 4 j)) 16))
+                                                               (digit-char-p (schar s (+ 5 j)) 16)))))
                                          (setf (aref work i) ex)
                                          (incf j 6)))
                                       (t (setf (aref work i) next)
@@ -161,38 +161,35 @@
             :do (setf (aref final k) (schar work k)))
       final)))
 
-#+nil
-(escaped "abcd!")
-#+nil
-(escaped "ab\\u0022!")
-#+nil
-(escaped "ab\\ncd!")
-
-;; TODO: Avoid even the `take-while' call! All I need to know is how far the
-;; offset got, then I can pass that to `escaped' to regain the ability to call
-;; `schar'.
 (declaim (ftype (function (fixnum) (values (or simple-string (member :fail)) &optional fixnum)) string))
 (defun string (offset)
   "Parser: Parse any string."
   (let ((open-slash nil))
-    (p:fmap #'escaped
-            (funcall (p:between (p:char #\")
-                                ;; NOTE: 2025-05-04 This was originally a call
-                                ;; to (many #'compound-char), which is
-                                ;; conceptually much simpler, but it was
-                                ;; discovered to allocate too many intermediate
-                                ;; lists. Using `take-while' at first allows us
-                                ;; to scream across the source string.
-                                (p:take-while (lambda (c)
-                                                (cond (open-slash
-                                                       (setf open-slash nil)
-                                                       t)
-                                                      ((eql c #\\) (setf open-slash t))
-                                                      ((eql c #\") nil)
-                                                      (t t))))
-                                (p:char #\"))
-                     offset))))
+    (multiple-value-bind (res next)
+        (funcall (p:between (p:char #\")
+                            ;; NOTE: 2025-05-04 This was originally a call to
+                            ;; (many #'compound-char), which is conceptually
+                            ;; much simpler, but it was discovered to allocate
+                            ;; too many intermediate lists. Further, using
+                            ;; `take-while' still allocates displaced arrays
+                            ;; whose lookups as slow during escaping, so I
+                            ;; realized that `consume' allows us to scream
+                            ;; across the source string and retain fast lookups.
+                            (p:consume (lambda (c)
+                                         (cond (open-slash
+                                                (setf open-slash nil)
+                                                t)
+                                               ((eql c #\\) (setf open-slash t))
+                                               ((eql c #\") nil)
+                                               (t t))))
+                            (p:char #\"))
+                 offset)
+      (if (p:failure? res)
+          res
+          (values (escaped p::+input+ (1+ offset) (1- next)) next)))))
 
+#+nil
+(string (p:in "\"hello\""))
 #+nil
 (string (p:in "\"\""))
 #+nil

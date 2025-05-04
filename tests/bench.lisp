@@ -79,3 +79,4 @@
 ;; (15) Yield offset directly: 0.92b bytes, 3.0s
 ;; (16) Type signatures for JSON: 0.92b bytes, 2.7s
 ;; (17) Avoid `many' in JSON strings: 0.69b bytes, 1.05s
+;; (18) Avoid `take-while': 0.62b bytes, 0.95s
