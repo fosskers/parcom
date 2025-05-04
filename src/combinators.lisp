@@ -5,7 +5,7 @@
 (defun opt (parser)
   "Yield nil if the parser failed, but don't fail the whole process nor consume any
 input."
-  (alt parser (lambda (input) (ok input nil)))) ; Clever.
+  (alt parser (lambda (offset) (ok offset nil)))) ; Clever.
 
 #+nil
 (funcall (opt (string "Ex")) (in "Exercitus"))
@@ -22,11 +22,11 @@ kept. Good for parsing backets, parentheses, etc."
 
 (defun many (parser)
   "Parse 0 or more occurrences of a `parser'."
-  (lambda (input)
+  (lambda (offset)
     (declare (optimize (speed 3)))
-    (multiple-value-bind (res next) (funcall parser input)
+    (multiple-value-bind (res next) (funcall parser offset)
       (if (failure? res)
-          (ok input '())
+          (ok offset '())
           (let* ((inp next)
                  (res res)
                  (final (loop :while (ok? res)
@@ -45,10 +45,10 @@ kept. Good for parsing backets, parentheses, etc."
 
 (defun many1 (parser)
   "Parse 1 or more occurrences of a `parser'."
-  (lambda (input)
-    (multiple-value-bind (res next) (funcall (many parser) input)
+  (lambda (offset)
+    (multiple-value-bind (res next) (funcall (many parser) offset)
       (cond ((failure? res) res)
-            ((null res) (fail "many1: at least one success" input))
+            ((null res) (fail "many1: at least one success" offset))
             (t (values res next))))))
 
 #+nil
@@ -58,7 +58,7 @@ kept. Good for parsing backets, parentheses, etc."
 
 (defun sep (sep parser)
   "Parse 0 or more instances of a `parser' separated by some `sep' parser."
-  (lambda (input)
+  (lambda (offset)
     (labels ((recurse (acc in)
                (multiple-value-bind (sep-res sep-next) (funcall sep in)
                  (if (failure? sep-res)
@@ -67,9 +67,9 @@ kept. Good for parsing backets, parentheses, etc."
                        (if (failure? res)
                            res
                            (recurse (cons res acc) next)))))))
-      (multiple-value-bind (res next) (funcall parser input)
+      (multiple-value-bind (res next) (funcall parser offset)
         (if (failure? res)
-            (ok input '())
+            (ok offset '())
             (fmap #'nreverse (recurse (list res) next)))))))
 
 #+nil
@@ -83,10 +83,10 @@ kept. Good for parsing backets, parentheses, etc."
 
 (defun sep1 (sep parser)
   "Parse 1 or more instances of a `parser' separated by some `sep' parser."
-  (lambda (input)
-    (multiple-value-bind (res next) (funcall (sep sep parser) input)
+  (lambda (offset)
+    (multiple-value-bind (res next) (funcall (sep sep parser) offset)
       (cond ((failure? res) res)
-            ((null res) (fail "sep1: at least one success" input))
+            ((null res) (fail "sep1: at least one success" offset))
             (t (values res next))))))
 
 #+nil
@@ -102,7 +102,7 @@ kept. Good for parsing backets, parentheses, etc."
   "Parse 0 or more instances of a `parser' separated by some `sep' parser. Parses
 the separator eagerly, such that a final instance of it will also be parsed,
 even if not followed by an instance of the main parser."
-  (lambda (input)
+  (lambda (offset)
     (labels ((recurse (acc in)
                (multiple-value-bind (res next) (funcall parser in)
                  (if (failure? res)
@@ -111,7 +111,7 @@ even if not followed by an instance of the main parser."
                        (if (failure? sep-res)
                            (ok next (cons res acc))
                            (recurse (cons res acc) sep-next)))))))
-      (fmap #'nreverse (recurse '() input)))))
+      (fmap #'nreverse (recurse '() offset)))))
 
 #+nil
 (funcall (sep-end (char #\!) (string "pilum")) (in "."))
@@ -126,10 +126,10 @@ even if not followed by an instance of the main parser."
   "Parse 1 or more instances of a `parser' separated by some `sep' parser. Parses
 the separator eagerly, such that a final instance of it will also be parsed,
 even if not followed by an instance of the main parser."
-  (lambda (input)
-    (multiple-value-bind (res next) (funcall (sep-end sep parser) input)
+  (lambda (offset)
+    (multiple-value-bind (res next) (funcall (sep-end sep parser) offset)
       (cond ((failure? res) res)
-            ((null res) (fail "sep-end1: at least one success" input))
+            ((null res) (fail "sep-end1: at least one success" offset))
             (t (values res next))))))
 
 #+nil
@@ -143,13 +143,13 @@ even if not followed by an instance of the main parser."
 
 (defun skip (parser)
   "Parse some `parser' 0 or more times, but throw away all the results."
-  (lambda (input)
+  (lambda (offset)
     (labels ((recurse (in)
                (multiple-value-bind (res next) (funcall parser in)
                  (if (failure? res)
                      (ok in t)
                      (recurse next)))))
-      (recurse input))))
+      (recurse offset))))
 
 #+nil
 (funcall (skip (char #\!)) (in ""))
@@ -158,23 +158,21 @@ even if not followed by an instance of the main parser."
 #+nil
 (funcall (skip (char #\!)) (in "!!!hi"))
 
-(declaim (ftype (function (maybe-parse) (function (input) (values cl:string cons))) take-until))
+(declaim (ftype (function (maybe-parse) (function (fixnum) (values cl:string fixnum))) take-until))
 (defun take-until (parser)
   "Combinator: Take characters until another parser succeeds. Does not consume the
 input of the subparser."
-  (lambda (input)
-    (let* ((s (input-str input))
-           (len (length s))
-           (working (cons (input-curr input) s))
-           (keep (loop :for i :from (input-curr input) :below len
+  (lambda (offset)
+    (let* ((working offset)
+           (keep (loop :for i :from offset :below +input-length+
                        :while (when (failure? (funcall parser working))
-                                (incf (input-curr working)))
-                       :finally (return (- i (input-curr input))))))
-      (ok (off keep input)
+                                (incf working))
+                       :finally (return (- i offset)))))
+      (ok (off keep offset)
           (make-array keep
                       :element-type 'character
-                      :displaced-to s
-                      :displaced-index-offset (input-curr input))))))
+                      :displaced-to +input+
+                      :displaced-index-offset offset)))))
 
 #+nil
 (funcall (*> (string "!!!") (take-until (char #\'))) (in "!!!abcd'"))
@@ -182,26 +180,26 @@ input of the subparser."
 (declaim (ftype (function (maybe-parse) maybe-parse) peek))
 (defun peek (parser)
   "Yield the value of a parser, but don't consume the input."
-  (lambda (input)
-    (multiple-value-bind (res next) (funcall parser input)
+  (lambda (offset)
+    (multiple-value-bind (res next) (funcall parser offset)
       (declare (ignore next))
       (if (failure? res)
           res
-          (ok input res)))))
+          (ok offset res)))))
 
 #+nil
 (funcall (peek (string "he")) (in "hello"))
 
-(declaim (ftype (function (character) (function (input) (values (or character (member :fail)) &optional cons))) sneak))
+(declaim (ftype (function (character) (function (fixnum) (values (or character (member :fail)) &optional fixnum))) sneak))
 (defun sneak (c)
   "Combinator: Like `peek' but specialized for characters and thus more performant."
   (or (gethash c +sneak-cache+)
-      (let ((f (lambda (input)
-                 (multiple-value-bind (res next) (funcall (char c) input)
+      (let ((f (lambda (offset)
+                 (multiple-value-bind (res next) (funcall (char c) offset)
                    (declare (ignore next))
                    (if (failure? res)
                        :fail
-                       (ok input res))))))
+                       (ok offset res))))))
         (setf (gethash c +sneak-cache+) f)
         f)))
 
@@ -211,7 +209,7 @@ input of the subparser."
 (declaim (ftype (function (fixnum maybe-parse) maybe-parse) count))
 (defun count (n parser)
   "Apply a `parser' a given number of times."
-  (lambda (input)
+  (lambda (offset)
     (labels ((recurse (acc m i)
                (if (<= m 0)
                    (ok i (nreverse acc))
@@ -219,7 +217,7 @@ input of the subparser."
                      (if (failure? res)
                          res
                          (recurse (cons res acc) (1- m) next))))))
-      (recurse '() n input))))
+      (recurse '() n offset))))
 
 #+nil
 (funcall (count 3 (char #\a)) (in "aaaaaa"))
@@ -228,19 +226,18 @@ input of the subparser."
 #+nil
 (funcall (count 0 (char #\a)) (in "aa"))
 
-(declaim (ftype (function (maybe-parse) (function (input) (values (or cl:string (member :fail)) &optional cons))) recognize))
+(declaim (ftype (function (maybe-parse) (function (fixnum) (values (or cl:string (member :fail)) &optional fixnum))) recognize))
 (defun recognize (parser)
   "If the given `parser' was successful, return the consumed input instead."
-  (lambda (input)
-    (multiple-value-bind (res next) (funcall parser input)
+  (lambda (offset)
+    (multiple-value-bind (res next) (funcall parser offset)
       (if (failure? res)
           res
           (ok next
-              (make-array (- (input-curr next)
-                             (input-curr input))
+              (make-array (- next offset)
                           :element-type 'character
-                          :displaced-to (input-str input)
-                          :displaced-index-offset (input-curr input)))))))
+                          :displaced-to +input+
+                          :displaced-index-offset offset))))))
 
 #+nil
 (funcall (recognize (<*> (string "hi") (string "bye"))) (in "hibyethere"))
@@ -249,9 +246,9 @@ input of the subparser."
 
 (defun pair (p0 p1)
   "Combinator: Parse two parsers and yield the results as a cons cell."
-  (lambda (input)
+  (lambda (offset)
     (fmap (lambda (list) (cons (car list) (cadr list)))
-          (funcall (<*> p0 p1) input))))
+          (funcall (<*> p0 p1) offset))))
 
 #+nil
 (funcall (pair #'any #'any) (in "hi"))

@@ -4,16 +4,13 @@
 
 (defparameter +empty-string+ "")
 
-;; (declaim (ftype maybe-parse any))
-
-(declaim (ftype (function (input) (values (or character (member :fail)) &optional cons)) any))
-(defun any (input)
+(declaim (ftype (function (fixnum) (values (or character (member :fail)) &optional fixnum)) any))
+(defun any (offset)
   "Accept any character."
   (declare (optimize (speed 3) (safety 0)))
-  (let ((s (input-str input)))
-    (if (>= (input-curr input) (length s))
-        (fail "any char" input)
-        (values (schar s (input-curr input)) (off 1 input)))))
+  (if (>= offset +input-length+)
+      (fail "any char" input)
+      (values (schar +input+ offset) (off 1 offset))))
 
 #++
 (any (in "hello"))
@@ -25,12 +22,12 @@
   (warn "`anybut' is deprecated; use `any-but' instead.")
   `(any-but ,char))
 
-(declaim (ftype (function (character) (function (input) (values (or character (member :fail)) &optional cons))) any-but))
+(declaim (ftype (function (character) (function (fixnum) (values (or character (member :fail)) &optional fixnum))) any-but))
 (defun any-but (c)
   "Parser: Any character except the given one."
   (or (gethash c +any-but-cache+)
-      (let ((f (lambda (input)
-                 (multiple-value-bind (res next) (any input)
+      (let ((f (lambda (offset)
+                 (multiple-value-bind (res next) (any offset)
                    (cond ((failure? res) res)
                          ((eql c res) (fail c input))
                          (t (values res next)))))))
@@ -42,11 +39,11 @@
 #+nil
 (funcall (any-but #\") (in "\"hi"))
 
-(declaim (ftype (function ((function (character) boolean)) (function (input) (values (or character (member :fail)) &optional cons))) any-if))
+(declaim (ftype (function ((function (character) boolean)) (function (fixnum) (values (or character (member :fail)) &optional fixnum))) any-if))
 (defun any-if (pred)
   "Parser: Any character, as long as it passes the predicate."
-  (lambda (input)
-    (multiple-value-bind (res next) (any input)
+  (lambda (offset)
+    (multiple-value-bind (res next) (any offset)
       (cond ((failure? res) res)
             ((funcall pred res) (values res next))
             (t (fail "any-if: should have passed the predicate" input))))))
@@ -54,10 +51,10 @@
 #+nil
 (funcall (any-if #'digit?) (in "8a"))
 
-(declaim (ftype (function (input) (values (or character (member :fail)) &optional cons)) hex))
-(defun hex (input)
+(declaim (ftype (function (fixnum) (values (or character (member :fail)) &optional fixnum)) hex))
+(defun hex (offset)
   "Parser: A hex character of any case."
-  (multiple-value-bind (res next) (any input)
+  (multiple-value-bind (res next) (any offset)
     (cond ((failure? res) res)
           ((hex? res) (values res next))
           (t (fail "hex: 0-9 or A-F" input)))))
@@ -67,8 +64,8 @@
 #+nil
 (funcall (many #'hex) (in "abcdefgh"))
 
-(declaim (ftype (function (input) (values (or character (member :fail)) &optional cons)) unicode))
-(defun unicode (input)
+(declaim (ftype (function (fixnum) (values (or character (member :fail)) &optional fixnum)) unicode))
+(defun unicode (offset)
   "Parser: Parse a unicode char of 4 hex values."
   (fmap (lambda (chars)
           (destructuring-bind (a b c d) chars
@@ -79,15 +76,15 @@
         (funcall (*> (char #\\)
                      (alt (char #\u) (char #\U))
                      (count 4 #'hex))
-                 input)))
+                 offset)))
 
 #+nil
 (unicode (in "\\u0022"))
 #+nil
 (unicode (in "\\U0022"))
 
-(declaim (ftype (function (input) (values (or character (member :fail)) &optional cons)) control-char))
-(defun control-char (input)
+(declaim (ftype (function (fixnum) (values (or character (member :fail)) &optional fixnum)) control-char))
+(defun control-char (offset)
   "Parser: Newlines and whatnot."
   (funcall (*> (char #\\)
                (alt (<$ #\newline (char #\n))
@@ -95,16 +92,16 @@
                     (<$ #\return (char #\r))
                     (<$ #\backspace (char #\b))
                     (<$ #\page (char #\f))))
-           input))
+           offset))
 
 #+nil
 (control-char (in "\\n"))
 
-(declaim (ftype (function (input) (values (or t (member :fail)) &optional cons)) eof))
-(defun eof (input)
+(declaim (ftype (function (fixnum) (values (or t (member :fail)) &optional fixnum)) eof))
+(defun eof (offset)
   "Parser: Recognize the end of the input."
-  (if (= (input-curr input) (length (input-str input)))
-      (ok input t)
+  (if (= offset +input-length+)
+      (values t offset)
       (fail "the end of the input" input)))
 
 #++
@@ -118,17 +115,17 @@
 #+nil
 (funcall (*> (string "Mālum") (char #\,)) (in "Mālum"))
 
-(declaim (ftype (function (character) (function (input) (values (or character (member :fail)) &optional cons))) char))
+(declaim (ftype (function (character) (function (fixnum) (values (or character (member :fail)) &optional fixnum))) char))
 (defun char (c)
   "Parse a given character."
   (or (gethash c +char-cache+)
-      (let ((f (lambda (input)
+      (let ((f (lambda (offset)
                  (declare (optimize (speed 3) (safety 0)))
-                 (if (>= (input-curr input) (length (input-str input)))
+                 (if (>= offset +input-length+)
                      (fail c input)
-                     (let ((head (schar (input-str input) (input-curr input))))
+                     (let ((head (schar +input+ offset)))
                        (if (equal c head)
-                           (ok (off 1 input) head)
+                           (ok (off 1 offset) head)
                            (fail c input)))))))
         (setf (gethash c +char-cache+) f)
         f)))
@@ -142,21 +139,19 @@
 #++
 (funcall (*> (char #\H) (char #\e)) (in "Hello"))
 
-(declaim (ftype (function (simple-string) (function (input) (values (or simple-string (member :fail)) &optional cons))) string))
+(declaim (ftype (function (simple-string) (function (fixnum) (values (or simple-string (member :fail)) &optional fixnum))) string))
 (defun string (s)
   "Parser: Parse a given string. Yields the original string itself if parsing was
 successful, in order to save on memory."
-  (lambda (input)
+  (lambda (offset)
     (declare (optimize (speed 3) (safety 0)))
-    (let* ((off (input-curr input))
-           (ins (input-str input))
-           (i (if (>= off (length ins))
-                  0
-                  (loop :for i :from 0 :below (length s)
-                        :while (equal (schar s i) (schar ins (+ i off)))
-                        :finally (return i)))))
+    (let ((i (if (>= offset +input-length+)
+                 0
+                 (loop :for i :from 0 :below (length s)
+                       :while (equal (schar s i) (schar +input+ (+ i offset)))
+                       :finally (return i)))))
       (if (= i (length s))
-          (ok (off (length s) input) s)
+          (ok (off (length s) offset) s)
           (fail s input)))))
 
 #+nil
@@ -168,20 +163,19 @@ successful, in order to save on memory."
 #++
 (funcall (string "HellO") (in "Hello yes"))
 
-(declaim (ftype (function (fixnum) (function (input) (values (or cl:string (member :fail)) &optional cons))) take))
+(declaim (ftype (function (fixnum) (function (fixnum) (values (or cl:string (member :fail)) &optional fixnum))) take))
 (defun take (n)
   "Take `n' characters from the input. Lenient, in that if `n' is larger than the
 remaining amount of characters, only the remaining ones will be yielded."
-  (lambda (input)
-    (let ((s (input-str input)))
-      (cond ((< n 0) (error "~a must be a positive number" n))
-            ((zerop n) (ok input +empty-string+))
-            (t (let ((m (min n (- (length s) (input-curr input)))))
-                 (ok (off m input)
-                     (make-array m
-                                 :element-type 'character
-                                 :displaced-to s
-                                 :displaced-index-offset (input-curr input)))))))))
+  (lambda (offset)
+    (cond ((< n 0) (error "~a must be a positive number" n))
+          ((zerop n) (ok offset +empty-string+))
+          (t (let ((m (min n (- +input-length+ offset))))
+               (ok (off m offset)
+                   (make-array m
+                               :element-type 'character
+                               :displaced-to +input+
+                               :displaced-index-offset offset)))))))
 
 #+nil
 (funcall (take -5) (in "Arbor"))
@@ -194,59 +188,55 @@ remaining amount of characters, only the remaining ones will be yielded."
 #+nil
 (funcall (*> (take 3) (take 2)) (in "Arbor"))
 
-(declaim (ftype (function ((function (character) boolean)) (function (input) (values t cons))) consume))
+(declaim (ftype (function ((function (character) boolean)) (function (fixnum) (values t fixnum))) consume))
 (defun consume (p)
   "Skip characters according to a given predicate, advancing the parser to a
 further point. Yields T, not the characters that were parsed. A faster variant
 of `take-while' when you don't actually need the parsed characters, and `skip'
 when you don't need to parse something complex."
-  (lambda (input)
+  (lambda (offset)
     (declare (optimize (speed 3) (safety 0)))
-    (let* ((s    (input-str input))
-           (len  (length s))
-           (keep (loop :for i :from (input-curr input) :below len
-                       :while (funcall p (schar s i))
-                       :finally (return (- i (input-curr input))))))
-      (ok (off keep input) t))))
+    (let ((keep (loop :for i :from offset :below +input-length+
+                      :while (funcall p (schar +input+ i))
+                      :finally (return (- i offset)))))
+      (ok (off keep offset) t))))
 
 #+nil
 (funcall (consume (lambda (c) (eql c #\a))) (in "aaabcd!"))
 
-(declaim (ftype (function ((function (character) boolean)) (function (input) (values cl:string cons))) take-while))
+(declaim (ftype (function ((function (character) boolean)) (function (fixnum) (values cl:string fixnum))) take-while))
 (defun take-while (p)
   "Parser: Take characters while some predicate holds."
-  (lambda (input)
+  (lambda (offset)
     (declare (optimize (speed 3) (safety 0)))
-    (let* ((s    (input-str input))
-           (len  (length s))
-           (keep (loop :for i :from (input-curr input) :below len
-                       :while (funcall p (schar s i))
-                       :finally (return (- i (input-curr input))))))
-      (ok (off keep input)
+    (let ((keep (loop :for i :from offset :below +input-length+
+                      :while (funcall p (schar +input+ i))
+                      :finally (return (- i offset)))))
+      (ok (off keep offset)
           (if (zerop keep)
               +empty-string+
               (make-array keep
                           :element-type 'character
-                          :displaced-to s
-                          :displaced-index-offset (input-curr input)))))))
+                          :displaced-to +input+
+                          :displaced-index-offset offset))))))
 
 #+nil
-(funcall (take-while (lambda (c) (equal #\a c))) (in "bbb"))
+(funcall (take-while (lambda (c) (eql #\a c))) (in "bbb"))
 #+nil
-(funcall (take-while (lambda (c) (equal #\a c))) (in "aaabcd"))
+(funcall (take-while (lambda (c) (eql #\a c))) (in "aaabcd"))
 #+nil
-(funcall (*> (take-while (lambda (c) (equal #\a c)))
+(funcall (*> (take-while (lambda (c) (eql #\a c)))
              (take-while (lambda (c)
-                           (or (equal #\b c)
-                               (equal #\c c)
-                               (equal #\d c)))))
+                           (or (eql #\b c)
+                               (eql #\c c)
+                               (eql #\d c)))))
          (in "aaabcd!"))
 
-(declaim (ftype (function ((function (character) boolean)) (function (input) (values (or cl:string (member :fail)) &optional cons))) take-while1))
+(declaim (ftype (function ((function (character) boolean)) (function (fixnum) (values (or cl:string (member :fail)) &optional fixnum))) take-while1))
 (defun take-while1 (p)
   "Parser: Take characters while some predicate holds. Must succeed at least once."
-  (lambda (input)
-    (multiple-value-bind (res next) (funcall (take-while p) input)
+  (lambda (offset)
+    (multiple-value-bind (res next) (funcall (take-while p) offset)
       (cond ((failure? res) res)
             ((empty? res) (fail "take-while1: at least one success" input))
             (t (values res next))))))
@@ -256,26 +246,26 @@ when you don't need to parse something complex."
 #+nil
 (funcall (take-while1 #'digit?) (in "123!"))
 
-(declaim (ftype (function (input) (values (or character (member :fail)) &optional cons)) newline))
-(defun newline (input)
+(declaim (ftype (function (fixnum) (values (or character (member :fail)) &optional fixnum)) newline))
+(defun newline (offset)
   "Parser: Matches a single newline character."
-  (funcall (char #\newline) input))
+  (funcall (char #\newline) offset))
 
 #+nil
 (newline (in "Hello"))
 
-(declaim (ftype (function (input) (values cl:string cons)) space))
-(defun space (input)
+(declaim (ftype (function (fixnum) (values cl:string fixnum)) space))
+(defun space (offset)
   "Parse 0 or more ASCII whitespace and tab characters."
-  (funcall (take-while (lambda (c) (or (equal c #\space) (equal c #\tab)))) input))
+  (funcall (take-while (lambda (c) (or (eql c #\space) (eql c #\tab)))) offset))
 
 #+nil
 (funcall #'space (in "   hi"))
 
-(declaim (ftype (function (input) (values (or cl:string (member :fail)) &optional cons)) space1))
-(defun space1 (input)
+(declaim (ftype (function (fixnum) (values (or cl:string (member :fail)) &optional fixnum)) space1))
+(defun space1 (offset)
   "Parse 1 or more ASCII whitespace and tab characters."
-  (multiple-value-bind (res next) (funcall #'space input)
+  (multiple-value-bind (res next) (space offset)
     (cond ((failure? res) res)
           ((empty? res) (fail "space1: at least one whitespace" input))
           (t (values res next)))))
@@ -285,23 +275,23 @@ when you don't need to parse something complex."
 #+nil
 (funcall #'space1 (in "   abc"))
 
-(declaim (ftype (function (input) (values cl:string cons)) multispace))
-(defun multispace (input)
+(declaim (ftype (function (fixnum) (values cl:string fixnum)) multispace))
+(defun multispace (offset)
   "Parse 0 or more ASCII whitespace, tabs, newlines, and carriage returns."
   (funcall (take-while (lambda (c)
                          (or (eql c #\space)
                              (eql c #\tab)
                              (eql c #\newline)
                              (eql c #\return))))
-           input))
+           offset))
 
 #+nil
 (funcall #'multispace (in (concatenate 'cl:string '(#\tab #\tab #\tab))))
 
-(declaim (ftype (function (input) (values (or cl:string (member :fail)) &optional cons)) multispace1))
-(defun multispace1 (input)
+(declaim (ftype (function (fixnum) (values (or cl:string (member :fail)) &optional fixnum)) multispace1))
+(defun multispace1 (offset)
   "Parse 1 or more ASCII whitespace, tabs, newlines, and carriage returns."
-  (multiple-value-bind (res next) (funcall #'multispace input)
+  (multiple-value-bind (res next) (multispace offset)
     (cond ((failure? res) res)
           ((empty? res) (fail "multispace1: at least one space-like character" input))
           (t (values res next)))))
@@ -309,11 +299,11 @@ when you don't need to parse something complex."
 #+nil
 (funcall #'multispace1 (in (concatenate 'cl:string '(#\tab #\tab #\tab))))
 
-(declaim (ftype (function (input) (values (or fixnum (member :fail)) &optional cons)) unsigned))
-(defun unsigned (input)
+(declaim (ftype (function (fixnum) (values (or fixnum (member :fail)) &optional fixnum)) unsigned))
+(defun unsigned (offset)
   "Parser: A positive integer."
   (declare (optimize (speed 3) (safety 0)))
-  (multiple-value-bind (res next) (funcall (take-while1 #'digit?) input)
+  (multiple-value-bind (res next) (funcall (take-while1 #'digit?) offset)
     (cond ((failure? res) res)
           ((and (char-equal #\0 (cl:char res 0))
                 (> (length res) 1))
@@ -327,24 +317,24 @@ when you don't need to parse something complex."
 #+nil
 (unsigned (in "123!"))
 
-(declaim (ftype (function (input) (values (or fixnum (member :fail)) &optional cons)) integer))
-(defun integer (input)
+(declaim (ftype (function (fixnum) (values (or fixnum (member :fail)) &optional fixnum)) integer))
+(defun integer (offset)
   "Parser: A positive or negative integer."
   (fmap (lambda (pair) (if (null (car pair)) (cdr pair) (- (cdr pair))))
-        (funcall (pair (opt (char #\-)) #'unsigned) input)))
+        (funcall (pair (opt (char #\-)) #'unsigned) offset)))
 
 #+nil
 (integer (in "123!"))
 #+nil
 (integer (in "-123!"))
 
-(declaim (ftype (function (input) (values (or double-float (member :fail)) &optional cons)) float))
-(defun float (input)
+(declaim (ftype (function (fixnum) (values (or double-float (member :fail)) &optional fixnum)) float))
+(defun float (offset)
   "Parser: A positive or negative floating point number."
   (fmap (lambda (s)
           (let ((*read-default-float-format* 'double-float))
             (cl:float (read-from-string s) 1.0d0)))
-        (funcall (recognize (*> #'integer (opt (*> (char #\.) (take-while1 #'digit?))))) input)))
+        (funcall (recognize (*> #'integer (opt (*> (char #\.) (take-while1 #'digit?))))) offset)))
 
 #+nil
 (funcall #'float (in "-123.0456!"))
@@ -355,15 +345,15 @@ when you don't need to parse something complex."
 #+nil
 (funcall #'float (in "1"))
 
-(declaim (ftype (function (input) (values cl:string cons)) rest))
-(defun rest (input)
+(declaim (ftype (function (fixnum) (values cl:string fixnum)) rest))
+(defun rest (offset)
   "Parser: Consume the rest of the input. Always succeeds."
-  (let ((len (- (length (input-str input)) (input-curr input))))
-    (ok (off len input)
+  (let ((len (- +input-length+ offset)))
+    (ok (off len offset)
         (make-array len
                     :element-type 'character
-                    :displaced-to (input-str input)
-                    :displaced-index-offset (input-curr input)))))
+                    :displaced-to +input+
+                    :displaced-index-offset offset))))
 
 #+nil
 (rest (in "hello"))

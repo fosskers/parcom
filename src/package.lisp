@@ -29,6 +29,13 @@
 
 (in-package :parcom)
 
+;; --- Top-level pointer to the input --- ;;
+
+(defparameter +input+ nil
+  "A global pointer to the current input string.")
+(defparameter +input-length+ 0
+  "The length of the current global input.")
+
 ;; --- Lambda Caches --- ;;
 
 (defparameter +char-cache+ (make-hash-table :test #'eql))
@@ -48,37 +55,28 @@
 
 ;; --- Types --- ;;
 
-(defmacro in (input)
-  "Smart constructor for some parser input."
-  `(cons 0 ,input))
+(declaim (ftype (function (simple-string) fixnum) in))
+(defun in (input)
+  "Set the global input and yield the initial parser offset."
+  (setf +input+ input)
+  (setf +input-length+ (length +input+))
+  0)
 
 #+nil
 (in "hello")
 
-(defmacro input-curr (input)
-  `(car ,input))
-
-(defmacro input-str (input)
-  `(cdr ,input))
-
-(declaim (ftype (function (fixnum input) input) off))
-(defun off (offset input)
+(declaim (ftype (function (fixnum fixnum) fixnum) off))
+(defun off (offset curr)
   "Advance the input by some offset."
-  (declare (optimize (speed 3) (safety 0)))
-  (if (zerop offset)
-      input
-      (cons (+ offset (input-curr input))
-            (input-str input))))
+  (declare (optimize (speed 3)))
+  (+ offset curr))
 
 #+nil
-(off 4 (in "hello there!"))
-
-(deftype input ()
-  'cons)
+(off 4 10)
 
 (deftype maybe-parse ()
   "A parser that might fail."
-  '(function (input) (values (or t (member :fail)) &optional cons)))
+  '(function (fixnum) (values (or t (member :fail)) &optional fixnum)))
 
 (defmacro ok (input value)
   "Some successful parsing!"

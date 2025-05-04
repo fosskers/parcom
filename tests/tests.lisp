@@ -165,13 +165,13 @@
   (multiple-value-bind (res next)
       (funcall (pc:skip (pc:char #\!)) (pc:in "!!!hi"))
     (declare (ignore res))
-    (is = 3 (pc::input-curr next))))
+    (is = 3 next)))
 
 (define-test peek
   :parent combinators
   (multiple-value-bind (res next) (funcall (pc:peek (pc:string "he")) (pc:in "hello"))
-    (is equal "he" res)
-    (is equal "hello" (pc::input-str next))))
+    (declare (ignore next))
+    (is equal "he" res)))
 
 (define-test count
   :parent combinators
@@ -222,7 +222,7 @@
   (is = 0.0 (pj:parse "0"))
   (multiple-value-bind (res next) (pj:scientific (pc:in "1e00,"))
     (declare (ignore res))
-    (is equal #\, (schar (pc::input-str next) (pc::input-curr next))))
+    (is equal #\, (schar pc::+input+ next)))
   (is = 1234567890.0d0 (pj:parse "1234567890"))
   (is = -9876.543210d0 (pj:parse "-9876.543210"))
   (is = 23456789012d66 (pj:parse "23456789012E66"))

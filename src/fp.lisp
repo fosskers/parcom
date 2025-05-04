@@ -24,19 +24,10 @@ parsing itself was successful."
          res
          (values (funcall ,f res) next))))
 
-;; (declaim (ftype (function ((function (t) *) cons) (or cons keyword)) fmap))
-;; (defun fmap (f thing)
-;;   "Apply a pure function to the inner contents of some `thing'."
-;;   (when (ok? thing)
-;;     (setf (parser-value thing) (funcall f (parser-value thing))))
-;;   thing)
-
 #+nil
 (fmap #'char-upcase (any (in "hello")))
 #++
 (fmap #'1+ (ok (in "") 1))
-#++
-(fmap #'1+ (fail "greatness" (in "failure")))
 
 (defun const (x)
   "Yield a function that ignores its input and returns some original seed."
@@ -49,8 +40,8 @@ parsing itself was successful."
 
 (defmacro *> (parser &rest parsers)
   "Combination of parsers yielding the result of the rightmost one."
-  (let ((input (gensym "*>-INPUT")))
-    `(lambda (,input)
+  (let ((offset (gensym "*>-OFFSET")))
+    `(lambda (,offset)
        ,(reduce (lambda (i p)
                   (let ((res  (gensym "*>-RES"))
                         (next (gensym "*>-NEXT")))
@@ -59,7 +50,7 @@ parsing itself was successful."
                            (funcall ,p ,next)
                            ,res))))
                 parsers
-                :initial-value `(funcall ,parser ,input)))))
+                :initial-value `(funcall ,parser ,offset)))))
 
 #++
 (funcall (*> #'any) (in "H"))

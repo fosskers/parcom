@@ -70,3 +70,4 @@
 ;; (12) Avoid `make-input': 1.96b bytes, 2.65s
 ;; (13) Avoid fmap/const in `<*': 1.91b bytes, 2.65s
 ;; (14) `multiple-value-bind': 1.35b bytes, 3.3s
+;; (15) Yield offset directly: 0.92b bytes, 3.0s
