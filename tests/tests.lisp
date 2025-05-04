@@ -215,7 +215,8 @@
 (define-test non-ascii
   :parent json
   (is equal "hēllお🐂" (pj:parse "\"hēllお🐂\""))
-  (is equal "Hi α!" (pj:parse "\"Hi \\u03B1!\"")))
+  (is equal "Hi α!" (pj:parse "\"Hi \\u03B1!\""))
+  (is equal "/ & /" (pj:string (pc:in "\"/ & \\/\""))))
 
 (define-test numbers
   :parent json

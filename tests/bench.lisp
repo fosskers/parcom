@@ -50,11 +50,17 @@
 
 ;; --- HOT SPOT DETECTION --- ;;
 
+;; MEMORY
 #+nil
 (let ((s (uiop:read-file-string "tests/data/large-file.json")))
   (sb-sprof:with-profiling (:max-samples 100000 :sample-interval 0.00001 :report :graph :mode :alloc)
-    (pj:parse s)
-    t))
+    (aref (pj:parse s) 0)))
+
+;; SPEED
+#+nil
+(let ((s (uiop:read-file-string "tests/data/large-file.json")))
+  (sb-sprof:with-profiling (:max-samples 100000 :sample-interval 0.00001 :report :graph)
+    (aref (pj:parse s) 0)))
 
 ;; (1) Base: 6.5b bytes, 3.5s
 ;; (2) Failure cons cell: 6.0b bytes, 3.35s
@@ -72,3 +78,4 @@
 ;; (14) `multiple-value-bind': 1.35b bytes, 3.3s
 ;; (15) Yield offset directly: 0.92b bytes, 3.0s
 ;; (16) Type signatures for JSON: 0.92b bytes, 2.7s
+;; (17) Avoid `many' in JSON strings: 0.69b bytes, 1.05s
