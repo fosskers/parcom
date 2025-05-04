@@ -12,6 +12,9 @@
 
 (in-package :parcom/json)
 
+(defparameter +open-slash+ nil
+  "A marker for detecting backslashes in string parsing.")
+
 (defun parse (input)
   "Attempt to parse any JSON value."
   (multiple-value-bind (res next) (json (p:in input))
@@ -164,29 +167,30 @@
 (declaim (ftype (function (fixnum) (values (or simple-string (member :fail)) &optional fixnum)) string))
 (defun string (offset)
   "Parser: Parse any string."
-  (let ((open-slash nil))
-    (multiple-value-bind (res next)
-        (funcall (p:between (p:char #\")
-                            ;; NOTE: 2025-05-04 This was originally a call to
-                            ;; (many #'compound-char), which is conceptually
-                            ;; much simpler, but it was discovered to allocate
-                            ;; too many intermediate lists. Further, using
-                            ;; `take-while' still allocates displaced arrays
-                            ;; whose lookups as slow during escaping, so I
-                            ;; realized that `consume' allows us to scream
-                            ;; across the source string and retain fast lookups.
-                            (p:consume (lambda (c)
-                                         (cond (open-slash
-                                                (setf open-slash nil)
-                                                t)
-                                               ((eql c #\\) (setf open-slash t))
-                                               ((eql c #\") nil)
-                                               (t t))))
-                            (p:char #\"))
-                 offset)
-      (if (p:failure? res)
-          res
-          (values (escaped p::+input+ (1+ offset) (1- next)) next)))))
+  (setf +open-slash+ nil)
+  (multiple-value-bind (res next)
+      (funcall (p:between (p:char #\")
+                          ;; NOTE: 2025-05-04 This was originally a call to
+                          ;; (many #'compound-char), which is conceptually
+                          ;; much simpler, but it was discovered to allocate
+                          ;; too many intermediate lists. Further, using
+                          ;; `take-while' still allocates displaced arrays
+                          ;; whose lookups as slow during escaping, so I
+                          ;; realized that `consume' allows us to scream
+                          ;; across the source string and retain fast lookups.
+                          (p:consume (lambda (c)
+                                       (cond (+open-slash+
+                                              (setf +open-slash+ nil)
+                                              t)
+                                             ((eql c #\\) (setf +open-slash+ t))
+                                             ((eql c #\") nil)
+                                             (t t)))
+                                     :id :json-string)
+                          (p:char #\"))
+               offset)
+    (if (p:failure? res)
+        res
+        (values (escaped p::+input+ (1+ offset) (1- next)) next))))
 
 #+nil
 (string (p:in "\"hello\""))
@@ -244,7 +248,7 @@
 (declaim (ftype (function (fixnum) (values t fixnum)) skip-space))
 (defun skip-space (offset)
   "A faster variant of `multispace' that just advances over the space chars."
-  (funcall (p:consume #'p:space?) offset))
+  (funcall (p:consume #'p:space? :id :json-skip-space) offset))
 
 #+nil
 (funcall #'skip-space (p:in "   abc"))

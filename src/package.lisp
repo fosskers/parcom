@@ -41,6 +41,7 @@
 (defparameter +char-cache+    (make-hash-table :size 64 :test #'eql))
 (defparameter +any-but-cache+ (make-hash-table :size 32 :test #'eql))
 (defparameter +sneak-cache+   (make-hash-table :size 32 :test #'eql))
+(defparameter +consume-cache+ (make-hash-table :size 16 :test #'eq))
 
 ;; --- Conditions --- ;;
 

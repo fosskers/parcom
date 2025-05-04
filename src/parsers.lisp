@@ -188,18 +188,22 @@ remaining amount of characters, only the remaining ones will be yielded."
 #+nil
 (funcall (*> (take 3) (take 2)) (in "Arbor"))
 
-(declaim (ftype (function ((function (character) boolean)) (function (fixnum) (values t fixnum))) consume))
-(defun consume (p)
+(declaim (ftype (function ((function (character) boolean) &key (:id (or keyword null))) (function (fixnum) (values t fixnum))) consume))
+(defun consume (p &key (id nil))
   "Skip characters according to a given predicate, advancing the parser to a
 further point. Yields T, not the characters that were parsed. A faster variant
 of `take-while' when you don't actually need the parsed characters, and `skip'
 when you don't need to parse something complex."
-  (lambda (offset)
-    (declare (optimize (speed 3) (safety 0)))
-    (let ((keep (loop :for i :from offset :below +input-length+
-                      :while (funcall p (schar +input+ i))
-                      :finally (return (- i offset)))))
-      (ok (off keep offset) t))))
+  (or (gethash id +consume-cache+)
+      (let ((f (lambda (offset)
+                 (declare (optimize (speed 3) (safety 0)))
+                 (let ((keep (loop :for i :from offset :below +input-length+
+                                   :while (funcall p (schar +input+ i))
+                                   :finally (return (- i offset)))))
+                   (ok (off keep offset) t)))))
+        (when id
+          (setf (gethash id +consume-cache+) f))
+        f)))
 
 #+nil
 (funcall (consume (lambda (c) (eql c #\a))) (in "aaabcd!"))
