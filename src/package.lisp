@@ -38,9 +38,9 @@
 
 ;; --- Lambda Caches --- ;;
 
-(defparameter +char-cache+ (make-hash-table :test #'eql))
-(defparameter +any-but-cache+ (make-hash-table :test #'eql))
-(defparameter +sneak-cache+ (make-hash-table :test #'eql))
+(defparameter +char-cache+    (make-hash-table :size 64 :test #'eql))
+(defparameter +any-but-cache+ (make-hash-table :size 32 :test #'eql))
+(defparameter +sneak-cache+   (make-hash-table :size 32 :test #'eql))
 
 ;; --- Conditions --- ;;
 
