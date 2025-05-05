@@ -210,7 +210,7 @@
 #+nil
 (string (p:in "\"Hi \\u03B1\""))
 
-(declaim (ftype (function (fixnum) (values (or t nil (member :fail)) &optional fixnum)) boolean))
+(declaim (ftype (function (fixnum) (values (or t cl:null (member :fail)) &optional fixnum)) boolean))
 (defun boolean (offset)
   "Parser: Parse `true' as T and `false' as NIL."
   (funcall (p:alt (<$ t (p:string "true"))
