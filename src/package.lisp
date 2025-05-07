@@ -57,7 +57,14 @@
 
 ;; --- Types --- ;;
 
-(declaim (ftype (function (simple-string) fixnum) in))
+(deftype maybe-parse ()
+  "A parser that might fail."
+  '(function (fixnum) (values (or t (member :fail)) fixnum)))
+
+(deftype char-string ()
+  '(simple-array character (*)))
+
+(declaim (ftype (function (char-string) fixnum) in))
 (defun in (input)
   "Set the global input and yield the initial parser offset."
   (setf +input+ input)
@@ -75,10 +82,6 @@
 
 #+nil
 (off 4 10)
-
-(deftype maybe-parse ()
-  "A parser that might fail."
-  '(function (fixnum) (values (or t (member :fail)) fixnum)))
 
 (defmacro ok (offset value)
   "Parsing was successful."

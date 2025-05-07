@@ -134,7 +134,7 @@
 #++
 (funcall (*> (char #\H) (char #\e)) (in "Hello"))
 
-(declaim (ftype (function (simple-string) (function (fixnum) (values (or simple-string (member :fail)) fixnum))) string))
+(declaim (ftype (function (char-string) (function (fixnum) (values (or char-string (member :fail)) fixnum))) string))
 (defun string (s)
   "Parser: Parse a given string. Yields the original string itself if parsing was
 successful, in order to save on memory."

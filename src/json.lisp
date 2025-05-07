@@ -91,7 +91,7 @@
 #+nil
 (p:parse #'collection "[{}, { \"x\": 1 , \"y\" 2 }]")
 
-(declaim (ftype (function (fixnum) (values (or simple-string double-float t (member :fail)) fixnum)) primitive))
+(declaim (ftype (function (fixnum) (values (or p::char-string double-float t (member :fail)) fixnum)) primitive))
 (defun primitive (offset)
   "Parser: Parse a string, number, or boolean."
   (funcall (p:alt #'string #'scientific #'boolean #'null) offset))
@@ -131,7 +131,7 @@
     (#\b #\backspace)
     (#\f #\page)))
 
-(declaim (ftype (function (simple-string fixnum fixnum) simple-string) escaped))
+(declaim (ftype (function (p::char-string fixnum fixnum) p::char-string) escaped))
 (defun escaped (s from to)
   "Escape a string."
   (declare (optimize (speed 3) (safety 0)))
@@ -168,7 +168,7 @@
             :do (setf (aref final k) (schar work k)))
       final)))
 
-(declaim (ftype (function (fixnum) (values (or simple-string (member :fail)) fixnum)) string))
+(declaim (ftype (function (fixnum) (values (or p::char-string (member :fail)) fixnum)) string))
 (defun string (offset)
   "Parser: Parse any string."
   (setf +open-slash+ nil)

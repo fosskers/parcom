@@ -113,7 +113,7 @@ SBCL:
 | jsown       |       150 | 135m           |
 | jzon        |       300 | 132m           |
 | shasht      |       600 | 400m           |
-| parcom/json |       870 | 260m           |
+| parcom/json |       840 | 260m           |
 | yason       |      1700 | 400m           |
 
 ECL:
@@ -130,8 +130,8 @@ ABCL:
 
 | Method      | Time (s) | Memory (cons cells) |
 |-------------+----------+---------------------|
+| parcom/json |      7.8 | 2m                  |
 | jsown       |      8.0 | 25m                 |
-| parcom/json |      8.1 | 2m                  |
 | jzon        |     12.0 | 864k                |
 | shasht      |     91.9 | 110m                |
 | yason       |    328.7 | 366m                |
