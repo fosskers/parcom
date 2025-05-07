@@ -96,31 +96,6 @@
   "Parser: Parse a string, number, or boolean."
   (funcall (p:alt #'string #'scientific #'boolean #'null) offset))
 
-(declaim (ftype (function (fixnum) (values (or character (member :fail)) fixnum)) compound-char))
-(defun compound-char (offset)
-  "Parser: Parse a char while being wary of escaping."
-  (funcall (p:alt #'escaped-char (p:any-but #\")) offset))
-
-(declaim (ftype (function (fixnum) (values (or character (member :fail)) fixnum)) escaped-char))
-(defun escaped-char (offset)
-  (funcall (*> (p:sneak #\\)
-               (p:alt #'special-char #'p:control-char #'p:unicode))
-           offset))
-
-(declaim (ftype (function (fixnum) (values (or character (member :fail)) fixnum)) special-char))
-(defun special-char (offset)
-  "Parser: Backslashes and quotes."
-  (funcall (*> (p:char #\\)
-               (p:alt (p:char #\\) (p:char #\") (p:char #\')))
-           offset))
-
-#+nil
-(special-char "\\\\")
-#+nil
-(special-char "\\\"")
-#+nil
-(special-char "\\'")
-
 (declaim (ftype (function (character) (or character cl:null)) escaped-variant))
 (defun escaped-variant (c)
   "Quick one-to-one mappings of known escape characters."
