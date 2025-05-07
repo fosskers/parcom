@@ -134,15 +134,16 @@ is the current parsing offset. The new =value= and =offset= must be yielded via
 #+RESULTS:
 : "Hello", 5
 
-Of course, a parser might fail, in which case a failure message is returned:
+Of course, a parser might fail, in which case a failure message and the offset
+are returned:
 
-#+begin_src lisp :exports both
+#+begin_src lisp :exports both :results verbatim
 (in-package :parcom)
 (funcall (string "Hello") (in "Bye!"))
 #+end_src
 
 #+RESULTS:
-: :FAIL
+: :FAIL, 0
 
 In general though, we call =parse= to fully run some combined parsers and yield
 the final output:
@@ -212,13 +213,13 @@ Parse any character except the one you don't want.
 #+RESULTS:
 : #\H
 
-#+begin_src lisp :exports both
+#+begin_src lisp :exports both :results verbatim
 (in-package :parcom)
 (funcall (any-but #\H) (in "Hello there!"))
 #+end_src
 
 #+RESULTS:
-: :FAIL
+: :FAIL, 1
 **** any-if
 
 Any character that passes the predicate.
@@ -276,13 +277,13 @@ Recognize the end of the input.
 #+RESULTS:
 : T
 
-#+begin_src lisp :exports both
+#+begin_src lisp :exports both :results verbatim
 (in-package :parcom)
 (funcall (*> (string "Mālum") #'eof) (in "Mālum rubrum"))
 #+end_src
 
 #+RESULTS:
-: :FAIL
+: :FAIL, 5
 
 *** Numbers
 **** unsigned
@@ -357,13 +358,13 @@ Parse 1 or more ASCII whitespace and tab characters.
 #+RESULTS:
 : 3
 
-#+begin_src lisp :exports both
+#+begin_src lisp :exports both :results verbatim
 (in-package :parcom)
 (funcall #'space1 (in "Salvē!"))
 #+end_src
 
 #+RESULTS:
-: :FAIL
+: :FAIL, 0
 
 **** multispace, multispace1
 
@@ -387,13 +388,13 @@ Parse 1 or more ASCII whitespace, tabs, newlines, and carriage returns.
 #+RESULTS:
 : 3
 
-#+begin_src lisp :exports both
+#+begin_src lisp :exports both :results verbatim
 (in-package :parcom)
 (funcall #'multispace1 (in "Ārcus"))
 #+end_src
 
 #+RESULTS:
-: :FAIL
+: :FAIL, 0
 
 *** Taking in Bulk
 
@@ -435,13 +436,13 @@ Take characters while some predicate holds.
 
 =take-while1= is like =take-while=, but must yield at least one character.
 
-#+begin_src lisp :exports both
+#+begin_src lisp :exports both :results verbatim
 (in-package :parcom)
 (funcall (take-while1 (lambda (c) (equal #\a c))) (in "bbb"))
 #+end_src
 
 #+RESULTS:
-: :FAIL
+: :FAIL, 0
 
 **** consume
 
@@ -620,7 +621,7 @@ on the end:
 #+end_src
 
 #+RESULTS:
-: :FAIL
+: :FAIL, 18
 
 For more lenient behaviour regarding the separator, see =sep-end=.
 
@@ -965,11 +966,11 @@ explicitly test for sub-parser failure, and then react accordingly. Yielding
     (if (or (failure? res)
             (< (length res) 3)
             (> (length res) 3))
-        :fail
+        (fail next)
         (values res next))))
 
 (three-sad-pears (in "Pirum trīste"))
 #+end_src
 
 #+RESULTS:
-: :FAIL
+: :FAIL, 12
