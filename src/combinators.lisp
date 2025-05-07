@@ -197,7 +197,7 @@ input of the subparser."
 #+nil
 (funcall (peek (string "he")) (in "hello"))
 
-(declaim (ftype (function (character) (function (fixnum) (values (or character (member :fail)) &optional fixnum))) sneak))
+(declaim (ftype (function (character) (function (fixnum) (values (or character (member :fail)) fixnum))) sneak))
 (defun sneak (c)
   "Combinator: Like `peek' but specialized for characters and thus more performant."
   (or (gethash c +sneak-cache+)
@@ -232,7 +232,7 @@ input of the subparser."
 #+nil
 (funcall (count 0 (char #\a)) (in "aa"))
 
-(declaim (ftype (function (maybe-parse) (function (fixnum) (values (or cl:string (member :fail)) &optional fixnum))) recognize))
+(declaim (ftype (function (maybe-parse) (function (fixnum) (values (or cl:string (member :fail)) fixnum))) recognize))
 (defun recognize (parser)
   "If the given `parser' was successful, return the consumed input instead."
   (lambda (offset)

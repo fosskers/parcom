@@ -4,7 +4,7 @@
 
 (defparameter +empty-string+ "")
 
-(declaim (ftype (function (fixnum) (values (or character (member :fail)) &optional fixnum)) any))
+(declaim (ftype (function (fixnum) (values (or character (member :fail)) fixnum)) any))
 (defun any (offset)
   "Accept any character."
   (declare (optimize (speed 3) (safety 0)))

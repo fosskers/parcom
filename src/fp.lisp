@@ -76,7 +76,7 @@ parsing itself was successful."
                              (if (ok? res)
                                  (values ,res0 next)
                                  (fail next)))
-                           ,res0))))
+                           (fail ,next)))))
                 parsers
                 :initial-value `(funcall ,parser ,offset)))))
 
