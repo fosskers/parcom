@@ -148,18 +148,21 @@
 #+nil
 (escaped "hello there" 1 3)
 
-(declaim (ftype (function (p::char-string fixnum fixnum) p::char-string) naive-copy))
-(defun naive-copy (s from to)
+(declaim (ftype (function (p::char-string fixnum fixnum) p::char-string) direct-copy))
+(defun direct-copy (s from to)
   "We know no escaping needs to occur, so we can just copy the characters over as-is."
   (declare (optimize (speed 3) (safety 0)))
   (let* ((len  (- to from))
          (work (make-array len :element-type 'character)))
-    (loop :for i :from 0 :below len
-          :do (setf (schar work i) (schar s (+ i from))))
-    work))
+    #+abcl
+    (progn (loop :for i :from 0 :below len
+                 :do (setf (schar work i) (schar s (+ i from))))
+           work)
+    #-abcl
+    (replace work s :start2 from :end2 to)))
 
 #+nil
-(naive-copy "hello there" 1 3)
+(direct-copy "hello there" 1 3)
 
 (declaim (ftype (function (fixnum) (values (or p::char-string (member :fail)) fixnum)) string))
 (defun string (offset)
@@ -190,7 +193,7 @@
                           :id :json-string)
                offset)
     (cond ((p:failure? res) (p:fail next))
-          ((not +slash-seen+) (values (naive-copy p::+input+ (1+ offset) (1- next)) next))
+          ((not +slash-seen+) (values (direct-copy p::+input+ (1+ offset) (1- next)) next))
           (t (values (escaped p::+input+ (1+ offset) (1- next)) next)))))
 
 #+nil
