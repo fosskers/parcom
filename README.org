@@ -85,7 +85,7 @@ reallocated.
 |-----------+--------|
 | SBCL      | ✅    |
 | ECL       | ✅    |
-| Clasp     | ❓    |
+| Clasp     | ✅    |
 | ABCL      | ✅    |
 | CCL       | ✅    |
 | Clisp     | ✅    |

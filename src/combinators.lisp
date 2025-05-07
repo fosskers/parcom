@@ -51,8 +51,8 @@ kept. Good for parsing backets, parentheses, etc."
   "Parse 1 or more occurrences of a `parser'."
   (lambda (offset)
     (multiple-value-bind (res next) (funcall (many parser) offset)
-      (cond ((failure? res) res)
-            ((null res) (fail "many1: at least one success" offset))
+      (cond ((failure? res) (fail next))
+            ((null res) (fail offset))
             (t (values res next))))))
 
 #+nil
@@ -70,7 +70,7 @@ kept. Good for parsing backets, parentheses, etc."
                                   (ok in acc)
                                   (multiple-value-bind (res next) (funcall parser sep-next)
                                     (if (failure? res)
-                                        res
+                                        (fail next)
                                         (recurse (cons res acc) next)))))))
                    (multiple-value-bind (res next) (funcall parser offset)
                      (if (failure? res)
@@ -93,8 +93,8 @@ kept. Good for parsing backets, parentheses, etc."
   "Parse 1 or more instances of a `parser' separated by some `sep' parser."
   (lambda (offset)
     (multiple-value-bind (res next) (funcall (sep sep parser) offset)
-      (cond ((failure? res) res)
-            ((null res) (fail "sep1: at least one success" offset))
+      (cond ((failure? res) (fail next))
+            ((null res) (fail offset))
             (t (values res next))))))
 
 #+nil
@@ -136,8 +136,8 @@ the separator eagerly, such that a final instance of it will also be parsed,
 even if not followed by an instance of the main parser."
   (lambda (offset)
     (multiple-value-bind (res next) (funcall (sep-end sep parser) offset)
-      (cond ((failure? res) res)
-            ((null res) (fail "sep-end1: at least one success" offset))
+      (cond ((failure? res) (fail next))
+            ((null res) (fail offset))
             (t (values res next))))))
 
 #+nil
@@ -190,9 +190,8 @@ input of the subparser."
   "Yield the value of a parser, but don't consume the input."
   (lambda (offset)
     (multiple-value-bind (res next) (funcall parser offset)
-      (declare (ignore next))
       (if (failure? res)
-          res
+          (fail next)
           (ok offset res)))))
 
 #+nil
@@ -204,9 +203,8 @@ input of the subparser."
   (or (gethash c +sneak-cache+)
       (let ((f (lambda (offset)
                  (multiple-value-bind (res next) (funcall (char c) offset)
-                   (declare (ignore next))
                    (if (failure? res)
-                       :fail
+                       (fail next)
                        (ok offset res))))))
         (setf (gethash c +sneak-cache+) f)
         f)))
@@ -223,7 +221,7 @@ input of the subparser."
                    (ok i (nreverse acc))
                    (multiple-value-bind (res next) (funcall parser i)
                      (if (failure? res)
-                         res
+                         (fail next)
                          (recurse (cons res acc) (1- m) next))))))
       (recurse '() n offset))))
 
@@ -240,7 +238,7 @@ input of the subparser."
   (lambda (offset)
     (multiple-value-bind (res next) (funcall parser offset)
       (if (failure? res)
-          res
+          (fail next)
           (ok next
               (make-array (- next offset)
                           :element-type 'character

@@ -21,7 +21,7 @@
 parsing itself was successful."
   `(multiple-value-bind (res next) ,thing
      (if (failure? res)
-         res
+         (fail next)
          (values (funcall ,f res) next))))
 
 #+nil
@@ -48,7 +48,7 @@ parsing itself was successful."
                     `(multiple-value-bind (,res ,next) ,i
                        (if (ok? ,res)
                            (funcall ,p ,next)
-                           ,res))))
+                           (fail ,next)))))
                 parsers
                 :initial-value `(funcall ,parser ,offset)))))
 
@@ -65,8 +65,8 @@ parsing itself was successful."
 
 (defmacro <* (parser &rest parsers)
   "Combination of parsers yielding the result of the leftmost one."
-  (let ((input (gensym "<*-INPUT")))
-    `(lambda (,input)
+  (let ((offset (gensym "<*-OFFSET")))
+    `(lambda (,offset)
        ,(reduce (lambda (i p)
                   (let ((res0 (gensym "<*-RES"))
                         (next (gensym "<*-NEXT")))
@@ -75,10 +75,10 @@ parsing itself was successful."
                            (multiple-value-bind (res next) (funcall ,p ,next)
                              (if (ok? res)
                                  (values ,res0 next)
-                                 res))
+                                 (fail next)))
                            ,res0))))
                 parsers
-                :initial-value `(funcall ,parser ,input)))))
+                :initial-value `(funcall ,parser ,offset)))))
 
 #++
 (funcall (<* #'any) (in "H"))
@@ -95,8 +95,8 @@ parsing itself was successful."
 
 (defmacro <*> (parser &rest parsers)
   "Combination of parsers yielding all results as a list."
-  (let ((input (gensym "<*>-INPUT")))
-    `(lambda (,input)
+  (let ((offset (gensym "<*>-OFFSET")))
+    `(lambda (,offset)
        ,(labels ((recurse (ps i)
                    (if (null ps)
                        `(ok ,i nil)
@@ -104,10 +104,10 @@ parsing itself was successful."
                              (next (gensym "<*>-NEXT")))
                          `(multiple-value-bind (,res ,next) (funcall ,(car ps) ,i)
                             (if (failure? ,res)
-                                ,res
+                                (fail ,next)
                                 (fmap (lambda (xs) (cons ,res xs))
                                       ,(recurse (cdr ps) `,next))))))))
-          (recurse (cons parser parsers) input)))))
+          (recurse (cons parser parsers) offset)))))
 
 #+nil
 (funcall (<*> (string "hi")) (in "hihohum!"))
@@ -126,7 +126,7 @@ parsing itself was successful."
 (defun <$ (item parser)
   "Run some parser, but substitute its inner value with some `item' if parsing was
   successful."
-  (lambda (input) (fmap (const item) (funcall parser input))))
+  (lambda (offset) (fmap (const item) (funcall parser offset))))
 
 #++
 (funcall (<$ 1 #'any) (in "Ho"))
@@ -138,14 +138,14 @@ parsing itself was successful."
 
 (defmacro alt (parser &rest parsers)
   "Accept the results of the first parser from a group to succeed."
-  (let ((input (gensym "ALT-INPUT")))
-    `(lambda (,input)
+  (let ((offset (gensym "ALT-OFFSET")))
+    `(lambda (,offset)
        ,(labels ((recurse (ps)
                    (if (null ps)
-                       `(fail "alt: something to succeed" ,input)
+                       `(fail ,offset)
                        (let ((res  (gensym "ALT-RES"))
                              (next (gensym "ALT-NEXT")))
-                         `(multiple-value-bind (,res ,next) (funcall ,(car ps) ,input)
+                         `(multiple-value-bind (,res ,next) (funcall ,(car ps) ,offset)
                             (if (ok? ,res)
                                 (values ,res ,next)
                                 ,(recurse (cdr ps))))))))
@@ -157,3 +157,5 @@ parsing itself was successful."
 (funcall (alt (char #\H) (char #\h)) (in "hello"))
 #++
 (funcall (alt (char #\H) (char #\h)) (in "ello"))
+#++
+(funcall (*> (char #\e) (alt (char #\M) (char #\m))) (in "ello"))

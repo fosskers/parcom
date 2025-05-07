@@ -48,13 +48,13 @@
 ;; --- Conditions --- ;;
 
 (define-condition parse-failure (error)
-  ((expected :initarg :expected :reader parse-failure-expected)
-   (actual   :initarg :actual   :reader parse-failure-actual))
+  ((offset  :initarg :offset  :reader parse-failure-offset)
+   (context :initarg :context :reader parse-failure-context))
   (:documentation "Some parsing failed, so we render why.")
   (:report (lambda (c stream)
-             (format stream "Expected:~%  ~a~%Actual:~%  ~a~%"
-                     (parse-failure-expected c)
-                     (parse-failure-actual c)))))
+             (format stream "Parsing failed at location ~a~%Context:~%  ~a"
+                     (parse-failure-offset c)
+                     (parse-failure-context c)))))
 
 ;; --- Types --- ;;
 
@@ -79,11 +79,11 @@
 
 (deftype maybe-parse ()
   "A parser that might fail."
-  '(function (fixnum) (values (or t (member :fail)) &optional fixnum)))
+  '(function (fixnum) (values (or t (member :fail)) fixnum)))
 
-(defmacro ok (input value)
-  "Some successful parsing!"
-  `(values ,value ,input))
+(defmacro ok (offset value)
+  "Parsing was successful."
+  `(values ,value ,offset))
 
 (defmacro ok? (x)
   "Did parsing succeed?"
@@ -93,40 +93,38 @@
   "Deprecated: Use `ok?'"
   `(ok? ,x))
 
-(defmacro fail (loc act)
-  "It's assumed that you pass back the entire remaining input as the 'actual' value.
-Error reporting code will check the length of this and truncate it if necessary."
-  (declare (ignore loc act))
-  :fail)
+(defmacro fail (offset)
+  "Fail a parse while recording while recording how far it got."
+  `(values :fail ,offset))
 
 #+nil
-(fail 1 2)
+(fail 1)
 
 (defmacro failure? (x)
+  "Did parsing fail?"
   `(eq :fail ,x))
 
 (defun parse (parser input)
   "Run a parser and attempt to extract its final value."
   (multiple-value-bind (res next) (funcall parser (in input))
-    (declare (ignore next))
     (if (ok? res)
         res
-        (error "Oh no!")
-        #+nil
-        (let ((diff (- (length (input-str inp)) (input-curr inp))))
-          #+nil
+        (let ((diff (- +input-length+ next)))
           (error 'parse-failure
-                 :expected (failure-expected res)
-                 :actual (if (< diff 16)
-                             (make-array diff
-                                         :element-type 'character
-                                         :displaced-to (input-str inp)
-                                         :displaced-index-offset (input-curr inp))
-                             (format nil "~a ... (truncated)"
-                                     (make-array 16
-                                                 :element-type 'character
-                                                 :displaced-to (input-str rem)
-                                                 :displaced-index-offset (input-curr rem)))))))))
+                 :offset next
+                 :context (if (< diff 16)
+                              (make-array diff
+                                          :element-type 'character
+                                          :displaced-to +input+
+                                          :displaced-index-offset next)
+                              (format nil "~a ... (truncated)"
+                                      (make-array 16
+                                                  :element-type 'character
+                                                  :displaced-to +input+
+                                                  :displaced-index-offset next))))))))
+
+#+nil
+(parse (*> (char #\a) (char #\b)) "acb")
 
 ;; --- Utilities --- ;;
 

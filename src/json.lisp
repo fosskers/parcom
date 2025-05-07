@@ -17,22 +17,16 @@
 
 (defun parse (input)
   "Attempt to parse any JSON value."
-  (multiple-value-bind (res next) (json (p:in input))
-    (declare (ignore next))
-    (if (p:ok? res)
-        res
-        (error "Oh no!")
-        #+nil
-        (error "Parsing json failed. Expected: ~a, but got: ~a"
-               (p:failure-expected res)
-               (p:failure-actual res)))))
+  (p:parse #'json input))
 
 #+nil
 (parse "{\"x\": 1, \"y\": 2, \"z\": [1, {\"a\":true}]}")
 #+nil
+(parse "{\"x\": 1, \"y\": 2, \"z\": [1, {\"a\" true}]}")
+#+nil
 (json (p:in "{\"x\": 1, \"y\": 2, \"z\": [1, {\"a\":true}]}"))
 
-(declaim (ftype (function (fixnum) (values (or t (member :fail)) &optional fixnum)) json))
+(declaim (ftype (function (fixnum) (values (or t (member :fail)) fixnum)) json))
 (defun json (offset)
   "Parser: Parse any JSON value."
   (funcall (p:alt #'collection #'primitive) offset))
@@ -43,12 +37,12 @@
 #+nil
 (json (p:in "[1,true,3,\"hi\",[4]]"))
 
-(declaim (ftype (function (fixnum) (values (or vector hash-table (member :fail)) &optional fixnum)) collection))
+(declaim (ftype (function (fixnum) (values (or vector hash-table (member :fail)) fixnum)) collection))
 (defun collection (offset)
   "Parser: Parse either an Object or an Array."
   (funcall (p:alt #'object #'array) offset))
 
-(declaim (ftype (function (fixnum) (values (or vector (member :fail)) &optional fixnum)) array))
+(declaim (ftype (function (fixnum) (values (or vector (member :fail)) fixnum)) array))
 (defun array (offset)
   "Parser: Parse a JSON Array as a Lisp vector."
   (p:fmap (lambda (list) (coerce list 'vector))
@@ -66,8 +60,10 @@
 (array (p:in "[ 1,true,3,\"hi\",[4] ]"))
 #+nil
 (array (p:in "[ 1 , 2 ]"))
+#+nil
+(p:parse #'array "[1 2]")
 
-(declaim (ftype (function (fixnum) (values (or hash-table (member :fail)) &optional fixnum)) object))
+(declaim (ftype (function (fixnum) (values (or hash-table (member :fail)) fixnum)) object))
 (defun object (offset)
   "Parser: Parse a JSON Object as a Hash Table."
   (p:fmap (lambda (pairs)
@@ -90,24 +86,28 @@
 (object (p:in "{\"x\": 1, \"y\": 2}"))
 #+nil
 (object (p:in "{ \"x\" : 1 , \"y\":2 } "))
+#+nil
+(p:parse #'object "{ \"x\" 1 , \"y\":2 } ")
+#+nil
+(p:parse #'collection "[{ \"x\": 1 , \"y\" 2 }]")
 
-(declaim (ftype (function (fixnum) (values (or simple-string double-float t (member :fail)) &optional fixnum)) primitive))
+(declaim (ftype (function (fixnum) (values (or simple-string double-float t (member :fail)) fixnum)) primitive))
 (defun primitive (offset)
   "Parser: Parse a string, number, or boolean."
   (funcall (p:alt #'string #'scientific #'boolean #'null) offset))
 
-(declaim (ftype (function (fixnum) (values (or character (member :fail)) &optional fixnum)) compound-char))
+(declaim (ftype (function (fixnum) (values (or character (member :fail)) fixnum)) compound-char))
 (defun compound-char (offset)
   "Parser: Parse a char while being wary of escaping."
   (funcall (p:alt #'escaped-char (p:any-but #\")) offset))
 
-(declaim (ftype (function (fixnum) (values (or character (member :fail)) &optional fixnum)) escaped-char))
+(declaim (ftype (function (fixnum) (values (or character (member :fail)) fixnum)) escaped-char))
 (defun escaped-char (offset)
   (funcall (*> (p:sneak #\\)
                (p:alt #'special-char #'p:control-char #'p:unicode))
            offset))
 
-(declaim (ftype (function (fixnum) (values (or character (member :fail)) &optional fixnum)) special-char))
+(declaim (ftype (function (fixnum) (values (or character (member :fail)) fixnum)) special-char))
 (defun special-char (offset)
   "Parser: Backslashes and quotes."
   (funcall (*> (p:char #\\)
@@ -168,7 +168,7 @@
             :do (setf (aref final k) (schar work k)))
       final)))
 
-(declaim (ftype (function (fixnum) (values (or simple-string (member :fail)) &optional fixnum)) string))
+(declaim (ftype (function (fixnum) (values (or simple-string (member :fail)) fixnum)) string))
 (defun string (offset)
   "Parser: Parse any string."
   (setf +open-slash+ nil)
@@ -194,7 +194,7 @@
                           :id :json-string)
                offset)
     (if (p:failure? res)
-        res
+        (p:fail next)
         (values (escaped p::+input+ (1+ offset) (1- next)) next))))
 
 #+nil
@@ -210,7 +210,7 @@
 #+nil
 (string (p:in "\"Hi \\u03B1\""))
 
-(declaim (ftype (function (fixnum) (values (or t cl:null (member :fail)) &optional fixnum)) boolean))
+(declaim (ftype (function (fixnum) (values (or t cl:null (member :fail)) fixnum)) boolean))
 (defun boolean (offset)
   "Parser: Parse `true' as T and `false' as NIL."
   (funcall (p:alt (<$ t (p:string "true"))
@@ -220,7 +220,7 @@
 #+nil
 (boolean "true")
 
-(declaim (ftype (function (fixnum) (values (or double-float (member :fail)) &optional fixnum)) scientific))
+(declaim (ftype (function (fixnum) (values (or double-float (member :fail)) fixnum)) scientific))
 (defun scientific (offset)
   "Parser: Parse a JSON number in scientific notation."
   (p:fmap (lambda (s)
@@ -239,7 +239,7 @@
 (let ((*read-default-float-format* 'double-float))
   (read-from-string "1.23e4"))
 
-(declaim (ftype (function (fixnum) (values (member :null :fail) &optional fixnum)) null))
+(declaim (ftype (function (fixnum) (values (member :null :fail) fixnum)) null))
 (defun null (offset)
   "Parser: Parse `null' as :null."
   (funcall (<$ :null (p:string "null")) offset))
