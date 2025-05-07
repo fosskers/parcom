@@ -2,10 +2,9 @@
   (:use :cl)
   (:shadow #:char #:string #:integer #:float #:count #:rest #:space)
   ;; --- Types --- ;;
-  (:export #:parser? #:parser-input #:parser-value
-           #:failure #:failure? #:failure-expected #:failure-actual
-           #:input #:in
-           #:ok #:ok? #:fail #:parse
+  (:export #:parse #:in
+           #:failure? #:fail
+           #:ok #:ok?
            #:empty?
            #:digit? #:hex? #:octal? #:binary?
            #:ascii-letter? #:space?)
@@ -14,7 +13,7 @@
            #:all #:right #:left #:instead
            #:*> #:<* #:<*> #:<$ #:alt)
   ;; --- Parsers --- ;;
-  (:export #:any #:any-but #:anybut #:any-if #:hex #:unicode #:control-char #:eof
+  (:export #:any #:any-but #:any-if #:hex #:unicode #:control-char #:eof
            #:char #:string
            #:unsigned #:integer #:float
            #:newline #:space #:space1 #:multispace #:multispace1
@@ -88,10 +87,6 @@
 (defmacro ok? (x)
   "Did parsing succeed?"
   `(not (failure? ,x)))
-
-(defmacro parser? (x)
-  "Deprecated: Use `ok?'"
-  `(ok? ,x))
 
 (defmacro fail (offset)
   "Fail a parse while recording while recording how far it got."

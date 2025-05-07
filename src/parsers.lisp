@@ -17,11 +17,6 @@
 #++
 (any (in ""))
 
-(defmacro anybut (char)
-  "Deprecated: Use `any-but'."
-  (warn "`anybut' is deprecated; use `any-but' instead.")
-  `(any-but ,char))
-
 (declaim (ftype (function (character) (function (fixnum) (values (or character (member :fail)) fixnum))) any-but))
 (defun any-but (c)
   "Parser: Any character except the given one."

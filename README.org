@@ -29,6 +29,7 @@ reallocated.
       - [[#string][string]]
       - [[#any][any]]
       - [[#any-but][any-but]]
+      - [[#any-if][any-if]]
       - [[#hex][hex]]
       - [[#sneak][sneak]]
       - [[#eof][eof]]
@@ -218,6 +219,17 @@ Parse any character except the one you don't want.
 
 #+RESULTS:
 : :FAIL
+**** any-if
+
+Any character that passes the predicate.
+
+#+begin_src lisp :exports both
+(in-package :parcom)
+(parse (any-if #'digit?) "8a")
+#+end_src
+
+#+RESULTS:
+: #\8
 
 **** hex
 
