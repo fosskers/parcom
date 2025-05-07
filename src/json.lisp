@@ -89,7 +89,7 @@
 #+nil
 (p:parse #'object "{ \"x\" 1 , \"y\":2 } ")
 #+nil
-(p:parse #'collection "[{ \"x\": 1 , \"y\" 2 }]")
+(p:parse #'collection "[{}, { \"x\": 1 , \"y\" 2 }]")
 
 (declaim (ftype (function (fixnum) (values (or simple-string double-float t (member :fail)) fixnum)) primitive))
 (defun primitive (offset)

@@ -140,16 +140,16 @@ parsing itself was successful."
   "Accept the results of the first parser from a group to succeed."
   (let ((offset (gensym "ALT-OFFSET")))
     `(lambda (,offset)
-       ,(labels ((recurse (ps)
+       ,(labels ((recurse (ps furthest)
                    (if (null ps)
-                       `(fail ,offset)
+                       `(fail ,furthest)
                        (let ((res  (gensym "ALT-RES"))
                              (next (gensym "ALT-NEXT")))
                          `(multiple-value-bind (,res ,next) (funcall ,(car ps) ,offset)
                             (if (ok? ,res)
                                 (values ,res ,next)
-                                ,(recurse (cdr ps))))))))
-          (recurse (cons parser parsers))))))
+                                ,(recurse (cdr ps) `(max ,next ,furthest))))))))
+          (recurse (cons parser parsers) offset)))))
 
 #++
 (funcall (alt (char #\H) (char #\h)) (in "Hello"))
