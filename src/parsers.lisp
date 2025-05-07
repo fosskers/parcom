@@ -23,8 +23,8 @@
   (or (gethash c +any-but-cache+)
       (let ((f (lambda (offset)
                  (multiple-value-bind (res next) (any offset)
-                   (cond ((failure? res) res)
-                         ((eql c res) (fail next))
+                   (cond ((failure? res) (fail next))
+                         ((eql c res) (fail offset))
                          (t (values res next)))))))
         (setf (gethash c +any-but-cache+) f)
         f)))
@@ -39,9 +39,9 @@
   "Parser: Any character, as long as it passes the predicate."
   (lambda (offset)
     (multiple-value-bind (res next) (any offset)
-      (cond ((failure? res) res)
+      (cond ((failure? res) (fail next))
             ((funcall pred res) (values res next))
-            (t (fail next))))))
+            (t (fail offset))))))
 
 #+nil
 (funcall (any-if #'digit?) (in "8a"))

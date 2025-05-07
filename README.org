@@ -219,7 +219,7 @@ Parse any character except the one you don't want.
 #+end_src
 
 #+RESULTS:
-: :FAIL, 1
+: :FAIL, 0
 **** any-if
 
 Any character that passes the predicate.
