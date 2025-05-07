@@ -116,6 +116,7 @@
   (or (gethash c +char-cache+)
       (let ((f (lambda (offset)
                  (declare (optimize (speed 3) (safety 0)))
+                 (declare (type fixnum offset))
                  (if (>= offset +input-length+)
                      (fail offset)
                      (let ((head (schar +input+ offset)))
@@ -192,7 +193,7 @@ when you don't need to parse something complex."
   (or (gethash id +consume-cache+)
       (let ((f (lambda (offset)
                  (declare (optimize (speed 3) (safety 0)))
-                 (let ((keep (loop :for i :from offset :below +input-length+
+                 (let ((keep (loop :for i fixnum :from offset :below +input-length+
                                    :while (funcall p (schar +input+ i))
                                    :finally (return (- i offset)))))
                    (ok (off keep offset) t)))))

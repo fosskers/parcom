@@ -97,8 +97,9 @@ reallocated.
 
 =parcom= operates over =simple-string= input, accessing its elements with =schar=. The
 =parcom/json= component has been measured to parse JSON at ~30mb/s on a 2016
-ThinkPad, which should be sufficient for ordinary usage. There are certainly
-faster parsers out there, but =parcom= is expressive and light.
+ThinkPad, which should be sufficient for ordinary usage. Its performance is
+generally competitive across compilers, while remaining expressive and light in
+implementation.
 
 See also [[https://www.fosskers.ca/en/blog/optimizing-common-lisp][this article]] about some of the optimization techniques used within =parcom=.
 
@@ -113,7 +114,7 @@ SBCL:
 | jsown       |       150 | 135m           |
 | jzon        |       300 | 132m           |
 | shasht      |       600 | 400m           |
-| parcom/json |       840 | 260m           |
+| parcom/json |       750 | 260m           |
 | yason       |      1700 | 400m           |
 
 ECL:
@@ -122,7 +123,7 @@ ECL:
 |-------------+----------+----------------|
 | shasht      |      3.1 | 1.8b           |
 | jzon        |      4.1 | 1.6b           |
-| parcom/json |      5.0 | 980m           |
+| parcom/json |      4.7 | 980m           |
 | yason       |      5.7 | 1.9b           |
 | jsown       |      6.2 | 165m           |
 
@@ -130,7 +131,7 @@ ABCL:
 
 | Method      | Time (s) | Memory (cons cells) |
 |-------------+----------+---------------------|
-| parcom/json |      7.1 | 2m                  |
+| parcom/json |      6.9 | 2m                  |
 | jsown       |      8.0 | 25m                 |
 | jzon        |     12.0 | 864k                |
 | shasht      |     91.9 | 110m                |

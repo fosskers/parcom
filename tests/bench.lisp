@@ -87,3 +87,4 @@
 ;; (23) `(simple-array character (*))': 0.26b, 0.84s
 ;; (24) Detect when escaping isn't necessary: 0.26b, 0.8xs
 ;; (25) Use lower-level string copying: 0.26b, 0.8xs (nice speed up on ECL and ABCL)
+;; (26) Avoid generic `>=': 0.26b, 0.75s

@@ -28,10 +28,21 @@
 
 (in-package :parcom)
 
+;; --- Types --- ;;
+
+(deftype maybe-parse ()
+  "A parser that might fail."
+  '(function (fixnum) (values (or t (member :fail)) fixnum)))
+
+(deftype char-string ()
+  '(simple-array character (*)))
+
 ;; --- Top-level pointer to the input --- ;;
 
-(defparameter +input+ nil
+(declaim (type char-string +input+))
+(defparameter +input+ ""
   "A global pointer to the current input string.")
+(declaim (type fixnum +input-length+))
 (defparameter +input-length+ 0
   "The length of the current global input.")
 
@@ -55,14 +66,7 @@
                      (parse-failure-offset c)
                      (parse-failure-context c)))))
 
-;; --- Types --- ;;
-
-(deftype maybe-parse ()
-  "A parser that might fail."
-  '(function (fixnum) (values (or t (member :fail)) fixnum)))
-
-(deftype char-string ()
-  '(simple-array character (*)))
+;; --- Short-hands --- ;;
 
 (declaim (ftype (function (char-string) fixnum) in))
 (defun in (input)
