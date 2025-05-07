@@ -85,3 +85,4 @@
 ;; (21) Cache on `between': 0.29b bytes, 0.90s
 ;; (22) Cache on `sep': 0.26b bytes, 0.87s
 ;; (23) `(simple-array character (*))': 0.26b, 0.84s
+;; (24) Detect when escaping isn't necessary: 0.26b, 0.8xs

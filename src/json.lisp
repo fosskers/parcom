@@ -14,13 +14,15 @@
 
 (defparameter +open-slash+ nil
   "A marker for detecting backslashes in string parsing.")
+(defparameter +slash-seen+ nil
+  "Was a backslash seen at all during this pass?")
 
 (defun parse (input)
   "Attempt to parse any JSON value."
   (p:parse #'json input))
 
 #+nil
-(parse "{\"x\": 1, \"y\": 2, \"z\": [1, {\"a\":true}]}")
+(parse "{\"xy\": 1, \"yz\": 2, \"za\": [1, {\"a\":true}]}")
 #+nil
 (parse "{\"x\": 1, \"y\": 2, \"z\": [1, {\"a\" true}]}")
 #+nil
@@ -122,7 +124,7 @@
                               (let* ((next (schar s (1+ j)))
                                      (escp (escaped-variant next)))
                                 (cond (escp
-                                       (setf (aref work i) escp)
+                                       (setf (schar work i) escp)
                                        (incf j 2))
                                       ((or (eql next #\u)
                                            (eql next #\U))
@@ -130,23 +132,40 @@
                                                                (*  256 (digit-char-p (schar s (+ 3 j)) 16))
                                                                (*   16 (digit-char-p (schar s (+ 4 j)) 16))
                                                                (digit-char-p (schar s (+ 5 j)) 16)))))
-                                         (setf (aref work i) ex)
+                                         (setf (schar work i) ex)
                                          (incf j 6)))
-                                      (t (setf (aref work i) next)
+                                      (t (setf (schar work i) next)
                                          (incf j 2)))))
-                             (t (setf (aref work i) curr)
+                             (t (setf (schar work i) curr)
                                 (incf j))))
                      (incf i)))
     ;; --- Copy the final elements over --- ;;
     (let ((final (make-array i :element-type 'character)))
       (loop :for k :from 0 :below i
-            :do (setf (aref final k) (schar work k)))
+            :do (setf (schar final k) (schar work k)))
       final)))
+
+#+nil
+(escaped "hello there" 1 3)
+
+(declaim (ftype (function (p::char-string fixnum fixnum) p::char-string) naive-copy))
+(defun naive-copy (s from to)
+  "We know no escaping needs to occur, so we can just copy the characters over as-is."
+  (declare (optimize (speed 3) (safety 0)))
+  (let* ((len  (- to from))
+         (work (make-array len :element-type 'character)))
+    (loop :for i :from 0 :below len
+          :do (setf (schar work i) (schar s (+ i from))))
+    work))
+
+#+nil
+(naive-copy "hello there" 1 3)
 
 (declaim (ftype (function (fixnum) (values (or p::char-string (member :fail)) fixnum)) string))
 (defun string (offset)
   "Parser: Parse any string."
   (setf +open-slash+ nil)
+  (setf +slash-seen+ nil)
   (multiple-value-bind (res next)
       (funcall (p:between (p:char #\")
                           ;; NOTE: 2025-05-04 This was originally a call to
@@ -161,16 +180,18 @@
                                        (cond (+open-slash+
                                               (setf +open-slash+ nil)
                                               t)
-                                             ((eql c #\\) (setf +open-slash+ t))
+                                             ((eql c #\\)
+                                              (setf +open-slash+ t)
+                                              (setf +slash-seen+ t))
                                              ((eql c #\") nil)
                                              (t t)))
                                      :id :json-string)
                           (p:char #\")
                           :id :json-string)
                offset)
-    (if (p:failure? res)
-        (p:fail next)
-        (values (escaped p::+input+ (1+ offset) (1- next)) next))))
+    (cond ((p:failure? res) (p:fail next))
+          ((not +slash-seen+) (values (naive-copy p::+input+ (1+ offset) (1- next)) next))
+          (t (values (escaped p::+input+ (1+ offset) (1- next)) next)))))
 
 #+nil
 (string (p:in "\"hello\""))
