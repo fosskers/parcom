@@ -100,9 +100,13 @@ reallocated.
 ThinkPad, which should be sufficient for ordinary usage. There are certainly
 faster parsers out there, but =parcom= is expressive and light.
 
+See also [[https://www.fosskers.ca/en/blog/optimizing-common-lisp][this article]] about some of the optimization techniques used within =parcom=.
+
 ** JSON Benchmarks
 
-In parsing a [[https://raw.githubusercontent.com/json-iterator/test-data/master/large-file.json][25mb JSON file]] from an in-memory string:
+In parsing a [[https://raw.githubusercontent.com/json-iterator/test-data/master/large-file.json][25mb JSON file]] from an in-memory string.
+
+SBCL:
 
 | Method      | Time (ms) | Memory (bytes) |
 |-------------+-----------+----------------|
@@ -111,6 +115,26 @@ In parsing a [[https://raw.githubusercontent.com/json-iterator/test-data/master/
 | shasht      |       600 | 400m           |
 | parcom/json |       870 | 260m           |
 | yason       |      1700 | 400m           |
+
+ECL:
+
+| Method      | Time (s) | Memory (bytes) |
+|-------------+----------+----------------|
+| shasht      |      3.1 | 1.8b           |
+| jzon        |      4.1 | 1.6b           |
+| yason       |      5.7 | 1.9b           |
+| jsown       |      6.2 | 165m           |
+| parcom/json |      8.8 | 1.1b           |
+
+ABCL:
+
+| Method      | Time (s) | Memory (cons cells) |
+|-------------+----------+---------------------|
+| jsown       |      8.0 | 25m                 |
+| parcom/json |      8.1 | 2m                  |
+| jzon        |     12.0 | 864k                |
+| shasht      |     91.9 | 110m                |
+| yason       |    328.7 | 366m                |
 
 * API
 
