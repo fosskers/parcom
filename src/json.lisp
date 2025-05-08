@@ -128,12 +128,20 @@
                                        (incf j 2))
                                       ((or (eql next #\u)
                                            (eql next #\U))
-                                       (let ((ex (code-char (+ (* 4096 (digit-char-p (schar s (+ 2 j)) 16))
-                                                               (*  256 (digit-char-p (schar s (+ 3 j)) 16))
-                                                               (*   16 (digit-char-p (schar s (+ 4 j)) 16))
-                                                               (digit-char-p (schar s (+ 5 j)) 16)))))
-                                         (setf (schar work i) ex)
-                                         (incf j 6)))
+                                       ;; Near the end of the string, if the
+                                       ;; string claims it wants to escape but
+                                       ;; there can't possibly be enough code
+                                       ;; points remaining, we skip escaping
+                                       ;; entirely.
+                                       (if (> j (- to 6))
+                                           (progn (setf (schar work i) curr)
+                                                  (incf j))
+                                           (let ((ex (code-char (+ (* 4096 (digit-char-p (schar s (+ 2 j)) 16))
+                                                                   (*  256 (digit-char-p (schar s (+ 3 j)) 16))
+                                                                   (*   16 (digit-char-p (schar s (+ 4 j)) 16))
+                                                                   (digit-char-p (schar s (+ 5 j)) 16)))))
+                                             (setf (schar work i) ex)
+                                             (incf j 6))))
                                       (t (setf (schar work i) next)
                                          (incf j 2)))))
                              (t (setf (schar work i) curr)
@@ -147,6 +155,8 @@
 
 #+nil
 (escaped "hello there" 1 3)
+#+nil
+(escaped "\\u03" 0 4)
 
 (declaim (ftype (function (p::char-string fixnum fixnum) p::char-string) direct-copy))
 (defun direct-copy (s from to)

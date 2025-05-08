@@ -217,7 +217,8 @@
   (is equal "hello" (pj:parse "\"hello\""))
   (is equal "hēllお🐂" (pj:parse "\"hēllお🐂\""))
   (is equal "Hi α!" (pj:parse "\"Hi \\u03B1!\""))
-  (is equal "/ & /" (pj:string (pc:in "\"/ & \\/\""))))
+  (is equal "/ & /" (pj:string (pc:in "\"/ & \\/\"")))
+  (is equal "\\u03" (pj:parse "\"\\u03\"")))
 
 (define-test numbers
   :parent json
