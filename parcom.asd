@@ -1,5 +1,5 @@
 (defsystem "parcom"
-  :version "1.0.0"
+  :version "1.1.0"
   :author "Colin Woodbury <colin@fosskers.ca>"
   :license "MPL-2.0"
   :homepage "https://github.com/fosskers/parcom"
@@ -23,6 +23,7 @@
   :components ((:module "src" :components ((:file "datetime"))))
   :in-order-to ((test-op (test-op :parcom/tests))))
 
+;; NOTE: 2025-05-09 Don't use this yet!
 (defsystem "parcom/toml"
   :depends-on (:parcom :parcom/datetime)
   :components ((:module "src" :components ((:file "toml"))))

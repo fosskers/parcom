@@ -60,6 +60,7 @@ reallocated.
     - [[#skip][skip]]
     - [[#peek][peek]]
     - [[#count][count]]
+    - [[#take-until][take-until]]
     - [[#recognize][recognize]]
   - [[#utilities][Utilities]]
     - [[#empty][empty?]]
@@ -698,6 +699,23 @@ Apply a parser a given number of times and collect the results as a list.
 
 #+RESULTS:
 : (#\a #\a #\a), 3
+
+*** take-until
+
+Take characters until another parser succeeds. Does not advance the offset by
+the subparser.
+
+#+begin_src lisp :exports both :results verbatim
+(in-package :parcom)
+(funcall (take-until (char #\')) (in "abcd'"))
+#+end_src
+
+#+RESULTS:
+: "abcd", 4
+
+If the subparser is just looking for a single char like the above, use
+=take-while= or =consume= instead. =take-until= is intended for more complex halting
+conditions that can't easily be detected by a char-by-char predicate function.
 
 *** recognize
 

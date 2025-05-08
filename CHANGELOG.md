@@ -1,12 +1,13 @@
 # Parcom Changelog
 
-### Unreleased
+### 1.1.0 (2025-05-09)
 
 #### Added
 
 - The `parcom/datetime` system.
 - Parser: `any-if`.
 - Parser: `sneak`.
+- Combinator: `take-until`.
 
 #### Changed
 

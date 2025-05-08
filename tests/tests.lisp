@@ -325,3 +325,11 @@
               :time (pd::make-local-time :hour 7 :minute 32 :second 0 :millis 0)
               :offset (pd::make-offset :hour -7 :minute 0))
       (pc:parse #'pd:offset-date-time "1979-05-27T07:32:00-07:00")))
+
+(define-test rfc-examples
+  :parent datetime
+  (of-type pd:offset-date-time (pd:parse "1985-04-12T23:20:50.52Z"))
+  (of-type pd:offset-date-time (pd:parse "1996-12-19T16:39:57-08:00"))
+  (of-type pd:offset-date-time (pd:parse "1990-12-31T23:59:60Z"))
+  (of-type pd:offset-date-time (pd:parse "1990-12-31T15:59:60-08:00"))
+  (of-type pd:offset-date-time (pd:parse "1937-01-01T12:00:27.87+00:20")))
