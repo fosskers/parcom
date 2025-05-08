@@ -15,10 +15,10 @@ input."
 (defun between (a parser b &key (id nil))
   "A main parser flanked by two other ones. Only the value of the main parser is
 kept. Good for parsing backets, parentheses, etc."
-  (or (gethash id +between-cache+)
+  (or (gethash id *between-cache*)
       (let ((f (*> a (<* parser b))))
         (when id
-          (setf (gethash id +between-cache+) f))
+          (setf (gethash id *between-cache*) f))
         f)))
 
 #+nil
@@ -62,7 +62,7 @@ kept. Good for parsing backets, parentheses, etc."
 
 (defun sep (sep parser &key (id nil))
   "Parse 0 or more instances of a `parser' separated by some `sep' parser."
-  (or (gethash id +sep-cache+)
+  (or (gethash id *sep-cache*)
       (let ((f (lambda (offset)
                  (labels ((recurse (acc in)
                             (multiple-value-bind (sep-res sep-next) (funcall sep in)
@@ -77,7 +77,7 @@ kept. Good for parsing backets, parentheses, etc."
                          (ok offset '())
                          (fmap #'nreverse (recurse (list res) next))))))))
         (when id
-          (setf (gethash id +sep-cache+) f))
+          (setf (gethash id *sep-cache*) f))
         f)))
 
 #+nil
@@ -172,14 +172,14 @@ even if not followed by an instance of the main parser."
 input of the subparser."
   (lambda (offset)
     (let* ((working offset)
-           (keep (loop :for i fixnum :from offset :below +input-length+
+           (keep (loop :for i fixnum :from offset :below *input-length*
                        :while (when (failure? (funcall parser working))
                                 (incf working))
                        :finally (return (- i offset)))))
       (ok (off keep offset)
           (make-array keep
                       :element-type 'character
-                      :displaced-to +input+
+                      :displaced-to *input*
                       :displaced-index-offset offset)))))
 
 #+nil
@@ -200,13 +200,13 @@ input of the subparser."
 (declaim (ftype (function (character) (function (fixnum) (values (or character (member :fail)) fixnum))) sneak))
 (defun sneak (c)
   "Combinator: Like `peek' but specialized for characters and thus more performant."
-  (or (gethash c +sneak-cache+)
+  (or (gethash c *sneak-cache*)
       (let ((f (lambda (offset)
                  (multiple-value-bind (res next) (funcall (char c) offset)
                    (if (failure? res)
                        (fail next)
                        (ok offset res))))))
-        (setf (gethash c +sneak-cache+) f)
+        (setf (gethash c *sneak-cache*) f)
         f)))
 
 #+nil
@@ -242,7 +242,7 @@ input of the subparser."
           (ok next
               (make-array (- next offset)
                           :element-type 'character
-                          :displaced-to +input+
+                          :displaced-to *input*
                           :displaced-index-offset offset))))))
 
 #+nil

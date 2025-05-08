@@ -39,21 +39,21 @@
 
 ;; --- Top-level pointer to the input --- ;;
 
-(declaim (type char-string +input+))
-(defparameter +input+ ""
+(declaim (type char-string *input*))
+(defparameter *input* ""
   "A global pointer to the current input string.")
-(declaim (type fixnum +input-length+))
-(defparameter +input-length+ 0
+(declaim (type fixnum *input-length*))
+(defparameter *input-length* 0
   "The length of the current global input.")
 
 ;; --- Lambda Caches --- ;;
 
-(defparameter +char-cache+    (make-hash-table :size 64 :test #'eql))
-(defparameter +any-but-cache+ (make-hash-table :size 32 :test #'eql))
-(defparameter +sneak-cache+   (make-hash-table :size 32 :test #'eql))
-(defparameter +consume-cache+ (make-hash-table :size 16 :test #'eq))
-(defparameter +between-cache+ (make-hash-table :size 16 :test #'eq))
-(defparameter +sep-cache+     (make-hash-table :size 16 :test #'eq))
+(defparameter *char-cache*    (make-hash-table :size 64 :test #'eql))
+(defparameter *any-but-cache* (make-hash-table :size 32 :test #'eql))
+(defparameter *sneak-cache*   (make-hash-table :size 32 :test #'eql))
+(defparameter *consume-cache* (make-hash-table :size 16 :test #'eq))
+(defparameter *between-cache* (make-hash-table :size 16 :test #'eq))
+(defparameter *sep-cache*     (make-hash-table :size 16 :test #'eq))
 
 ;; --- Conditions --- ;;
 
@@ -71,8 +71,8 @@
 (declaim (ftype (function (char-string) fixnum) in))
 (defun in (input)
   "Set the global input and yield the initial parser offset."
-  (setf +input+ input)
-  (setf +input-length+ (length +input+))
+  (setf *input* input)
+  (setf *input-length* (length *input*))
   0)
 
 #+nil
@@ -111,18 +111,18 @@
   (multiple-value-bind (res next) (funcall parser (in input))
     (if (ok? res)
         res
-        (let ((diff (- +input-length+ next)))
+        (let ((diff (- *input-length* next)))
           (error 'parse-failure
                  :offset next
                  :context (if (< diff 16)
                               (make-array diff
                                           :element-type 'character
-                                          :displaced-to +input+
+                                          :displaced-to *input*
                                           :displaced-index-offset next)
                               (format nil "~a ... (truncated)"
                                       (make-array 16
                                                   :element-type 'character
-                                                  :displaced-to +input+
+                                                  :displaced-to *input*
                                                   :displaced-index-offset next))))))))
 
 #+nil

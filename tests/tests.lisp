@@ -224,7 +224,7 @@
   (is = 0.0 (pj:parse "0"))
   (multiple-value-bind (res next) (pj:scientific (pc:in "1e00,"))
     (declare (ignore res))
-    (is equal #\, (schar pc::+input+ next)))
+    (is equal #\, (schar pc::*input* next)))
   (is = 1234567890.0d0 (pj:parse "1234567890"))
   (is = -9876.543210d0 (pj:parse "-9876.543210"))
   (is = 23456789012d66 (pj:parse "23456789012E66"))

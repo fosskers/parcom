@@ -8,9 +8,9 @@
 (defun any (offset)
   "Accept any character."
   (declare (optimize (speed 3) (safety 0)))
-  (if (>= offset +input-length+)
+  (if (>= offset *input-length*)
       (fail offset)
-      (values (schar +input+ offset) (off 1 offset))))
+      (values (schar *input* offset) (off 1 offset))))
 
 #++
 (any (in "hello"))
@@ -20,13 +20,13 @@
 (declaim (ftype (function (character) (function (fixnum) (values (or character (member :fail)) fixnum))) any-but))
 (defun any-but (c)
   "Parser: Any character except the given one."
-  (or (gethash c +any-but-cache+)
+  (or (gethash c *any-but-cache*)
       (let ((f (lambda (offset)
                  (multiple-value-bind (res next) (any offset)
                    (cond ((failure? res) (fail next))
                          ((eql c res) (fail offset))
                          (t (values res next)))))))
-        (setf (gethash c +any-but-cache+) f)
+        (setf (gethash c *any-but-cache*) f)
         f)))
 
 #+nil
@@ -95,7 +95,7 @@
 (declaim (ftype (function (fixnum) (values (or t (member :fail)) fixnum)) eof))
 (defun eof (offset)
   "Parser: Recognize the end of the input."
-  (if (= offset +input-length+)
+  (if (= offset *input-length*)
       (values t offset)
       (fail offset)))
 
@@ -113,17 +113,17 @@
 (declaim (ftype (function (character) (function (fixnum) (values (or character (member :fail)) fixnum))) char))
 (defun char (c)
   "Parse a given character."
-  (or (gethash c +char-cache+)
+  (or (gethash c *char-cache*)
       (let ((f (lambda (offset)
                  (declare (optimize (speed 3) (safety 0)))
                  (declare (type fixnum offset))
-                 (if (>= offset +input-length+)
+                 (if (>= offset *input-length*)
                      (fail offset)
-                     (let ((head (schar +input+ offset)))
+                     (let ((head (schar *input* offset)))
                        (if (equal c head)
                            (ok (off 1 offset) head)
                            (fail offset)))))))
-        (setf (gethash c +char-cache+) f)
+        (setf (gethash c *char-cache*) f)
         f)))
 
 #++
@@ -141,10 +141,10 @@
 successful, in order to save on memory."
   (lambda (offset)
     (declare (optimize (speed 3) (safety 0)))
-    (let ((i (if (>= offset +input-length+)
+    (let ((i (if (>= offset *input-length*)
                  0
                  (loop :for i fixnum :from 0 :below (length s)
-                       :while (equal (schar s i) (schar +input+ (+ i offset)))
+                       :while (equal (schar s i) (schar *input* (+ i offset)))
                        :finally (return i)))))
       (if (= i (length s))
           (ok (off (length s) offset) s)
@@ -166,11 +166,11 @@ remaining amount of characters, only the remaining ones will be yielded."
   (lambda (offset)
     (cond ((< n 0) (error "~a must be a positive number" n))
           ((zerop n) (ok offset +empty-string+))
-          (t (let ((m (min n (- +input-length+ offset))))
+          (t (let ((m (min n (- *input-length* offset))))
                (ok (off m offset)
                    (make-array m
                                :element-type 'character
-                               :displaced-to +input+
+                               :displaced-to *input*
                                :displaced-index-offset offset)))))))
 
 #+nil
@@ -190,15 +190,15 @@ remaining amount of characters, only the remaining ones will be yielded."
 further point. Yields T, not the characters that were parsed. A faster variant
 of `take-while' when you don't actually need the parsed characters, and `skip'
 when you don't need to parse something complex."
-  (or (gethash id +consume-cache+)
+  (or (gethash id *consume-cache*)
       (let ((f (lambda (offset)
                  (declare (optimize (speed 3) (safety 0)))
-                 (let ((keep (loop :for i fixnum :from offset :below +input-length+
-                                   :while (funcall p (schar +input+ i))
+                 (let ((keep (loop :for i fixnum :from offset :below *input-length*
+                                   :while (funcall p (schar *input* i))
                                    :finally (return (- i offset)))))
                    (ok (off keep offset) t)))))
         (when id
-          (setf (gethash id +consume-cache+) f))
+          (setf (gethash id *consume-cache*) f))
         f)))
 
 #+nil
@@ -209,15 +209,15 @@ when you don't need to parse something complex."
   "Parser: Take characters while some predicate holds."
   (lambda (offset)
     (declare (optimize (speed 3) (safety 0)))
-    (let ((keep (loop :for i fixnum :from offset :below +input-length+
-                      :while (funcall p (schar +input+ i))
+    (let ((keep (loop :for i fixnum :from offset :below *input-length*
+                      :while (funcall p (schar *input* i))
                       :finally (return (- i offset)))))
       (ok (off keep offset)
           (if (zerop keep)
               +empty-string+
               (make-array keep
                           :element-type 'character
-                          :displaced-to +input+
+                          :displaced-to *input*
                           :displaced-index-offset offset))))))
 
 #+nil
@@ -348,11 +348,11 @@ when you don't need to parse something complex."
 (declaim (ftype (function (fixnum) (values cl:string fixnum)) rest))
 (defun rest (offset)
   "Parser: Consume the rest of the input. Always succeeds."
-  (let ((len (- +input-length+ offset)))
+  (let ((len (- *input-length* offset)))
     (ok (off len offset)
         (make-array len
                     :element-type 'character
-                    :displaced-to +input+
+                    :displaced-to *input*
                     :displaced-index-offset offset))))
 
 #+nil

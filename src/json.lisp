@@ -12,9 +12,9 @@
 
 (in-package :parcom/json)
 
-(defparameter +open-slash+ nil
+(defparameter *open-slash* nil
   "A marker for detecting backslashes in string parsing.")
-(defparameter +slash-seen+ nil
+(defparameter *slash-seen* nil
   "Was a backslash seen at all during this pass?")
 
 (defun parse (input)
@@ -167,8 +167,8 @@
 (declaim (ftype (function (fixnum) (values (or p::char-string (member :fail)) fixnum)) string))
 (defun string (offset)
   "Parser: Parse any string."
-  (setf +open-slash+ nil)
-  (setf +slash-seen+ nil)
+  (setf *open-slash* nil)
+  (setf *slash-seen* nil)
   (multiple-value-bind (res next)
       (funcall (p:between (p:char #\")
                           ;; NOTE: 2025-05-04 This was originally a call to
@@ -180,12 +180,12 @@
                           ;; realized that `consume' allows us to scream
                           ;; across the source string and retain fast lookups.
                           (p:consume (lambda (c)
-                                       (cond (+open-slash+
-                                              (setf +open-slash+ nil)
+                                       (cond (*open-slash*
+                                              (setf *open-slash* nil)
                                               t)
                                              ((eql c #\\)
-                                              (setf +open-slash+ t)
-                                              (setf +slash-seen+ t))
+                                              (setf *open-slash* t)
+                                              (setf *slash-seen* t))
                                              ((eql c #\") nil)
                                              (t t)))
                                      :id :json-string)
@@ -193,8 +193,8 @@
                           :id :json-string)
                offset)
     (cond ((p:failure? res) (p:fail next))
-          ((not +slash-seen+) (values (direct-copy p::+input+ (1+ offset) (1- next)) next))
-          (t (values (escaped p::+input+ (1+ offset) (1- next)) next)))))
+          ((not *slash-seen*) (values (direct-copy p::*input* (1+ offset) (1- next)) next))
+          (t (values (escaped p::*input* (1+ offset) (1- next)) next)))))
 
 #+nil
 (string (p:in "\"hello\""))
