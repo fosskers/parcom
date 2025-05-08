@@ -172,7 +172,7 @@ even if not followed by an instance of the main parser."
 input of the subparser."
   (lambda (offset)
     (let* ((working offset)
-           (keep (loop :for i :from offset :below +input-length+
+           (keep (loop :for i fixnum :from offset :below +input-length+
                        :while (when (failure? (funcall parser working))
                                 (incf working))
                        :finally (return (- i offset)))))

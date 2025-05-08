@@ -143,7 +143,7 @@ successful, in order to save on memory."
     (declare (optimize (speed 3) (safety 0)))
     (let ((i (if (>= offset +input-length+)
                  0
-                 (loop :for i :from 0 :below (length s)
+                 (loop :for i fixnum :from 0 :below (length s)
                        :while (equal (schar s i) (schar +input+ (+ i offset)))
                        :finally (return i)))))
       (if (= i (length s))
@@ -209,7 +209,7 @@ when you don't need to parse something complex."
   "Parser: Take characters while some predicate holds."
   (lambda (offset)
     (declare (optimize (speed 3) (safety 0)))
-    (let ((keep (loop :for i :from offset :below +input-length+
+    (let ((keep (loop :for i fixnum :from offset :below +input-length+
                       :while (funcall p (schar +input+ i))
                       :finally (return (- i offset)))))
       (ok (off keep offset)

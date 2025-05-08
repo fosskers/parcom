@@ -141,7 +141,7 @@
                      (incf i)))
     ;; --- Copy the final elements over --- ;;
     (let ((final (make-array i :element-type 'character)))
-      (loop :for k :from 0 :below i
+      (loop :for k fixnum :from 0 :below i
             :do (setf (schar final k) (schar work k)))
       final)))
 
@@ -155,7 +155,7 @@
   (let* ((len  (- to from))
          (work (make-array len :element-type 'character)))
     #+abcl
-    (progn (loop :for i :from 0 :below len
+    (progn (loop :for i fixnum :from 0 :below len
                  :do (setf (schar work i) (schar s (+ i from))))
            work)
     #-abcl
