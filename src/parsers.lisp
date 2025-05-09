@@ -141,6 +141,7 @@
 successful, in order to save on memory."
   (lambda (offset)
     (declare (optimize (speed 3) (safety 0)))
+    (declare (type fixnum offset))
     (let ((i (if (>= offset *input-length*)
                  0
                  (loop :for i fixnum :from 0 :below (length s)

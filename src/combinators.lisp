@@ -24,6 +24,7 @@ kept. Good for parsing backets, parentheses, etc."
 #+nil
 (funcall (between (char #\!) (string "Salvē") (char #\!)) (in "!Salvē!"))
 
+(declaim (ftype (function (maybe-parse) (function (fixnum) (values list fixnum))) many))
 (defun many (parser)
   "Parse 0 or more occurrences of a `parser'."
   (lambda (offset)
