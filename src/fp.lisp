@@ -29,6 +29,17 @@ parsing itself was successful."
 #++
 (fmap #'1+ (ok (in "") 1))
 
+(defmacro pmap (f parser)
+  "Similar to `fmap', but this transforms a parser into another one, altering
+its inner result if it happened to be successful."
+  `(lambda (offset)
+     (fmap ,f (funcall ,parser offset))))
+
+#+nil
+(parse (pmap #'1+ #'unsigned) "123")
+#+nil
+(parse (<*> (string "hi") (pmap #'1+ #'unsigned)) "hi123")
+
 (defun const (x)
   "Yield a function that ignores its input and returns some original seed."
   (lambda (foo)

@@ -9,7 +9,7 @@
            #:digit? #:hex? #:octal? #:binary?
            #:ascii-letter? #:space?)
   ;; --- Functional Programming --- ;;
-  (:export #:fmap #:const
+  (:export #:fmap #:pmap #:const
            #:all #:right #:left #:instead
            #:*> #:<* #:<*> #:<$ #:alt)
   ;; --- Parsers --- ;;

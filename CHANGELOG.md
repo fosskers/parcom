@@ -4,7 +4,8 @@
 
 #### Added
 
-- Parser: `pure`.
+- Parser: `pure` for injecting values as parsers.
+- Utility: `pmap` for transforming parser successes more directly than `fmap`.
 
 ### 1.1.0 (2025-05-09)
 

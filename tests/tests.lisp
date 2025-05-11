@@ -202,6 +202,11 @@
   (is equal '("hi" "ho") (pc:parse (pc:<*> (pc:string "hi") (pc:string "ho")) "hihohum!"))
   (is equal '("hi" "ho" "hum") (pc:parse (pc:<*> (pc:string "hi") (pc:string "ho") (pc:string "hum")) "hihohum!")))
 
+(define-test pmap
+  :parent fp
+  (is = 124 (pc:parse (pc:pmap #'1+ #'pc:unsigned) "123"))
+  (is equal '("hi" 124) (pc:parse (pc:<*> (pc:string "hi") (pc:pmap #'1+ #'pc:unsigned)) "hi123")))
+
 (define-test json)
 
 (define-test objects

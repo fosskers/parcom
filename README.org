@@ -68,6 +68,7 @@ reallocated.
     - [[#empty][empty?]]
     - [[#digit][digit?]]
     - [[#fmap][fmap]]
+    - [[#pmap][pmap]]
     - [[#const][const]]
   - [[#json][JSON]]
     - [[#parse][parse]]
@@ -786,7 +787,7 @@ Is a given character a number from 0 to 9?
 
 *** fmap
 
-Apply a pure function to the inner contents of a parser.
+Apply a pure function to the result of a successful parse.
 
 #+begin_src lisp :exports both :results verbatim
 (in-package :parcom)
@@ -795,6 +796,19 @@ Apply a pure function to the inner contents of a parser.
 
 #+RESULTS:
 : 2, 1
+
+*** pmap
+
+Similar to =fmap=, but this transforms a parser into another one, altering its
+inner result if it happened to be successful.
+
+#+begin_src lisp :exports both
+(in-package :parcom)
+(parse (pmap #'1+ #'unsigned) "123")
+#+end_src
+
+#+RESULTS:
+: 124
 
 *** const
 
