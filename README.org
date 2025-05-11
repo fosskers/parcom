@@ -46,6 +46,8 @@ reallocated.
       - [[#take-while-take-while1][take-while, take-while1]]
       - [[#consume][consume]]
       - [[#rest][rest]]
+    - [[#other][Other]]
+      - [[#pure][pure]]
   - [[#combinators][Combinators]]
     - [[#-right][*>, right]]
     - [[#-left][<*, left]]
@@ -494,6 +496,32 @@ Consume the rest of the input. Always succeeds.
 
 #+RESULTS:
 : ("Salvē" "domine!")
+*** Other
+**** pure
+
+Consume no input and just yield a given value.
+
+#+begin_src lisp :exports both
+(in-package :parcom)
+(parse (pure :pāx) "Bellum")
+#+end_src
+
+#+RESULTS:
+: :PĀX
+
+Useful for chaining with other compound parsers to inject values into the
+results.
+
+#+begin_src lisp :exports both :results verbatim
+(in-package :parcom)
+(parse (<*> (<*> (pure :pāx) (string "PĀX"))
+            #'multispace
+            (<*> (pure :bellum) (string "BELLUM")))
+       "PĀX BELLUM")
+#+end_src
+
+#+RESULTS:
+: ((:PĀX "PĀX") " " (:BELLUM "BELLUM"))
 
 ** Combinators
 

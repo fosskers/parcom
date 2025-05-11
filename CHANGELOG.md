@@ -1,5 +1,11 @@
 # Parcom Changelog
 
+### Unreleased
+
+#### Added
+
+- Parser: `pure`.
+
 ### 1.1.0 (2025-05-09)
 
 #### Added

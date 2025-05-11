@@ -24,6 +24,10 @@
 
 (define-test parsers)
 
+(define-test pure
+  :parent parsers
+  (is eq :pāx (pc:parse (pc:pure :pāx) "Bellum")))
+
 (define-test char
   :parent parsers
   (is equal #\H (pc:parse (pc:char #\H) "Hello"))

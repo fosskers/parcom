@@ -4,6 +4,14 @@
 
 (defparameter +empty-string+ "")
 
+(defun pure (item)
+  "Parser: Parse nothing and just yield the given value."
+  (lambda (offset)
+    (values item offset)))
+
+#+nil
+(parse (pure :pāx) "hello")
+
 (declaim (ftype (function (fixnum) (values (or character (member :fail)) fixnum)) any))
 (defun any (offset)
   "Accept any character."

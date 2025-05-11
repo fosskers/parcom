@@ -17,7 +17,8 @@
            #:char #:string
            #:unsigned #:integer #:float
            #:newline #:space #:space1 #:multispace #:multispace1
-           #:take #:take-while #:take-while1 #:rest)
+           #:take #:take-while #:take-while1 #:rest
+           #:pure)
   ;; --- Combinators --- ;;
   (:export #:opt #:between #:pair
            #:many #:many1 #:sep #:sep1 #:sep-end #:sep-end1 #:take-until
