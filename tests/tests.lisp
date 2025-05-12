@@ -315,7 +315,8 @@
   (is equalp (pd::make-local-date-time
               :date (pd::make-local-date :year 1979 :month 5 :day 27)
               :time (pd::make-local-time :hour 7 :minute 32 :second 0 :millis 0))
-      (pc:parse #'pd:local-date-time "1979-05-27 07:32:00")))
+      (pc:parse #'pd:local-date-time "1979-05-27 07:32:00"))
+  (finish (funcall (pc:*> #'pd:local-date-time #'pc:eof) (pc:in "1979-05-27T00:32:00.999999"))))
 
 (define-test offset-date-time
   :parent datetime
