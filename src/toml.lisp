@@ -23,6 +23,7 @@
 
 ;; --- Entry --- ;;
 
+;; TODO: 2025-05-13 Don't forget about the "top-level table".
 (defun toml (offset)
   "Parser: Parse a TOML document into a Hash Table."
   (funcall (p:alt #'comment #'pair) offset))
@@ -166,7 +167,7 @@ memory efficient than `basic-string'."
 (defun table (offset)
   (p:fmap (lambda (x)
             (destructuring-bind (name kvs) x
-              (let ((ht (make-hash-table :test #'equal)))
+              (let ((ht (make-hash-table :test #'equalp)))
                 (dolist (pair kvs)
                   (setf (gethash (car pair) ht) (cadr pair)))
                 (make-table :key name :kvs ht))))
@@ -183,6 +184,21 @@ bar = 1
 baz = \"zoo\"
 zoo = 1988-07-05
 "))
+
+(defun inline-table (offset)
+  "Parser: The compact form of a table."
+  (p:fmap (lambda (kvs)
+            (let ((ht (make-hash-table :test #'equalp)))
+              (dolist (kv kvs)
+                (setf (gethash (car kv) ht) (cadr kv)))
+              ht))
+          (funcall (p:between (*> (p:char #\{) #'skip-space)
+                              (p:sep (*> (p:char #\,) #'skip-space) #'pair)
+                              (*> #'skip-space (p:char #\})))
+                   offset)))
+
+#+nil
+(p:parse #'inline-table "{ first = \"Tom\", last = \"Preston-Werner\" }")
 
 ;; String
 ;; Integer

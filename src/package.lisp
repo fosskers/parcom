@@ -63,7 +63,7 @@
    (context :initarg :context :reader parse-failure-context))
   (:documentation "Some parsing failed, so we render why.")
   (:report (lambda (c stream)
-             (format stream "Parsing failed at location ~a~%Context:~%  ~a"
+             (format stream "Parsing failed at location ~a~%Context:~%  ~a~%  ^"
                      (parse-failure-offset c)
                      (parse-failure-context c)))))
 
@@ -115,13 +115,13 @@
         (let ((diff (- *input-length* next)))
           (error 'parse-failure
                  :offset next
-                 :context (if (< diff 16)
+                 :context (if (< diff 32)
                               (make-array diff
                                           :element-type 'character
                                           :displaced-to *input*
                                           :displaced-index-offset next)
                               (format nil "~a ... (truncated)"
-                                      (make-array 16
+                                      (make-array 32
                                                   :element-type 'character
                                                   :displaced-to *input*
                                                   :displaced-index-offset next))))))))

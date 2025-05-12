@@ -282,6 +282,10 @@
   (is = 10 (pc:parse #'pt::binary "0b1010"))
   (is = 20 (pc:parse #'pt::binary "0b1010_0")))
 
+(define-test toml-tables
+  :parent toml
+  (is = 2 (hash-table-count (pc:parse #'pt::inline-table "{ first = \"Tom\", last = \"Preston-Werner\" }"))))
+
 (define-test datetime)
 
 (define-test local-date
