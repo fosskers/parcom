@@ -3,14 +3,22 @@
   (:shadow #:string #:integer #:number #:boolean)
   (:import-from :parcom #:<*> #:<* #:*> #:<$)
   (:local-nicknames (#:p #:parcom)
-                    (#:pd #:parcom/datetime)))
+                    (#:pd #:parcom/datetime))
+  ;; --- Types --- ;;
+  ;; --- Entry --- ;;
+  ;; --- Parsers --- ;;
+  (:export #:key))
 
 (in-package :parcom/toml)
 
 ;; --- Types --- ;;
 
+(defstruct tiered-key
+  "A key that might point to a value several tables deep."
+  (key nil :type list))
+
 (defstruct table
-  (key ""  :type cl:string)
+  (key ""  :type tiered-key)
   (kvs nil :type hash-table))
 
 ;; --- Entry --- ;;
@@ -125,9 +133,17 @@ memory efficient than `basic-string'."
 (funcall #'skip-space (p:in "   abc"))
 
 (defun key (offset)
-  "Parser: The key portion of a key-value pair."
-  ;; (funcall (p:alt #'bare-key #'quoted-key #'dotted-key) offset)
-  (funcall (p:alt #'bare-key) offset))
+  "Parser: A key that might be pointing several layers deep."
+  (p:fmap (lambda (list) (make-tiered-key :key list))
+          (funcall (p:sep (p:char #\.) (p:alt #'bare-key #'quoted-key))
+                   offset)))
+
+#+nil
+(key (p:in "physical"))
+#+nil
+(key (p:in "physical.shape"))
+#+nil
+(key (p:in "site.\"google.com\""))
 
 (defun bare-key (offset)
   "Parser: Just ASCII letters, digits, dashes, and underscores."
@@ -143,6 +159,10 @@ memory efficient than `basic-string'."
 #+nil
 (bare-key (p:in "123"))
 
+(defun quoted-key (offset)
+  "Parser: Yuck don't do these."
+  (funcall (p:alt #'basic-string #'literal-string) offset))
+
 (defun table (offset)
   (p:fmap (lambda (x)
             (destructuring-bind (name kvs) x
@@ -151,14 +171,14 @@ memory efficient than `basic-string'."
                   (setf (gethash (car pair) ht) (cadr pair)))
                 (make-table :key name :kvs ht))))
           (funcall (<*> (<* (p:between (p:char #\[)
-                                       #'bare-key
+                                       #'key
                                        (p:char #\]))
                             #'p:multispace)
                         (p:sep-end #'p:multispace #'pair))
                    offset)))
 
 #+nil
-(table (p:in "[foo]
+(table (p:in "[foo.bar]
 bar = 1
 baz = \"zoo\"
 zoo = 1988-07-05

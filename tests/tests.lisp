@@ -253,7 +253,11 @@
 (define-test toml-keys
   :parent toml
   (is equal "alex-h" (pc:parse #'pt::bare-key "alex-h"))
-  (is equal "123" (pc:parse #'pt::bare-key "123")))
+  (is equal "123" (pc:parse #'pt::bare-key "123"))
+  (is equalp (pt::make-tiered-key :key '("physical" "shape"))
+      (pc:parse #'pt:key "physical.shape"))
+  (is equalp (pt::make-tiered-key :key '("site" "google.com"))
+      (pc:parse #'pt:key "site.\"google.com\"")))
 
 (define-test toml-strings
   :parent toml
