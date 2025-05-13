@@ -257,7 +257,9 @@
   (is equalp (pt::make-tiered-key :key '("physical" "shape"))
       (pc:parse #'pt:key "physical.shape"))
   (is equalp (pt::make-tiered-key :key '("site" "google.com"))
-      (pc:parse #'pt:key "site.\"google.com\"")))
+      (pc:parse #'pt:key "site.\"google.com\""))
+  (is equalp (pt::make-tiered-key :key '("fruit" "colour"))
+      (pc:parse #'pt:key "fruit . colour")))
 
 (define-test toml-strings
   :parent toml

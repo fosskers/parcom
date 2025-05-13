@@ -145,15 +145,15 @@ memory efficient than `basic-string'."
 (defun key (offset)
   "Parser: A key that might be pointing several layers deep."
   (p:fmap (lambda (list) (make-tiered-key :key list))
-          (funcall (p:sep (p:char #\.) (p:alt #'bare-key #'quoted-key))
+          (funcall (p:sep (*> (p:char #\.) #'skip-all-space)
+                          (<* (p:alt #'bare-key #'quoted-key)
+                              #'skip-all-space))
                    offset)))
 
 #+nil
 (key (p:in "physical"))
 #+nil
 (key (p:in "physical.shape"))
-#+nil
-(key (p:in "site.\"google.com\""))
 
 (defun bare-key (offset)
   "Parser: Just ASCII letters, digits, dashes, and underscores."
