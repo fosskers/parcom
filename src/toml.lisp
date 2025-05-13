@@ -1,6 +1,6 @@
 (defpackage parcom/toml
   (:use :cl)
-  (:shadow #:string #:integer #:number #:boolean #:array)
+  (:shadow #:string #:integer #:number #:boolean #:array #:float)
   (:import-from :parcom #:<*> #:<* #:*> #:<$)
   (:local-nicknames (#:p #:parcom)
                     (#:pd #:parcom/datetime))
@@ -8,6 +8,7 @@
   ;; --- Entry --- ;;
   ;; --- Parsers --- ;;
   (:export #:key
+           #:number #:float
            #:table #:inline-table #:array))
 
 (in-package :parcom/toml)
@@ -267,6 +268,28 @@ sku = 12345")
   "Parser: Any number."
   (funcall (p:alt #'integer #'hex #'octal #'binary)
            offset))
+
+(defun float (offset)
+  "Parser: A Lisp double-float. Does not support NaN or infinity."
+  (p:fmap (lambda (parts)
+            (destructuring-bind (sign before after exp) parts
+              (let* ((*read-default-float-format* 'double-float)
+                     (e (or exp ""))
+                     (s (format nil "~{~a~}.~{~a~}~a" before after e))
+                     (n (read-from-string s)))
+                (if (eq :neg sign) (- n) n))))
+          (funcall (<*> (p:opt (p:alt (<$ :pos (p:char #\+))
+                                      (<$ :neg (p:char #\-))))
+                        (p:alt (p:pmap #'list (p:char #\0))
+                               (p:sep (p:char #\_)
+                                      (p:take-while1 #'p:digit?)))
+                        (p:opt (*> (p:char #\.)
+                                   (p:sep (p:char #\_)
+                                          (p:take-while1 #'p:digit?))))
+                        (p:opt (p:recognize (*> (p:alt (p:char #\e) (p:char #\E))
+                                                (p:opt (p:alt (p:char #\+) (p:char #\-)))
+                                                (p:take-while1 #'p:digit?)))))
+                   offset)))
 
 (defun integer (offset)
   "Parser: Whole numbers."

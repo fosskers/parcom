@@ -265,7 +265,7 @@
   :parent toml
   (is equal "the cat's catnip" (pc:parse #'pt::multiline-literal-string "'''the cat's catnip'''")))
 
-(define-test toml-numbers
+(define-test toml-integers
   :parent toml
   (is = 123 (pc:parse #'pt::integer "+123"))
   (is = -17 (pc:parse #'pt::integer "-17"))
@@ -283,6 +283,17 @@
   (fail (pc:parse #'pt::octal "0o8"))
   (is = 10 (pc:parse #'pt::binary "0b1010"))
   (is = 20 (pc:parse #'pt::binary "0b1010_0")))
+
+(define-test toml-floats
+  :parent toml
+  (is = 1.0d0 (pc:parse #'pt:float "+1.0"))
+  (is = 3.1415d0 (pc:parse #'pt:float "3.1415"))
+  (is = -0.01d0 (pc:parse #'pt:float "-0.01"))
+  (is = 5d+22 (pc:parse #'pt:float "5e+22"))
+  (is = 1d06 (pc:parse #'pt:float "1e06"))
+  (is = -2d-2 (pc:parse #'pt:float "-2E-2"))
+  (is = 6.626d-34 (pc:parse #'pt:float "6.626e-34"))
+  (is = 224617.445991228d0 (pc:parse #'pt:float "224_617.445_991_228")))
 
 (define-test toml-tables
   :parent toml
