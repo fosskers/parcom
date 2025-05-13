@@ -1,13 +1,14 @@
 (defpackage parcom/toml
   (:use :cl)
-  (:shadow #:string #:integer #:number #:boolean)
+  (:shadow #:string #:integer #:number #:boolean #:array)
   (:import-from :parcom #:<*> #:<* #:*> #:<$)
   (:local-nicknames (#:p #:parcom)
                     (#:pd #:parcom/datetime))
   ;; --- Types --- ;;
   ;; --- Entry --- ;;
   ;; --- Parsers --- ;;
-  (:export #:key))
+  (:export #:key
+           #:table #:inline-table #:array))
 
 (in-package :parcom/toml)
 
@@ -133,6 +134,10 @@ memory efficient than `basic-string'."
 #+nil
 (funcall #'skip-space (p:in "   abc"))
 
+(defun skip-all-space (offset)
+  "Like `skip-space' but consumes newlines as well."
+  (funcall (p:consume #'p:space?) offset))
+
 (defun key (offset)
   "Parser: A key that might be pointing several layers deep."
   (p:fmap (lambda (list) (make-tiered-key :key list))
@@ -200,6 +205,21 @@ zoo = 1988-07-05
 #+nil
 (p:parse #'inline-table "{ first = \"Tom\", last = \"Preston-Werner\" }")
 
+(defun array (offset)
+  "Parser: A list of values."
+  (funcall (p:between (*> (p:char #\[) #'skip-all-space)
+                      (p:sep-end (*> (p:char #\,) #'skip-all-space (p:opt #'comment) #'skip-all-space)
+                                 (<* #'value #'skip-all-space))
+                      (p:char #\]))
+           offset))
+
+#+nil
+(p:parse #'array "[
+1,
+2,  # comment!
+3,
+]")
+
 ;; String
 ;; Integer
 ;; Float
@@ -212,7 +232,7 @@ zoo = 1988-07-05
 ;; Inline table
 (defun value (offset)
   "Parser: The value portion of a key-value pair."
-  (funcall (p:alt #'string #'date-time #'number)
+  (funcall (p:alt #'string #'date-time #'number #'inline-table #'array)
            offset))
 
 (defun date-time (offset)

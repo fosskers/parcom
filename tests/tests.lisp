@@ -284,7 +284,21 @@
 
 (define-test toml-tables
   :parent toml
-  (is = 2 (hash-table-count (pc:parse #'pt::inline-table "{ first = \"Tom\", last = \"Preston-Werner\" }"))))
+  (is = 0 (hash-table-count (pc:parse #'pt:inline-table "{}")))
+  (is = 2 (hash-table-count (pc:parse #'pt:inline-table "{ first = \"Tom\", last = \"Preston-Werner\" }"))))
+
+(define-test toml-arrays
+  :parent toml
+  (is equal '() (pc:parse #'pt:array "[]"))
+  (is equal '(1 2 3) (pc:parse #'pt:array "[1,2,3]"))
+  (is equal '(1 2 3) (pc:parse #'pt:array "[1,2,3,]"))
+  (is equal '(1 2 3) (pc:parse #'pt:array "[ 1 , 2 , 3 ]"))
+  (is = 4 (length (pc:parse #'pt:array "[1,[2],3,{\"foo\" = 1}]")))
+  (is equal '(1 2 3) (pc:parse #'pt:array "[
+1,
+2,  # comment!
+3,
+]")))
 
 (define-test datetime)
 
