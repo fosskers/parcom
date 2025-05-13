@@ -22,6 +22,10 @@
   (key ""  :type tiered-key)
   (kvs nil :type hash-table))
 
+(defstruct arrayed-table
+  (key ""  :type tiered-key)
+  (kvs nil :type hash-table))
+
 ;; --- Entry --- ;;
 
 ;; TODO: 2025-05-13 Don't forget about the "top-level table".
@@ -179,8 +183,8 @@ memory efficient than `basic-string'."
           (funcall (<*> (<* (p:between (p:char #\[)
                                        #'key
                                        (p:char #\]))
-                            #'p:multispace)
-                        (p:sep-end #'p:multispace #'pair))
+                            #'skip-all-space)
+                        (p:sep-end #'skip-all-space #'pair))
                    offset)))
 
 #+nil
@@ -219,6 +223,26 @@ zoo = 1988-07-05
 2,  # comment!
 3,
 ]")
+
+(defun table-array (offset)
+  "Parser: An entry in an array-of-tables."
+  (p:fmap (lambda (x)
+            (destructuring-bind (name kvs) x
+              (let ((ht (make-hash-table :test #'equalp)))
+                (dolist (pair kvs)
+                  (setf (gethash (car pair) ht) (cadr pair)))
+                (make-arrayed-table :key name :kvs ht))))
+          (funcall (<*> (<* (p:between (p:string "[[")
+                                       #'key
+                                       (p:string "]]"))
+                            #'skip-all-space)
+                        (p:sep-end #'skip-all-space #'pair))
+                   offset)))
+
+#+nil
+(p:parse #'table-array "[[products]]
+name = \"Hammer\"
+sku = 12345")
 
 ;; String
 ;; Integer
