@@ -7,7 +7,8 @@
   ;; --- Types --- ;;
   ;; --- Entry --- ;;
   ;; --- Parsers --- ;;
-  (:export #:key
+  (:export #:toml
+           #:key
            #:number #:float
            #:table #:inline-table #:array))
 
@@ -29,10 +30,47 @@
 
 ;; --- Entry --- ;;
 
-;; TODO: 2025-05-13 Don't forget about the "top-level table".
 (defun toml (offset)
   "Parser: Parse a TOML document into a Hash Table."
-  (funcall (p:alt #'comment #'pair) offset))
+  (p:fmap (lambda (xs)
+            (destructuring-bind (top-level-pairs) xs
+              (let ((ht (make-hash-table :test #'equal)))
+                (dolist (pair top-level-pairs)
+                  (write-into-hash-table ht (tiered-key-key (car pair)) (cadr pair)))
+                ht)))
+          (funcall (<*> (*> #'skip-all-space
+                            (p:skip (*> #'comment #'skip-all-space))
+                            (p:sep-end (*> #'skip-all-space
+                                           (p:skip (*> #'comment #'skip-all-space)))
+                                       #'pair)))
+                   offset)))
+
+#+nil
+(p:parse #'toml (uiop:read-file-string "tests/data/basic.toml"))
+
+(defun write-into-hash-table (ht tiered-key item)
+  "Descend into nested Hash Tables until we exhaust the depth of a tiered key,
+and write its value there."
+  (unless (null tiered-key)
+    (destructuring-bind (head &rest rest) tiered-key
+      (let ((next (gethash head ht)))
+        (cond
+          ;; The user is not allowed to set multiple values to the same key.
+          ((and next (null rest))
+           (error "Value already set at key: ~a" head))
+          ;; The usual case: a value hasn't yet been set for this key, and we
+          ;; need not descend any further through the tiered-key.
+          ((and (null next) (null rest))
+           (setf (gethash head ht) item))
+          ;; There is a nested table here, and we need to go deeper.
+          ((and next (hash-table-p next) rest)
+           (write-into-hash-table next rest item))
+          ;; We need to go deeper, but no intermediate table has been written
+          ;; yet.
+          ((and (null next) rest)
+           (let ((deeper (make-hash-table :test #'equal)))
+             (setf (gethash head ht) deeper)
+             (write-into-hash-table deeper rest item))))))))
 
 ;; --- Parsers --- ;;
 
@@ -257,7 +295,13 @@ sku = 12345")
 ;; Inline table
 (defun value (offset)
   "Parser: The value portion of a key-value pair."
-  (funcall (p:alt #'string #'date-time #'number #'inline-table #'array)
+  (funcall (p:alt #'string #'date-time #'number #'bool #'inline-table #'array)
+           offset))
+
+(defun bool (offset)
+  "Parser: True or false."
+  (funcall (p:alt (<$ t   (p:string "true"))
+                  (<$ nil (p:string "false")))
            offset))
 
 (defun date-time (offset)

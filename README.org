@@ -121,6 +121,16 @@ SBCL:
 | parcom/json |       750 | 260m           |
 | yason       |      1700 | 400m           |
 
+Allegro:
+
+| Method      | Time (s) | Memory (bytes) |
+|-------------+----------+----------------|
+| jsown       |      0.7 | 91m            |
+| jzon        |      1.9 | 258m           |
+| shasht      |      2.2 | 453m           |
+| parcom/json |      2.2 | 886m           |
+| yason       |      8.2 | 457m           |
+
 ECL:
 
 | Method      | Time (s) | Memory (bytes) |

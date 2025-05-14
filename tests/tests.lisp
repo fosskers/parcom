@@ -261,6 +261,10 @@
   (is equalp (pt::make-tiered-key :key '("fruit" "colour"))
       (pc:parse #'pt:key "fruit . colour")))
 
+(define-test toml-pairs
+  :parent toml
+  (finish (pc:parse #'pt::pair "tiered.key = true")))
+
 (define-test toml-strings
   :parent toml
   (is equal "the cat's catnip" (pc:parse #'pt::multiline-literal-string "'''the cat's catnip'''")))
@@ -312,6 +316,15 @@
 2,  # comment!
 3,
 ]")))
+
+(define-test toml-documents
+  :parent toml
+  (let ((ht (pc:parse #'pt:toml (uiop:read-file-string "tests/data/basic.toml"))))
+    (of-type hash-table ht)
+    (is = 3 (hash-table-count ht))
+    (is equal "TOML Example" (gethash "title" ht))
+    (true (gethash "key" (gethash "tiered" ht)))
+    (is = 7 (gethash "still" (gethash "deeper" (gethash "tiered" ht))))))
 
 (define-test datetime)
 
