@@ -33,21 +33,30 @@
 (defun toml (offset)
   "Parser: Parse a TOML document into a Hash Table."
   (p:fmap (lambda (xs)
-            (destructuring-bind (top-level-pairs) xs
+            (destructuring-bind (top-level-pairs tables) xs
               (let ((ht (make-hash-table :test #'equal)))
                 (dolist (pair top-level-pairs)
                   (write-into-hash-table ht (tiered-key-key (car pair)) (cadr pair)))
+                (dolist (table tables)
+                  (write-into-hash-table ht (tiered-key-key (table-key table))
+                                         (table-kvs table)))
+
                 ht)))
           (funcall (<*> (*> #'skip-all-space
                             (p:skip (*> #'comment #'skip-all-space))
                             (p:sep-end (*> #'skip-all-space
                                            (p:skip (*> #'comment #'skip-all-space)))
-                                       #'pair)))
+                                       #'pair))
+                        (p:sep-end (*> #'skip-all-space
+                                       (p:skip (*> #'comment #'skip-all-space)))
+                                   #'table))
                    offset)))
 
 #+nil
 (p:parse #'toml (uiop:read-file-string "tests/data/basic.toml"))
 
+;; TODO: Handle tiered keys within tables, when the `item' you're writing is
+;; itself a hash table.
 (defun write-into-hash-table (ht tiered-key item)
   "Descend into nested Hash Tables until we exhaust the depth of a tiered key,
 and write its value there."
@@ -58,7 +67,14 @@ and write its value there."
           ;; The user is not allowed to set multiple values to the same key.
           ((and next (null rest))
            (error "Value already set at key: ~a" head))
-          ;; The usual case: a value hasn't yet been set for this key, and we
+          ;; Usual case (1): a value hasn't yet been set for this key, and the
+          ;; value itself is a table, so we need to descend through it as well.
+          ((and (null next) (null rest) (hash-table-p item))
+           (let ((new (make-hash-table :test #'equal)))
+             (setf (gethash head ht) new)
+             (maphash (lambda (k v) (write-into-hash-table new (tiered-key-key k) v))
+                      item)))
+          ;; Usual case (2): a value hasn't yet been set for this key, and we
           ;; need not descend any further through the tiered-key.
           ((and (null next) (null rest))
            (setf (gethash head ht) item))

@@ -321,10 +321,10 @@
   :parent toml
   (let ((ht (pc:parse #'pt:toml (uiop:read-file-string "tests/data/basic.toml"))))
     (of-type hash-table ht)
-    (is = 3 (hash-table-count ht))
     (is equal "TOML Example" (gethash "title" ht))
     (true (gethash "key" (gethash "tiered" ht)))
-    (is = 7 (gethash "still" (gethash "deeper" (gethash "tiered" ht))))))
+    (is = 7 (gethash "still" (gethash "deeper" (gethash "tiered" ht))))
+    (is equal "Tom Preston-Werner" (gethash "name" (gethash "owner" ht)))))
 
 (define-test datetime)
 
