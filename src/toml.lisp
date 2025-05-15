@@ -85,6 +85,10 @@ and write its value there."
              (setf (gethash head ht) (list new))
              (maphash (lambda (k v) (write-into-hash-table new (tiered-key-key k) v))
                       item)))
+          ;; The case where they've mixed dotted keys and non-dotted keys under
+          ;; a single parent array-of-tables. Consider the "fruits" example.
+          ((and existed? rest append (listp next))
+           (write-into-hash-table (car next) rest item :append t))
           ;; Usual case (1): a value hasn't yet been set for this key, and the
           ;; value itself is a table, so we need to descend through it as well.
           ((and (not existed?) (null rest) (hash-table-p item))
@@ -316,6 +320,10 @@ zoo = 1988-07-05
                             #'skip-all-space)
                         (p:sep-end #'skip-all-space #'pair))
                    offset)))
+
+#+nil
+(p:parse #'table-array "[[fruits.varieties]]
+name = \"plantain\"")
 
 #+nil
 (p:parse #'table-array "[[products]]
