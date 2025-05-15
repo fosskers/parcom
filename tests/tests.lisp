@@ -327,7 +327,9 @@
     (is = 7 (gethash "still" (gethash "deeper" (gethash "tiered" ht))))
     (is equal "Tom Preston-Werner" (gethash "name" (gethash "owner" ht)))
     (true (gethash "enabled" (gethash "database" ht)))
-    (is equal '(("delta" "phi") (3.14d0)) (gethash "data" (gethash "database" ht)))))
+    (is equal '(("delta" "phi") (3.14d0)) (gethash "data" (gethash "database" ht)))
+    (is equal "frontend" (gethash "role" (gethash "alpha" (gethash "servers" ht))))
+    (is equal "backend" (gethash "role" (gethash "beta" (gethash "servers" ht))))))
 
 (define-test datetime)
 

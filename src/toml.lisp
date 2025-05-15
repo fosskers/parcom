@@ -5,10 +5,14 @@
   (:local-nicknames (#:p #:parcom)
                     (#:pd #:parcom/datetime))
   ;; --- Types --- ;;
+  (:export #:table #:table-key #:table-kvs
+           #:tiered-key #:tiered-key-key
+           #:arrayed-table #:arrayed-table-key #:arrayed-table-kvs)
   ;; --- Entry --- ;;
+  (:export #:parse)
   ;; --- Parsers --- ;;
   (:export #:toml
-           #:key
+           #:key #:value #:pair
            #:number #:float
            #:table #:inline-table #:array))
 
@@ -30,6 +34,10 @@
 
 ;; --- Entry --- ;;
 
+(defun parse (input)
+  "Attempt to parse any JSON value."
+  (p:parse #'toml input))
+
 (defun toml (offset)
   "Parser: Parse a TOML document into a Hash Table."
   (p:fmap (lambda (xs)
@@ -42,21 +50,14 @@
                                          (table-kvs table)))
 
                 ht)))
-          (funcall (<*> (*> #'skip-all-space
-                            (p:skip (*> #'comment #'skip-all-space))
-                            (p:sep-end (*> #'skip-all-space
-                                           (p:skip (*> #'comment #'skip-all-space)))
-                                       #'pair))
-                        (p:sep-end (*> #'skip-all-space
-                                       (p:skip (*> #'comment #'skip-all-space)))
-                                   #'table))
+          (funcall (<*> (*> #'skip-space-and-comments
+                            (p:sep-end #'skip-space-and-comments #'pair))
+                        (p:sep-end #'skip-space-and-comments #'table))
                    offset)))
 
 #+nil
 (p:parse #'toml (uiop:read-file-string "tests/data/basic.toml"))
 
-;; TODO: Handle tiered keys within tables, when the `item' you're writing is
-;; itself a hash table.
 (defun write-into-hash-table (ht tiered-key item)
   "Descend into nested Hash Tables until we exhaust the depth of a tiered key,
 and write its value there."
@@ -193,6 +194,12 @@ memory efficient than `basic-string'."
 #+nil
 (funcall #'skip-space (p:in "   abc"))
 
+(defun skip-space-and-comments (offset)
+  "Blows past all the stuff we don't care about."
+  (funcall (*> #'skip-all-space
+               (p:skip (*> #'comment #'skip-all-space)))
+           offset))
+
 (defun skip-all-space (offset)
   "Like `skip-space' but consumes newlines as well."
   (funcall (p:consume #'p:space?) offset))
@@ -238,8 +245,8 @@ memory efficient than `basic-string'."
           (funcall (<*> (<* (p:between (p:char #\[)
                                        #'key
                                        (p:char #\]))
-                            #'skip-all-space)
-                        (p:sep-end #'skip-all-space #'pair))
+                            #'skip-space-and-comments)
+                        (p:sep-end #'skip-space-and-comments #'pair))
                    offset)))
 
 #+nil
