@@ -46,45 +46,62 @@
                 (dolist (pair top-level-pairs)
                   (write-into-hash-table ht (tiered-key-key (car pair)) (cadr pair)))
                 (dolist (table tables)
-                  (write-into-hash-table ht (tiered-key-key (table-key table))
-                                         (table-kvs table)))
+                  (etypecase table
+                    (table (write-into-hash-table ht (tiered-key-key (table-key table))
+                                                  (table-kvs table)))
+                    (arrayed-table (write-into-hash-table ht (tiered-key-key (arrayed-table-key table))
+                                                          (arrayed-table-kvs table)
+                                                          :append t))))
 
                 ht)))
           (funcall (<*> (*> #'skip-space-and-comments
                             (p:sep-end #'skip-space-and-comments #'pair))
-                        (p:sep-end #'skip-space-and-comments #'table))
+                        (p:sep-end #'skip-space-and-comments
+                                   (p:alt #'table-array #'table)))
                    offset)))
 
 #+nil
 (p:parse #'toml (uiop:read-file-string "tests/data/basic.toml"))
 
-(defun write-into-hash-table (ht tiered-key item)
+(defun write-into-hash-table (ht tiered-key item &key (append nil))
   "Descend into nested Hash Tables until we exhaust the depth of a tiered key,
 and write its value there."
   (unless (null tiered-key)
     (destructuring-bind (head &rest rest) tiered-key
-      (let ((next (gethash head ht)))
+      (multiple-value-bind (next existed?) (gethash head ht)
         (cond
           ;; The user is not allowed to set multiple values to the same key.
-          ((and next (null rest))
+          ((and existed? (null rest) (not append))
            (error "Value already set at key: ~a" head))
+          ;; An array-of-tables item needs to be appended.
+          ((and existed? (listp next) (null rest) append (hash-table-p item))
+           (let ((new (make-hash-table :test #'equal)))
+             (setf (gethash head ht) (cons new next))
+             (maphash (lambda (k v) (write-into-hash-table new (tiered-key-key k) v))
+                      item)))
+          ;; A new array-of-tables needs to be created.
+          ((and (not existed?) (null rest) append (hash-table-p item))
+           (let ((new (make-hash-table :test #'equal)))
+             (setf (gethash head ht) (list new))
+             (maphash (lambda (k v) (write-into-hash-table new (tiered-key-key k) v))
+                      item)))
           ;; Usual case (1): a value hasn't yet been set for this key, and the
           ;; value itself is a table, so we need to descend through it as well.
-          ((and (null next) (null rest) (hash-table-p item))
+          ((and (not existed?) (null rest) (hash-table-p item))
            (let ((new (make-hash-table :test #'equal)))
              (setf (gethash head ht) new)
              (maphash (lambda (k v) (write-into-hash-table new (tiered-key-key k) v))
                       item)))
           ;; Usual case (2): a value hasn't yet been set for this key, and we
           ;; need not descend any further through the tiered-key.
-          ((and (null next) (null rest))
+          ((and (not existed?) (null rest))
            (setf (gethash head ht) item))
           ;; There is a nested table here, and we need to go deeper.
-          ((and next (hash-table-p next) rest)
+          ((and existed? (hash-table-p next) rest)
            (write-into-hash-table next rest item))
           ;; We need to go deeper, but no intermediate table has been written
           ;; yet.
-          ((and (null next) rest)
+          ((and (not existed?) rest)
            (let ((deeper (make-hash-table :test #'equal)))
              (setf (gethash head ht) deeper)
              (write-into-hash-table deeper rest item))))))))
