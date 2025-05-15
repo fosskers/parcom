@@ -293,6 +293,7 @@
   (is = 1.0d0 (pc:parse #'pt:float "+1.0"))
   (is = 3.1415d0 (pc:parse #'pt:float "3.1415"))
   (is = -0.01d0 (pc:parse #'pt:float "-0.01"))
+  #-ecl
   (is = 5d+22 (pc:parse #'pt:float "5e+22"))
   (is = 1d06 (pc:parse #'pt:float "1e06"))
   (is = -2d-2 (pc:parse #'pt:float "-2E-2"))
