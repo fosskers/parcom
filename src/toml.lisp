@@ -267,17 +267,16 @@ zoo = 1988-07-05
 (defun array (offset)
   "Parser: A list of values."
   (funcall (p:between (*> (p:char #\[) #'skip-all-space)
-                      (p:sep-end (*> (p:char #\,) #'skip-all-space (p:opt #'comment) #'skip-all-space)
+                      (p:sep-end (*> (p:char #\,)
+                                     #'skip-all-space
+                                     (p:opt #'comment)
+                                     #'skip-all-space)
                                  (<* #'value #'skip-all-space))
                       (p:char #\]))
            offset))
 
 #+nil
-(p:parse #'array "[
-1,
-2,  # comment!
-3,
-]")
+(p:parse #'array "[ [\"delta\", \"phi\"], [3.14] ]")
 
 (defun table-array (offset)
   "Parser: An entry in an array-of-tables."
@@ -326,7 +325,7 @@ sku = 12345")
 
 (defun number (offset)
   "Parser: Any number."
-  (funcall (p:alt #'integer #'hex #'octal #'binary)
+  (funcall (p:alt #'float #'integer #'hex #'octal #'binary)
            offset))
 
 (defun float (offset)
@@ -341,11 +340,11 @@ sku = 12345")
           (funcall (<*> (p:opt (p:alt (<$ :pos (p:char #\+))
                                       (<$ :neg (p:char #\-))))
                         (p:alt (p:pmap #'list (p:char #\0))
-                               (p:sep (p:char #\_)
-                                      (p:take-while1 #'p:digit?)))
+                               (p:sep1 (p:char #\_)
+                                       (p:take-while1 #'p:digit?)))
                         (p:opt (*> (p:char #\.)
-                                   (p:sep (p:char #\_)
-                                          (p:take-while1 #'p:digit?))))
+                                   (p:sep1 (p:char #\_)
+                                           (p:take-while1 #'p:digit?))))
                         (p:opt (p:recognize (*> (p:alt (p:char #\e) (p:char #\E))
                                                 (p:opt (p:alt (p:char #\+) (p:char #\-)))
                                                 (p:take-while1 #'p:digit?)))))

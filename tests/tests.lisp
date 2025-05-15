@@ -311,6 +311,7 @@
   (is equal '(1 2 3) (pc:parse #'pt:array "[1,2,3,]"))
   (is equal '(1 2 3) (pc:parse #'pt:array "[ 1 , 2 , 3 ]"))
   (is = 4 (length (pc:parse #'pt:array "[1,[2],3,{\"foo\" = 1}]")))
+  (is equal '((3.14d0)) (pc:parse #'pt:array "[[3.14]]"))
   (is equal '(1 2 3) (pc:parse #'pt:array "[
 1,
 2,  # comment!
@@ -324,7 +325,9 @@
     (is equal "TOML Example" (gethash "title" ht))
     (true (gethash "key" (gethash "tiered" ht)))
     (is = 7 (gethash "still" (gethash "deeper" (gethash "tiered" ht))))
-    (is equal "Tom Preston-Werner" (gethash "name" (gethash "owner" ht)))))
+    (is equal "Tom Preston-Werner" (gethash "name" (gethash "owner" ht)))
+    (true (gethash "enabled" (gethash "database" ht)))
+    (is equal '(("delta" "phi") (3.14d0)) (gethash "data" (gethash "database" ht)))))
 
 (define-test datetime)
 
