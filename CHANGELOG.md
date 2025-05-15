@@ -1,9 +1,10 @@
 # Parcom Changelog
 
-### Unreleased
+### 1.2.0 (2025-05-16)
 
 #### Added
 
+- The `parcom/toml` system.
 - Parser: `pure` for injecting values as parsers.
 - Utility: `pmap` for transforming parser successes more directly than `fmap`.
 
