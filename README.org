@@ -841,7 +841,7 @@ By depending on the optional =parcom/json= system, you can parse JSON strings or
 include parcom-compatible JSON parsers into your own custom parsing code.
 
 =(in-package :parcom/json)= is used below for brevity, but it's assumed that in
-your own code you will use a nickname, perhaps =pj=.
+your own code you will use a nickname, perhaps =pj= or =json=.
 
 If you don't care about the individual parsers per se and just want to simply
 parse some JSON, use =pj:parse=.
@@ -915,7 +915,10 @@ Please consult the source code if you need them.
 The =parcom/toml= system provides types and parsers for [[https://toml.io/][TOML]] files.
 
 =(in-package :parcom/toml)= is used below for brevity, but it's assumed that in
-your own code you will use a nickname, perhaps =pt=.
+your own code you will use a nickname, perhaps =pt= or =toml=.
+
+If you don't care about the individual parsers per se and just want to simply
+parse some TOML, use =pt:parse=.
 
 This parser is TOML 1.0.0 compliant, with one exception: =inf= and =nan= float
 values are not accepted.
