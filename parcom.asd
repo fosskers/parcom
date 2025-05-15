@@ -23,7 +23,6 @@
   :components ((:module "src" :components ((:file "datetime"))))
   :in-order-to ((test-op (test-op :parcom/tests))))
 
-;; NOTE: 2025-05-09 Don't use this yet!
 (defsystem "parcom/toml"
   :depends-on (:parcom :parcom/datetime)
   :components ((:module "src" :components ((:file "toml"))))

@@ -73,8 +73,11 @@ reallocated.
   - [[#json][JSON]]
     - [[#parse][parse]]
     - [[#json-1][json]]
-  - [[#dates-and-times][Dates and Times]]
+  - [[#toml][TOML]]
     - [[#parse-1][parse]]
+    - [[#toml-1][toml]]
+  - [[#dates-and-times][Dates and Times]]
+    - [[#parse-2][parse]]
     - [[#now][now]]
     - [[#date][date]]
     - [[#time][time]]
@@ -907,6 +910,51 @@ Parse any kind of JSON (the actual parser).
 There are other subparsers exposed, but they are left out here for brevity.
 Please consult the source code if you need them.
 
+** TOML
+
+The =parcom/toml= system provides types and parsers for [[https://toml.io/][TOML]] files.
+
+=(in-package :parcom/toml)= is used below for brevity, but it's assumed that in
+your own code you will use a nickname, perhaps =pt=.
+
+This parser is TOML 1.0.0 compliant, with one exception: =inf= and =nan= float
+values are not accepted.
+
+This system has no dependencies other than =parcom/datetime=.
+
+*** parse
+
+Parse a full TOML document directly from a string.
+
+#+begin_src lisp :exports both
+(in-package :parcom/toml)
+(parse "# My Config
+
+[project]
+name = \"parcom\"")
+#+end_src
+
+#+RESULTS:
+: #<HASH-TABLE :TEST EQUAL :COUNT 1 {10089AB2F3}>
+
+*** toml
+
+Parse TOML via the actual parser.
+
+#+begin_src lisp :exports both
+(in-package :parcom/toml)
+(funcall #'toml (parcom:in "# My Config
+
+[project]
+name = \"parcom\""))
+#+end_src
+
+#+RESULTS:
+: #<HASH-TABLE :TEST EQUAL :COUNT 1 {1008BBCAC3}>, 38
+
+There are other subparsers exposed, but they are left out here for brevity.
+Please consult the source code if you need them.
+
 ** Dates and Times
 
 The =parcom/datetime= system provides types and parsers for [[https://datatracker.ietf.org/doc/html/rfc3339][RFC3339]] timestamps.
@@ -997,7 +1045,6 @@ different from =cl:format=!
 
 #+RESULTS:
 : 1975-04-05
-
 * Writing your own Parsers
 
 ** Basics
