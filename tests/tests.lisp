@@ -3,7 +3,8 @@
   (:local-nicknames (#:pc #:parcom)
                     (#:pj #:parcom/json)
                     (#:pt #:parcom/toml)
-                    (#:pd #:parcom/datetime)))
+                    (#:pd #:parcom/datetime)
+                    (#:px #:parcom/xml)))
 
 (in-package :parcom/tests)
 
@@ -397,3 +398,9 @@
   (of-type pd:offset-date-time (pd:parse "1990-12-31T23:59:60Z"))
   (of-type pd:offset-date-time (pd:parse "1990-12-31T15:59:60-08:00"))
   (of-type pd:offset-date-time (pd:parse "1937-01-01T12:00:27.87+00:20")))
+
+(define-test xml)
+
+(define-test xml-comment
+  :parent xml
+  (is equal "hello" (pc:parse #'px::comment "<!-- hello -->")))
