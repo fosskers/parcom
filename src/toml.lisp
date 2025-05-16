@@ -63,7 +63,7 @@
 #+nil
 (p:parse #'toml (uiop:read-file-string "tests/data/basic.toml"))
 #+nil
-(p:parse #'toml (uiop:read-file-string "/home/colin/code/haskell/aura/rust/Cargo.toml"))
+(p:parse #'toml (uiop:read-file-string "/home/colin/code/haskell/aura/rust/deny.toml"))
 
 (defun write-into-hash-table (ht tiered-key item &key (append nil))
   "Descend into nested Hash Tables until we exhaust the depth of a tiered key,
@@ -299,7 +299,7 @@ zoo = 1988-07-05
   (funcall (p:between (*> (p:char #\[) #'skip-space-and-comments)
                       (p:sep-end (*> (p:char #\,) #'skip-space-and-comments)
                                  (<* #'value #'skip-all-space))
-                      (p:char #\]))
+                      (*> #'skip-space-and-comments (p:char #\])))
            offset))
 
 #+nil
