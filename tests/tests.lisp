@@ -321,7 +321,7 @@
 
 (define-test toml-documents
   :parent toml
-  (let ((ht (pc:parse #'pt:toml (uiop:read-file-string "tests/data/basic.toml"))))
+  (let ((ht (pt:parse (uiop:read-file-string "tests/data/basic.toml"))))
     (of-type hash-table ht)
     (is equal "TOML Example" (gethash "title" ht))
     (true (gethash "key" (gethash "tiered" ht)))
