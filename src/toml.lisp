@@ -62,8 +62,6 @@
 
 #+nil
 (p:parse #'toml (uiop:read-file-string "tests/data/basic.toml"))
-#+nil
-(p:parse #'toml (uiop:read-file-string "/home/colin/code/haskell/aura/rust/deny.toml"))
 
 (defun write-into-hash-table (ht tiered-key item &key (append nil))
   "Descend into nested Hash Tables until we exhaust the depth of a tiered key,
@@ -104,7 +102,7 @@ and write its value there."
            (setf (gethash head ht) item))
           ;; There is a nested table here, and we need to go deeper.
           ((and existed? (hash-table-p next) rest)
-           (write-into-hash-table next rest item))
+           (write-into-hash-table next rest item :append append))
           ;; We need to go deeper, but no intermediate table has been written
           ;; yet.
           ((and (not existed?) rest)
