@@ -15,7 +15,14 @@ and Rust's =nom=.
 "zero copy" in that extracted substrings of the original input are not
 reallocated.
 
-=parcom= has no dependencies.
+Also provided are the following subsystems, which can be used independently to
+read their associated formats:
+
+- =parcom/json=
+- =parcom/toml=
+- =parcom/datetime=
+
+=parcom= and its children have no dependencies.
 
 * Table of Contents :TOC_5_gh:noexport:
 - [[#compatibility][Compatibility]]
