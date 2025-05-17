@@ -38,17 +38,39 @@
 #+nil
 (pair (p:in "version=\"1.0\""))
 
+(defun elements (offset)
+  "Parser: A linear series of elements parsed into a Hash Table."
+  (p:fmap (lambda (els)
+            (let ((ht (make-hash-table :test #'equal)))
+              (dolist (pair els)
+                (setf (gethash (car pair) ht) (cdr pair)))
+              ht))
+          (funcall (p:sep-end1 #'skip-space-and-comments #'element) offset)))
+
+#+nil
+(p:parse #'elements "<greeting>hi!</greeting>
+<!-- comment -->
+<farewell>bye!</farewell>
+<!-- comment -->
+")
+
 (defun element (offset)
   "Parser: Some basic element with character contents."
   (multiple-value-bind (res next) (open-tag offset)
     (if (p:failure? res)
         (p:fail next)
-        (funcall (<* (p:take-while (lambda (c) (not (eql #\< c))))
-                     (close-tag res))
-                 next))))
+        (p:fmap (lambda (s) (cons res s))
+                (funcall (<* (*> #'skip-all-space
+                                 (p:alt #'elements
+                                        (p:take-while (lambda (c) (not (or (eql #\< c) (eql c #\newline)))))))
+                             #'skip-all-space
+                             (close-tag res))
+                         next)))))
 
 #+nil
 (p:parse #'element "<greeting>hi!</greeting>")
+#+nil
+(p:parse #'element "<phrases><greeting>hi!</greeting><farewell>bye!</farewell></phrases>")
 
 (defun open-tag (offset)
   "Parser: The <foo> part of an element."
@@ -87,13 +109,23 @@
 #+nil
 (p:parse #'document-type "<?xml version=\"1.0\" encoding=\"UTF-8\"?>")
 
+(defun simplify-string (s)
+  "Convert some general string into a simple-string."
+  (let ((new (make-array (length s) :element-type 'character)))
+    (replace new s)))
+
 (defun skip-space (offset)
   "A faster variant of `space' that just advances over whitespace chars."
   (funcall (p:consume (lambda (c) (or (equal c #\space) (equal c #\tab))))
            offset))
 
 (declaim (ftype (function (string) simple-string) simplify-string))
-(defun simplify-string (s)
-  "Convert some general string into a simple-string."
-  (let ((new (make-array (length s) :element-type 'character)))
-    (replace new s)))
+(defun skip-all-space (offset)
+  "Like `skip-space' but consumes newlines as well."
+  (funcall (p:consume #'p:space?) offset))
+
+(defun skip-space-and-comments (offset)
+  "Blows past all the stuff we don't care about."
+  (funcall (*> #'skip-all-space
+               (p:skip (*> #'comment #'skip-all-space)))
+           offset))

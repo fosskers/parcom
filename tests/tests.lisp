@@ -407,4 +407,8 @@
 
 (define-test xml-element
   :parent xml
-  (is equal "hi!" (pc:parse #'px::element "<greeting>hi!</greeting>")))
+  (is equal '("greeting" . "hi!") (pc:parse #'px::element "<greeting>hi!</greeting>"))
+  (is equal '("greeting" . "hi!") (pc:parse #'px::element "<greeting>
+hi!
+</greeting>"))
+  (is = 2 (hash-table-count (cdr (pc:parse #'px::element "<phrases><greeting>hi!</greeting><farewell>bye!</farewell></phrases>")))))
