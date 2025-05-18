@@ -81,11 +81,8 @@ carried."
 
 #+nil
 (p:parse #'elements "<greeting>hi!</greeting>
-
 <!-- comment -->
-
 <farewell hi=\"there\">bye!</farewell>
-
 <!-- comment -->
 ")
 
@@ -105,10 +102,10 @@ carried."
                     (if (not meta)
                         (cons name content)
                         (cons name (make-element :content content :metadata meta))))
-                  (funcall (<* (*> #'skip-all-space
+                  (funcall (<* (*> #'skip-space-and-comments
                                    (p:alt #'elements
                                           (p:take-while (lambda (c) (not (or (eql #\< c) (eql c #\newline)))))))
-                               #'skip-all-space
+                               #'skip-space-and-comments
                                (close-tag name))
                            next))))))
 

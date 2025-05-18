@@ -411,4 +411,9 @@
   (is equal '("greeting" . "hi!") (pc:parse #'px::element "<greeting>
 hi!
 </greeting>"))
+  (is equal '("greeting" . "hi!") (pc:parse #'px::element "<greeting>
+<!-- comment -->
+hi!
+<!-- comment -->
+</greeting>"))
   (is = 2 (hash-table-count (cdr (pc:parse #'px::element "<phrases><greeting>hi!</greeting><farewell>bye!</farewell></phrases>")))))
