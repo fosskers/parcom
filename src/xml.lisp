@@ -35,12 +35,12 @@ carried."
   "Attempt to parse a whole XML document."
   (p:parse #'xml input))
 
-;; TODO: Incomplete.
 (defun xml (offset)
   "Parser: Parse an entire XML document into a Hash Table."
   (funcall (*> #'skip-space-and-comments
                (<*> #'document-type
-                    #'elements))
+                    (*> #'skip-space-and-comments
+                        #'elements)))
            offset))
 
 #+nil
@@ -50,13 +50,18 @@ carried."
 
 (defun comment (offset)
   "Parser: A comment tag."
-  (funcall (p:between (p:string "<!-- ")
-                      (p:take-until (p:string " -->"))
-                      (p:string " -->"))
+  (funcall (p:between (p:string "<!--")
+                      (p:take-until (p:string "-->"))
+                      (p:string "-->"))
            offset))
 
 #+nil
 (comment (p:in "<!-- hello -->"))
+#+nil
+(p:parse #'comment "<!--
+  Hello!
+-->
+")
 
 (defun pair (offset)
   "Parser: Some key-value pair. Tag metadata?"
@@ -104,7 +109,8 @@ carried."
                         (cons name (make-element :content content :metadata meta))))
                   (funcall (<* (*> #'skip-space-and-comments
                                    (p:alt #'elements
-                                          (p:take-while (lambda (c) (not (or (eql #\< c) (eql c #\newline)))))))
+                                          (p:pmap (lambda (s) (string-trim '(#\newline #\space) s))
+                                                  (p:take-while (lambda (c) (not (eql #\< c)))))))
                                #'skip-space-and-comments
                                (close-tag name))
                            next))))))
@@ -115,6 +121,13 @@ carried."
 (p:parse #'element "<greeting>hi!</greeting>")
 #+nil
 (p:parse #'element "<phrases><greeting>hi!</greeting><farewell>bye!</farewell></phrases>")
+
+#+nil
+(p:parse #'element "<description>
+The Apache Commons IO library contains utility classes, stream implementations, file filters,
+file comparators, endian transformation classes, and much more.
+  </description>
+")
 
 (defun open-tag (offset)
   "Parser: The <foo> part of an element."
