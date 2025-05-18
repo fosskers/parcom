@@ -107,6 +107,7 @@ kept. Good for parsing backets, parentheses, etc."
 #+nil
 (funcall (sep1 (char #\!) (string "pilum")) (in "pilum!pilum!pilum!"))
 
+(declaim (ftype (function (maybe-parse maybe-parse) (function (fixnum) (values list fixnum))) sep-end))
 (defun sep-end (sep parser)
   "Parse 0 or more instances of a `parser' separated by some `sep' parser. Parses
 the separator eagerly, such that a final instance of it will also be parsed,
@@ -137,9 +138,9 @@ the separator eagerly, such that a final instance of it will also be parsed,
 even if not followed by an instance of the main parser."
   (lambda (offset)
     (multiple-value-bind (res next) (funcall (sep-end sep parser) offset)
-      (cond ((failure? res) (fail next))
-            ((null res) (fail offset))
-            (t (values res next))))))
+      (if (null res)
+          (fail offset)
+          (values res next)))))
 
 #+nil
 (funcall (sep-end1 (char #\!) (string "pilum")) (in "."))

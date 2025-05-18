@@ -2,10 +2,34 @@
   (:use :cl)
   (:import-from :parcom #:<*> #:<* #:*> #:<$)
   (:local-nicknames (#:p #:parcom))
+  ;; --- Types --- ;;
+  (:export #:element #:element-content #:element-metadata #:content)
   ;; --- Entry --- ;;
   (:export #:parse #:xml))
 
 (in-package :parcom/xml)
+
+;; --- Types --- ;;
+
+(defstruct element
+  "The content of an element, alongside any metadata its opening tag may have
+carried."
+  (content  ""  :type (or string hash-table))
+  (metadata nil :type (or null hash-table)))
+
+(defgeneric content (element)
+  (:documentation "Fetch the inner `content' of an element."))
+
+(defmethod content ((element element))
+  (element-content element))
+
+(defmethod content ((element string))
+  element)
+
+(defmethod content ((elements hash-table))
+  elements)
+
+;; --- Entry --- ;;
 
 (defun parse (input)
   "Attempt to parse a whole XML document."
@@ -14,7 +38,15 @@
 ;; TODO: Incomplete.
 (defun xml (offset)
   "Parser: Parse an entire XML document into a Hash Table."
-  (funcall (p:alt #'comment) offset))
+  (funcall (*> #'skip-space-and-comments
+               (<*> #'document-type
+                    #'elements))
+           offset))
+
+#+nil
+(p:parse #'xml (uiop:read-file-string "tests/data/java.pom"))
+
+;; --- Parsers --- ;;
 
 (defun comment (offset)
   "Parser: A comment tag."
@@ -28,7 +60,7 @@
 
 (defun pair (offset)
   "Parser: Some key-value pair. Tag metadata?"
-  (funcall (<*> (p:take-while (lambda (c) (not (eql #\= c))))
+  (funcall (<*> (p:take-while1 (lambda (c) (not (or (eql #\= c) (eql #\> c)))))
                 (*> (p:char #\=)
                     (p:between (p:char #\")
                                (p:take-while (lambda (c) (not (eql #\" c))))
@@ -49,24 +81,39 @@
 
 #+nil
 (p:parse #'elements "<greeting>hi!</greeting>
+
 <!-- comment -->
-<farewell>bye!</farewell>
+
+<farewell hi=\"there\">bye!</farewell>
+
 <!-- comment -->
 ")
+
+#+nil
+(p:parse #'elements "<farewell meta=\"hi\">bye!</farewell>")
 
 (defun element (offset)
   "Parser: Some basic element with character contents."
   (multiple-value-bind (res next) (open-tag offset)
     (if (p:failure? res)
         (p:fail next)
-        (p:fmap (lambda (s) (cons res s))
-                (funcall (<* (*> #'skip-all-space
-                                 (p:alt #'elements
-                                        (p:take-while (lambda (c) (not (or (eql #\< c) (eql c #\newline)))))))
-                             #'skip-all-space
-                             (close-tag res))
-                         next)))))
+        (multiple-value-bind (name meta)
+            (etypecase res
+              (simple-string (values res nil))
+              (cons (values (car res) (cdr res))))
+          (p:fmap (lambda (content)
+                    (if (not meta)
+                        (cons name content)
+                        (cons name (make-element :content content :metadata meta))))
+                  (funcall (<* (*> #'skip-all-space
+                                   (p:alt #'elements
+                                          (p:take-while (lambda (c) (not (or (eql #\< c) (eql c #\newline)))))))
+                               #'skip-all-space
+                               (close-tag name))
+                           next))))))
 
+#+nil
+(p:parse #'element "<greeting foo=\"bar\">hi!</greeting>")
 #+nil
 (p:parse #'element "<greeting>hi!</greeting>")
 #+nil
@@ -74,17 +121,33 @@
 
 (defun open-tag (offset)
   "Parser: The <foo> part of an element."
-  (funcall (p:between (p:char #\<)
-                      (p:pmap #'simplify-string
-                              (p:take-while1 (lambda (c) (not (eql c #\>)))))
-                      (p:char #\>))
-           offset))
+  (p:fmap (lambda (two)
+            (destructuring-bind (name meta) two
+              (if (not meta)
+                  name
+                  (let ((ht (make-hash-table :test #'equal)))
+                    (dolist (pair meta)
+                      (setf (gethash (car pair) ht) (cadr pair)))
+                    (cons name ht)))))
+          (funcall (p:between (p:char #\<)
+                              (<*> (p:pmap #'simplify-string
+                                           (p:take-while1 (lambda (c)
+                                                            (not (or (eql c #\>)
+                                                                     (eql c #\space))))))
+                                   (p:opt (*> (p:char #\space)
+                                              #'skip-space
+                                              (p:sep-end1 #'skip-space #'pair))))
+                              (p:char #\>))
+                   offset)))
 
 #+nil
-(p:parse #'open-tag "<greeting>")
+(open-tag (p:in "<greeting>"))
+#+nil
+(p:parse #'open-tag "<greeting foo=\"bar\" baz=\"zoo\">")
 
 (defun close-tag (label)
   (lambda (offset)
+    (declare (optimize (debug 3)))
     ;; TODO: 2025-05-17 Make a lambda cache for string.
     (funcall (p:between (p:string "</")
                         (p:string label)

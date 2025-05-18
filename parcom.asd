@@ -34,7 +34,7 @@
   :in-order-to ((test-op (test-op :parcom/tests))))
 
 (defsystem "parcom/tests"
-  :depends-on (:parcom :parcom/json :parcom/datetime :parcom/toml :parachute)
+  :depends-on (:parcom :parcom/json :parcom/datetime :parcom/toml :parcom/xml :parachute)
   :components ((:module "tests" :components ((:file "tests"))))
   :perform (test-op (op c) (symbol-call :parachute :test :parcom/tests)))
 
