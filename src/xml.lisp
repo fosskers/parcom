@@ -109,8 +109,18 @@ carried."
                         (cons name (make-element :content content :metadata meta))))
                   (funcall (<* (*> #'skip-space-and-comments
                                    (p:alt #'elements
-                                          (p:pmap (lambda (s) (string-trim '(#\newline #\space) s))
-                                                  (p:take-while (lambda (c) (not (eql #\< c)))))))
+                                          ;; Having this sneaky case here allows
+                                          ;; us to assert `take-while1' below.
+                                          ;; Look carefully; `sep-end' and
+                                          ;; `take-while' would otherwise form
+                                          ;; an infinite loop.
+                                          (<$ "" (p:sneak #\<))
+                                          ;; Preemptively unwrap a
+                                          ;; single-element list so that it
+                                          ;; yields just the underlying string.
+                                          (p:pmap (lambda (list) (if (null (cdr list)) (car list) list))
+                                                  (p:sep-end #'skip-space-and-comments
+                                                             (p:take-while1 (lambda (c) (not (or (eql #\< c) (eql #\newline c)))))))))
                                #'skip-space-and-comments
                                (close-tag name))
                            next))))))
@@ -123,10 +133,20 @@ carried."
 (p:parse #'element "<phrases><greeting>hi!</greeting><farewell>bye!</farewell></phrases>")
 
 #+nil
-(p:parse #'element "<description>
-The Apache Commons IO library contains utility classes, stream implementations, file filters,
-file comparators, endian transformation classes, and much more.
-  </description>
+(p:parse #'element "<commons.osgi.export><!-- Explicit list of packages from IO 1.4 -->
+        org.apache.commons.io;
+        org.apache.commons.io.comparator;
+        org.apache.commons.io.filefilter;
+        org.apache.commons.io.input;
+        org.apache.commons.io.output;version=1.4.9999;-noimport:=true,
+        <!-- Same list plus * for new packages -->
+        org.apache.commons.io;
+        org.apache.commons.io.comparator;
+        org.apache.commons.io.filefilter;
+        org.apache.commons.io.input;
+        org.apache.commons.io.output;
+        org.apache.commons.io.*;version=${project.version};-noimport:=true
+    </commons.osgi.export>
 ")
 
 (defun open-tag (offset)

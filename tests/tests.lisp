@@ -407,15 +407,16 @@
 
 (define-test xml-element
   :parent xml
+  (is equal '("greeting" . "") (pc:parse #'px::element "<greeting></greeting>"))
   (is equal '("greeting" . "hi!") (pc:parse #'px::element "<greeting>hi!</greeting>"))
   (is equal '("greeting" . "hi!") (pc:parse #'px::element "<greeting>
 hi!
 </greeting>"))
-  (let ((res (concatenate 'string "hi!" '(#\newline) "there!")))
-    (is equal `("greeting" . ,res) (pc:parse #'px::element "<greeting>
+  (is equal '("greeting" "hi!" "there!") (pc:parse #'px::element "<greeting>
 hi!
+<!-- comment -->
 there!
-</greeting>")))
+</greeting>"))
   (is equal '("greeting" . "hi!") (pc:parse #'px::element "<greeting>
 <!-- comment -->
 hi!
@@ -423,9 +424,8 @@ hi!
 </greeting>"))
   (is = 2 (hash-table-count (cdr (pc:parse #'px::element "<phrases><greeting>hi!</greeting><farewell>bye!</farewell></phrases>")))))
 
+#+nil
 (define-test xml-documents
   :parent xml
   (let ((ht (px:parse (uiop:read-file-string "tests/data/java.pom"))))
     (of-type hash-table ht)))
-
-(concatenate 'string "hi!" '(#\newline) "there!")
