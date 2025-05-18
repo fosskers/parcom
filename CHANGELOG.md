@@ -1,5 +1,11 @@
 # Parcom Changelog
 
+### Unreleased
+
+#### Changed
+
+- Improved contextual output in parse failure condition.
+
 ### 1.2.0 (2025-05-17)
 
 #### Added

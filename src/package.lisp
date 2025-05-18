@@ -63,7 +63,7 @@
    (context :initarg :context :reader parse-failure-context))
   (:documentation "Some parsing failed, so we render why.")
   (:report (lambda (c stream)
-             (format stream "Parsing failed at location ~a~%Context:~%  ~a~%  ^"
+             (format stream "Parsing failed at location ~a. Context:~%↓~%~a"
                      (parse-failure-offset c)
                      (parse-failure-context c)))))
 
