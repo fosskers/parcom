@@ -3,7 +3,7 @@
   (:import-from :parcom #:<*> #:<* #:*> #:<$)
   (:local-nicknames (#:p #:parcom))
   ;; --- Types --- ;;
-  (:export #:element #:element-content #:element-metadata #:content)
+  (:export #:element #:element-name #:element-content #:element-metadata #:content)
   ;; --- Entry --- ;;
   (:export #:parse #:xml))
 
@@ -11,11 +11,17 @@
 
 ;; --- Types --- ;;
 
+(defstruct document
+  "The entire XML document."
+  (metadata nil :type hash-table)
+  (element  nil :type element))
+
 (defstruct element
   "The content of an element, alongside any metadata its opening tag may have
 carried."
-  (content  ""  :type (or string hash-table))
-  (metadata nil :type (or null hash-table)))
+  (name     ""  :type simple-string)
+  (metadata nil :type (or null hash-table))
+  (content  nil :type (or null string list hash-table)))
 
 (defgeneric content (element)
   (:documentation "Fetch the inner `content' of an element."))
@@ -37,14 +43,26 @@ carried."
 
 (defun xml (offset)
   "Parser: Parse an entire XML document into a Hash Table."
-  (funcall (*> #'skip-space-and-comments
-               (<*> #'document-type
-                    (*> #'skip-space-and-comments
-                        #'elements)))
-           offset))
+  (p:fmap (lambda (list)
+            (destructuring-bind (metadata element) list
+              (make-document :metadata metadata :element element)))
+          (funcall (*> #'skip-space-and-comments
+                       (<*> #'document-type
+                            (*> #'skip-space-and-comments
+                                #'element)))
+                   offset)))
 
 #+nil
 (p:parse #'xml (uiop:read-file-string "tests/data/java.pom"))
+
+#+nil
+(p:parse #'xml (uiop:read-file-string "tests/data/simple.pom"))
+
+#+nil
+(p:parse #'xml (uiop:read-file-string "tests/data/testy.pom"))
+
+#+nil
+(p:parse #'open-tag "<arg line=\"checkout --depth immediates ${commons.scmPubUrl} ${commons.scmPubCheckoutDirectory}\"/>")
 
 ;; --- Parsers --- ;;
 
@@ -79,8 +97,17 @@ carried."
   "Parser: A linear series of elements parsed into a Hash Table."
   (p:fmap (lambda (els)
             (let ((ht (make-hash-table :test #'equal)))
-              (dolist (pair els)
-                (setf (gethash (car pair) ht) (cdr pair)))
+              (dolist (el els)
+                (let* ((name (element-name el))
+                       (got? (gethash name ht)))
+                  (cond
+                    ((not got?) (setf (gethash name ht) el))
+                    ;; Subelements can share the same name, in which case they
+                    ;; need to be grouped into a list.
+                    ((listp got?) (setf (gethash name ht) (cons el got?)))
+                    ;; Similar to the case above, here we found a key collision,
+                    ;; but a list hasn't been started yet, so we start one.
+                    (t (setf (gethash name ht) (list el got?))))))
               ht))
           (funcall (p:sep-end1 #'skip-space-and-comments #'element) offset)))
 
@@ -91,39 +118,36 @@ carried."
 <!-- comment -->
 ")
 
-#+nil
-(p:parse #'elements "<farewell meta=\"hi\">bye!</farewell>")
-
 (defun element (offset)
   "Parser: Some basic element with character contents."
   (multiple-value-bind (res next) (open-tag offset)
-    (if (p:failure? res)
-        (p:fail next)
-        (multiple-value-bind (name meta)
-            (etypecase res
-              (simple-string (values res nil))
-              (cons (values (car res) (cdr res))))
-          (p:fmap (lambda (content)
-                    (if (not meta)
-                        (cons name content)
-                        (cons name (make-element :content content :metadata meta))))
-                  (funcall (<* (*> #'skip-space-and-comments
-                                   (p:alt #'elements
-                                          ;; Having this sneaky case here allows
-                                          ;; us to assert `take-while1' below.
-                                          ;; Look carefully; `sep-end' and
-                                          ;; `take-while' would otherwise form
-                                          ;; an infinite loop.
-                                          (<$ "" (p:sneak #\<))
-                                          ;; Preemptively unwrap a
-                                          ;; single-element list so that it
-                                          ;; yields just the underlying string.
-                                          (p:pmap (lambda (list) (if (null (cdr list)) (car list) list))
-                                                  (p:sep-end #'skip-space-and-comments
+    (cond ((p:failure? res) (p:fail next))
+          ;; The opening tag was self-closing.
+          ((element-p res) (values res next))
+          ;; We need to go deeper.
+          (t (multiple-value-bind (name meta)
+                 (etypecase res
+                   (simple-string (values res nil))
+                   (cons (values (car res) (cdr res))))
+               (p:fmap (lambda (content)
+                         (make-element :name name :content content :metadata meta))
+                       (funcall (<* (*> #'skip-space-and-comments
+                                        (p:alt
+                                         ;; Having this sneaky case here allows us to
+                                         ;; assert `take-while1' below. Look
+                                         ;; carefully; `sep-end' and `take-while'
+                                         ;; would otherwise form an infinite loop.
+                                         (<$ "" (p:peek (p:string "</")))
+                                         #'elements
+                                         ;; Preemptively unwrap a single-element list
+                                         ;; so that it yields just the underlying
+                                         ;; string.
+                                         (p:pmap (lambda (list) (if (null (cdr list)) (car list) list))
+                                                 (p:sep-end1 #'skip-space-and-comments
                                                              (p:take-while1 (lambda (c) (not (or (eql #\< c) (eql #\newline c)))))))))
-                               #'skip-space-and-comments
-                               (close-tag name))
-                           next))))))
+                                    #'skip-space-and-comments
+                                    (close-tag name))
+                                next)))))))
 
 #+nil
 (p:parse #'element "<greeting foo=\"bar\">hi!</greeting>")
@@ -131,42 +155,41 @@ carried."
 (p:parse #'element "<greeting>hi!</greeting>")
 #+nil
 (p:parse #'element "<phrases><greeting>hi!</greeting><farewell>bye!</farewell></phrases>")
-
 #+nil
-(p:parse #'element "<commons.osgi.export><!-- Explicit list of packages from IO 1.4 -->
-        org.apache.commons.io;
-        org.apache.commons.io.comparator;
-        org.apache.commons.io.filefilter;
-        org.apache.commons.io.input;
-        org.apache.commons.io.output;version=1.4.9999;-noimport:=true,
-        <!-- Same list plus * for new packages -->
-        org.apache.commons.io;
-        org.apache.commons.io.comparator;
-        org.apache.commons.io.filefilter;
-        org.apache.commons.io.input;
-        org.apache.commons.io.output;
-        org.apache.commons.io.*;version=${project.version};-noimport:=true
-    </commons.osgi.export>
-")
+(p:parse #'element "<greeting foo=\"bar\"/>")
 
 (defun open-tag (offset)
-  "Parser: The <foo> part of an element."
+  "Parser: The <foo> part of an element. If shaped like <foo/> it is in fact
+standalone with no other content, and no closing tag."
   (p:fmap (lambda (two)
-            (destructuring-bind (name meta) two
-              (if (not meta)
-                  name
-                  (let ((ht (make-hash-table :test #'equal)))
-                    (dolist (pair meta)
-                      (setf (gethash (car pair) ht) (cadr pair)))
-                    (cons name ht)))))
-          (funcall (p:between (p:char #\<)
+            (destructuring-bind (name meta slash) two
+              (let ((meta (when meta
+                            ;; TODO: 2025-05-20 Abstract this out.
+                            (let ((ht (make-hash-table :test #'equal)))
+                              (dolist (pair meta)
+                                (setf (gethash (car pair) ht) (cadr pair)))
+                              ht))))
+                (cond
+                  ;; This was a self-closing, standalone tag with no other
+                  ;; content. We yield a completed `element' as a signal to the
+                  ;; caller that they shouldn't attempt to parse anything
+                  ;; deeper.
+                  ((and meta slash) (make-element :name name :content nil :metadata meta))
+                  ;; There's more to parse within this element, but for now we
+                  ;; also found some metadata.
+                  (meta (cons name meta))
+                  ;; It was just a simple named tag.
+                  (t name)))))
+          (funcall (p:between (*> (p:char #\<)
+                                  (p:peek (p:any-but #\/)))
                               (<*> (p:pmap #'simplify-string
                                            (p:take-while1 (lambda (c)
                                                             (not (or (eql c #\>)
                                                                      (eql c #\space))))))
                                    (p:opt (*> (p:char #\space)
                                               #'skip-space
-                                              (p:sep-end1 #'skip-space #'pair))))
+                                              (p:sep-end1 #'skip-space #'pair)))
+                                   (p:opt (p:char #\/)))
                               (p:char #\>))
                    offset)))
 
@@ -174,10 +197,11 @@ carried."
 (open-tag (p:in "<greeting>"))
 #+nil
 (p:parse #'open-tag "<greeting foo=\"bar\" baz=\"zoo\">")
+#+nil
+(p:parse #'open-tag "<greeting foo=\"bar\" baz=\"zoo\"/>")
 
 (defun close-tag (label)
   (lambda (offset)
-    (declare (optimize (debug 3)))
     ;; TODO: 2025-05-17 Make a lambda cache for string.
     (funcall (p:between (p:string "</")
                         (p:string label)

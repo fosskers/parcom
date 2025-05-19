@@ -407,22 +407,43 @@
 
 (define-test xml-element
   :parent xml
-  (is equal '("greeting" . "") (pc:parse #'px::element "<greeting></greeting>"))
-  (is equal '("greeting" . "hi!") (pc:parse #'px::element "<greeting>hi!</greeting>"))
-  (is equal '("greeting" . "hi!") (pc:parse #'px::element "<greeting>
+  (let ((el (pc:parse #'px::element "<greeting></greeting>")))
+    (is equal "greeting" (px:element-name el))
+    (is equal "" (px:element-content el)))
+  (let ((el (pc:parse #'px::element "<greeting>hi!</greeting>")))
+    (is equal "greeting" (px:element-name el))
+    (is equal "hi!" (px:element-content el)))
+  (let ((el (pc:parse #'px::element "<greeting>
 hi!
-</greeting>"))
-  (is equal '("greeting" "hi!" "there!") (pc:parse #'px::element "<greeting>
+</greeting>")))
+    (is equal "greeting" (px:element-name el))
+    (is equal "hi!" (px:element-content el)))
+  (let ((el (pc:parse #'px::element "<greeting>
 hi!
 <!-- comment -->
 there!
-</greeting>"))
-  (is equal '("greeting" . "hi!") (pc:parse #'px::element "<greeting>
+</greeting>")))
+    (is equal "greeting" (px:element-name el))
+    (is equal '("hi!" "there!") (px:element-content el)))
+  (let ((el (pc:parse #'px::element "<greeting>
 <!-- comment -->
 hi!
 <!-- comment -->
-</greeting>"))
-  (is = 2 (hash-table-count (cdr (pc:parse #'px::element "<phrases><greeting>hi!</greeting><farewell>bye!</farewell></phrases>")))))
+</greeting>")))
+    (is equal "greeting" (px:element-name el))
+    (is equal "hi!" (px:element-content el)))
+  (is = 2 (hash-table-count (px:element-content (pc:parse #'px::element "<phrases><greeting>hi!</greeting><farewell>bye!</farewell></phrases>")))))
+
+(define-test xml-open-tag
+  :parent xml
+  (is equal "greeting" (pc:parse #'px::open-tag "<greeting>"))
+  (destructuring-bind (name . meta)
+      (pc:parse #'px::open-tag "<greeting foo=\"bar\" baz=\"zoo\">")
+    (is equal "greeting" name)
+    (is = 2 (hash-table-count meta)))
+  (let ((elem (pc:parse #'px::open-tag "<greeting foo=\"bar\" baz=\"zoo\"/>")))
+    (is equal "greeting" (px:element-name elem))
+    (is = 2 (hash-table-count (px:element-metadata elem)))))
 
 #+nil
 (define-test xml-documents
