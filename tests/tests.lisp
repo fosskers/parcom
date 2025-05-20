@@ -443,10 +443,10 @@ hi!
     (is = 2 (hash-table-count meta)))
   (let ((elem (pc:parse #'px::open-tag "<greeting foo=\"bar\" baz=\"zoo\"/>")))
     (is equal "greeting" (px:element-name elem))
-    (is = 2 (hash-table-count (px:element-metadata elem)))))
+    (is = 2 (hash-table-count (px:element-metadata elem))))
+  (let ((elem (pc:parse #'px::open-tag "<greeting/>")))
+    (is equal "greeting" (px:element-name elem))))
 
-#+nil
 (define-test xml-documents
   :parent xml
-  (let ((ht (px:parse (uiop:read-file-string "tests/data/java.pom"))))
-    (of-type hash-table ht)))
+  (finish (px:parse (uiop:read-file-string "tests/data/java.pom"))))

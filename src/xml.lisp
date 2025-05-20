@@ -55,15 +55,6 @@ carried."
 #+nil
 (p:parse #'xml (uiop:read-file-string "tests/data/java.pom"))
 
-#+nil
-(p:parse #'xml (uiop:read-file-string "tests/data/simple.pom"))
-
-#+nil
-(p:parse #'xml (uiop:read-file-string "tests/data/testy.pom"))
-
-#+nil
-(p:parse #'open-tag "<arg line=\"checkout --depth immediates ${commons.scmPubUrl} ${commons.scmPubCheckoutDirectory}\"/>")
-
 ;; --- Parsers --- ;;
 
 (defun comment (offset)
@@ -157,6 +148,8 @@ carried."
 (p:parse #'element "<phrases><greeting>hi!</greeting><farewell>bye!</farewell></phrases>")
 #+nil
 (p:parse #'element "<greeting foo=\"bar\"/>")
+#+nil
+(p:parse #'element "<greeting/>")
 
 (defun open-tag (offset)
   "Parser: The <foo> part of an element. If shaped like <foo/> it is in fact
@@ -174,7 +167,7 @@ standalone with no other content, and no closing tag."
                   ;; content. We yield a completed `element' as a signal to the
                   ;; caller that they shouldn't attempt to parse anything
                   ;; deeper.
-                  ((and meta slash) (make-element :name name :content nil :metadata meta))
+                  (slash (make-element :name name :content nil :metadata meta))
                   ;; There's more to parse within this element, but for now we
                   ;; also found some metadata.
                   (meta (cons name meta))
@@ -185,7 +178,8 @@ standalone with no other content, and no closing tag."
                               (<*> (p:pmap #'simplify-string
                                            (p:take-while1 (lambda (c)
                                                             (not (or (eql c #\>)
-                                                                     (eql c #\space))))))
+                                                                     (eql c #\space)
+                                                                     (eql c #\/))))))
                                    (p:opt (*> (p:char #\space)
                                               #'skip-space
                                               (p:sep-end1 #'skip-space #'pair)))
