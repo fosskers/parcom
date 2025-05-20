@@ -94,6 +94,10 @@
 
 #+nil
 (let ((s (uiop:read-file-string "tests/data/java.pom")))
+  (time (px:parse s)))
+
+#+nil
+(let ((s (uiop:read-file-string "tests/data/java.pom")))
   (time (dotimes (n 2000)
           (px:parse s))))
 
@@ -122,3 +126,4 @@
 ;; (3) Cache on `skip': 0.93b bytes, 1.45s
 ;; (4) `:id' on `consume': 0.84b bytes, 1.45s
 ;; (5) Cache on `take-until': 0.75b bytes, 1.48s
+;; (6) `consume' over `take-while': 0.65b bytes, 1.40s

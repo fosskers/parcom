@@ -156,39 +156,42 @@ carried."
 (defun open-tag (offset)
   "Parser: The <foo> part of an element. If shaped like <foo/> it is in fact
 standalone with no other content, and no closing tag."
-  (p:fmap (lambda (two)
-            (destructuring-bind (name meta slash) two
-              (let ((meta (when meta
-                            ;; TODO: 2025-05-20 Abstract this out.
-                            (let ((ht (make-hash-table :test #'equal)))
-                              (dolist (pair meta)
-                                (setf (gethash (car pair) ht) (cadr pair)))
-                              ht))))
-                (cond
-                  ;; This was a self-closing, standalone tag with no other
-                  ;; content. We yield a completed `element' as a signal to the
-                  ;; caller that they shouldn't attempt to parse anything
-                  ;; deeper.
-                  (slash (make-element :name name :content nil :metadata meta))
-                  ;; There's more to parse within this element, but for now we
-                  ;; also found some metadata.
-                  (meta (cons name meta))
-                  ;; It was just a simple named tag.
-                  (t name)))))
-          (funcall (p:between (*> (p:char #\<)
-                                  (p:peek (p:any-but #\/)))
-                              (<*> (p:pmap #'simplify-string
-                                           (p:take-while1 (lambda (c)
-                                                            (not (or (eql c #\>)
-                                                                     (eql c #\space)
-                                                                     (eql c #\/))))))
-                                   (p:opt (*> (p:char #\space)
-                                              #'skip-space
-                                              (p:sep-end1 #'skip-space #'pair)))
-                                   (p:opt (p:char #\/)))
-                              (p:char #\>)
-                              :id :xml-open-tag)
-                   offset)))
+  (multiple-value-bind (res next)
+      (funcall (p:between (*> (p:char #\<)
+                              (p:peek (p:any-but #\/)))
+                          (<*> (p:consume (lambda (c)
+                                            (not (or (eql c #\>)
+                                                     (eql c #\space)
+                                                     (eql c #\/))))
+                                          :id :xml-open-tag)
+                               (p:opt (*> (p:char #\space)
+                                          #'skip-space
+                                          (p:sep-end1 #'skip-space #'pair)))
+                               (p:opt (p:char #\/)))
+                          (p:char #\>)
+                          :id :xml-open-tag)
+               offset)
+    (if (p:failure? res)
+        (p:fail next)
+        (destructuring-bind (consumed meta slash) res
+          (let ((meta (when meta
+                        ;; TODO: 2025-05-20 Abstract this out.
+                        (let ((ht (make-hash-table :test #'equal)))
+                          (dolist (pair meta)
+                            (setf (gethash (car pair) ht) (cadr pair)))
+                          ht)))
+                (name (p::direct-copy p::*input* (1+ offset) consumed)))
+            (cond
+              ;; This was a self-closing, standalone tag with no other
+              ;; content. We yield a completed `element' as a signal to the
+              ;; caller that they shouldn't attempt to parse anything
+              ;; deeper.
+              (slash (p:ok next (make-element :name name :content nil :metadata meta)))
+              ;; There's more to parse within this element, but for now we
+              ;; also found some metadata.
+              (meta (p:ok next (cons name meta)))
+              ;; It was just a simple named tag.
+              (t (p:ok next name))))))))
 
 #+nil
 (open-tag (p:in "<greeting>"))
@@ -222,11 +225,6 @@ standalone with no other content, and no closing tag."
 
 #+nil
 (p:parse #'document-type "<?xml version=\"1.0\" encoding=\"UTF-8\"?>")
-
-(defun simplify-string (s)
-  "Convert some general string into a simple-string."
-  (let ((new (make-array (length s) :element-type 'character)))
-    (replace new s)))
 
 (defun skip-space (offset)
   "A faster variant of `space' that just advances over whitespace chars."

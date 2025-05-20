@@ -190,3 +190,19 @@
       (equal char #\newline)
       (equal char #\tab)
       (equal char #\return)))
+
+(declaim (ftype (function (char-string fixnum fixnum) char-string) direct-copy))
+(defun direct-copy (s from to)
+  "Direct, low-level string copying."
+  (declare (optimize (speed 3) (safety 0)))
+  (let* ((len  (- to from))
+         (work (make-array len :element-type 'character)))
+    #+abcl
+    (progn (loop :for i fixnum :from 0 :below len
+                 :do (setf (schar work i) (schar s (+ i from))))
+           work)
+    #-abcl
+    (replace work s :start2 from :end2 to)))
+
+#+nil
+(direct-copy "hello there" 1 3)
