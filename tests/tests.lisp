@@ -449,4 +449,5 @@ hi!
 
 (define-test xml-documents
   :parent xml
-  (finish (px:parse (uiop:read-file-string "tests/data/java.pom"))))
+  (finish (px:parse (uiop:read-file-string "tests/data/java.pom")))
+  (finish (px:parse (uiop:read-file-string "tests/data/log4j.pom"))))

@@ -13,7 +13,7 @@
 
 (defstruct document
   "The entire XML document."
-  (metadata nil :type hash-table)
+  (metadata nil :type (or null hash-table))
   (element  nil :type element))
 
 (defstruct element
@@ -47,13 +47,15 @@ carried."
             (destructuring-bind (metadata element) list
               (make-document :metadata metadata :element element)))
           (funcall (*> #'skip-space-and-comments
-                       (<*> #'document-type
+                       (<*> (p:opt #'document-type)
                             (*> #'skip-space-and-comments
                                 #'element)))
                    offset)))
 
 #+nil
 (p:parse #'xml (uiop:read-file-string "tests/data/java.pom"))
+#+nil
+(p:parse #'xml (uiop:read-file-string "tests/data/log4j.pom"))
 
 ;; --- Parsers --- ;;
 
