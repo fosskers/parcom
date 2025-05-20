@@ -151,15 +151,19 @@ even if not followed by an instance of the main parser."
 #+nil
 (funcall (sep-end1 (char #\!) (string "pilum")) (in "pilum!pilum!pilum!"))
 
-(defun skip (parser)
+(defun skip (parser &key (id nil))
   "Parse some `parser' 0 or more times, but throw away all the results."
-  (lambda (offset)
-    (labels ((recurse (in)
-               (multiple-value-bind (res next) (funcall parser in)
-                 (if (failure? res)
-                     (ok in t)
-                     (recurse next)))))
-      (recurse offset))))
+  (or (gethash id *skip-cache*)
+      (let ((f (lambda (offset)
+                 (labels ((recurse (in)
+                            (multiple-value-bind (res next) (funcall parser in)
+                              (if (failure? res)
+                                  (ok in t)
+                                  (recurse next)))))
+                   (recurse offset)))))
+        (when id
+          (setf (gethash id *skip-cache*) f))
+        f)))
 
 #+nil
 (funcall (skip (char #\!)) (in ""))
@@ -168,21 +172,26 @@ even if not followed by an instance of the main parser."
 #+nil
 (funcall (skip (char #\!)) (in "!!!hi"))
 
-(declaim (ftype (function (maybe-parse) (function (fixnum) (values cl:string fixnum))) take-until))
-(defun take-until (parser)
+(declaim (ftype (function (maybe-parse &key (:id (or keyword null))) (function (fixnum) (values cl:string fixnum))) take-until))
+(defun take-until (parser &key (id nil))
   "Combinator: Take characters until another parser succeeds. Does not consume the
 input of the subparser."
-  (lambda (offset)
-    (let* ((working offset)
-           (keep (loop :for i fixnum :from offset :below *input-length*
-                       :while (when (failure? (funcall parser working))
-                                (incf working))
-                       :finally (return (- i offset)))))
-      (ok (off keep offset)
-          (make-array keep
-                      :element-type 'character
-                      :displaced-to *input*
-                      :displaced-index-offset offset)))))
+  (or (gethash id *take-until-cache*)
+      (let ((f (lambda (offset)
+                 (declare (type fixnum offset))
+                 (let* ((working offset)
+                        (keep (loop :for i fixnum :from offset :below *input-length*
+                                    :while (when (failure? (funcall parser working))
+                                             (incf working))
+                                    :finally (return (- i offset)))))
+                   (ok (off keep offset)
+                       (make-array keep
+                                   :element-type 'character
+                                   :displaced-to *input*
+                                   :displaced-index-offset offset))))))
+        (when id
+          (setf (gethash id *take-until-cache*) f))
+        f)))
 
 #+nil
 (funcall (*> (string "!!!") (take-until (char #\'))) (in "!!!abcd'"))

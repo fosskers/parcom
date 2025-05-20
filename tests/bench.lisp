@@ -4,6 +4,7 @@
   (:use :cl)
   (:local-nicknames (#:pc #:parcom)
                     (#:pj #:parcom/json)
+                    (#:px #:parcom/xml)
                     (#:jzon #:com.inuoe.jzon)))
 
 (in-package :parcom/benchmarks)
@@ -88,3 +89,36 @@
 ;; (24) Detect when escaping isn't necessary: 0.26b, 0.8xs
 ;; (25) Use lower-level string copying: 0.26b, 0.8xs (nice speed up on ECL and ABCL)
 ;; (26) Avoid generic `>=': 0.26b, 0.75s
+
+;; --- XML --- ;;
+
+#+nil
+(let ((s (uiop:read-file-string "tests/data/java.pom")))
+  (time (dotimes (n 2000)
+          (px:parse s))))
+
+;; MEMORY
+#+nil
+(let ((s (uiop:read-file-string "tests/data/java.pom")))
+  (sb-sprof:with-profiling (:max-samples 100000 :sample-interval 0.00001 :report :graph :mode :alloc)
+    (dotimes (n 2000)
+      (px:parse s))))
+
+;; SPEED
+#+nil
+(let ((s (uiop:read-file-string "tests/data/java.pom")))
+  (sb-sprof:with-profiling (:max-samples 100000 :sample-interval 0.00001 :report :graph)
+    (dotimes (n 2000)
+      (px:parse s))))
+
+;; Good initial news: I can already read 2000 of such complicated XML files in
+;; 1s. Assuming ECL is 10x slower, I could do 200 files in 1s, which is likely
+;; already far more than any ABCL-based project would need. So I can mostly just
+;; optimize for memory, the reduced usage of which will speed me up for free.
+;;
+;; (0) Base: 1.5b bytes, 1.14s (no obvious speed hotspots)
+;; (1) Cache on `string': 1.24b bytes, 1.43s
+;; (2) `:id' on `between': 1.00b bytes, 1.44s
+;; (3) Cache on `skip': 0.93b bytes, 1.45s
+;; (4) `:id' on `consume': 0.84b bytes, 1.45s
+;; (5) Cache on `take-until': 0.75b bytes, 1.48s

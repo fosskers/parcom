@@ -147,17 +147,20 @@
 (defun string (s)
   "Parser: Parse a given string. Yields the original string itself if parsing was
 successful, in order to save on memory."
-  (lambda (offset)
-    (declare (optimize (speed 3) (safety 0)))
-    (declare (type fixnum offset))
-    (let ((i (if (>= offset *input-length*)
-                 0
-                 (loop :for i fixnum :from 0 :below (length s)
-                       :while (equal (schar s i) (schar *input* (+ i offset)))
-                       :finally (return i)))))
-      (if (= i (length s))
-          (ok (off (length s) offset) s)
-          (fail offset)))))
+  (or (gethash s *string-cache*)
+      (let ((f (lambda (offset)
+                 (declare (optimize (speed 3) (safety 0)))
+                 (declare (type fixnum offset))
+                 (let ((i (if (>= offset *input-length*)
+                              0
+                              (loop :for i fixnum :from 0 :below (length s)
+                                    :while (equal (schar s i) (schar *input* (+ i offset)))
+                                    :finally (return i)))))
+                   (if (= i (length s))
+                       (ok (off (length s) offset) s)
+                       (fail offset))))))
+        (setf (gethash s *string-cache*) f)
+        f)))
 
 #+nil
 (funcall (string "Pāstor") (in ""))

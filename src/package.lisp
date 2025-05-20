@@ -55,6 +55,9 @@
 (defparameter *consume-cache* (make-hash-table :size 16 :test #'eq))
 (defparameter *between-cache* (make-hash-table :size 16 :test #'eq))
 (defparameter *sep-cache*     (make-hash-table :size 16 :test #'eq))
+(defparameter *skip-cache*    (make-hash-table :size 16 :test #'eq))
+(defparameter *string-cache*  (make-hash-table :size 64 :test #'equal))
+(defparameter *take-until-cache* (make-hash-table :size 16 :test #'eq))
 
 ;; --- Conditions --- ;;
 

@@ -54,16 +54,15 @@ carried."
 
 #+nil
 (p:parse #'xml (uiop:read-file-string "tests/data/java.pom"))
-#+nil
-(p:parse #'xml (uiop:read-file-string "tests/data/log4j.pom"))
 
 ;; --- Parsers --- ;;
 
 (defun comment (offset)
   "Parser: A comment tag."
   (funcall (p:between (p:string "<!--")
-                      (p:take-until (p:string "-->"))
-                      (p:string "-->"))
+                      (p:take-until (p:string "-->") :id :xml-comment)
+                      (p:string "-->")
+                      :id :xml-comment)
            offset))
 
 #+nil
@@ -80,7 +79,8 @@ carried."
                 (*> (p:char #\=)
                     (p:between (p:char #\")
                                (p:take-while (lambda (c) (not (eql #\" c))))
-                               (p:char #\"))))
+                               (p:char #\")
+                               :id :xml-pair)))
            offset))
 
 #+nil
@@ -186,7 +186,8 @@ standalone with no other content, and no closing tag."
                                               #'skip-space
                                               (p:sep-end1 #'skip-space #'pair)))
                                    (p:opt (p:char #\/)))
-                              (p:char #\>))
+                              (p:char #\>)
+                              :id :xml-open-tag)
                    offset)))
 
 #+nil
@@ -198,7 +199,6 @@ standalone with no other content, and no closing tag."
 
 (defun close-tag (label)
   (lambda (offset)
-    ;; TODO: 2025-05-17 Make a lambda cache for string.
     (funcall (p:between (p:string "</")
                         (p:string label)
                         (p:char #\>))
@@ -216,7 +216,8 @@ standalone with no other content, and no closing tag."
               ht))
           (funcall (p:between (p:string "<?xml ")
                               (p:sep-end1 #'skip-space #'pair)
-                              (p:string "?>"))
+                              (p:string "?>")
+                              :id :xml-document-type)
                    offset)))
 
 #+nil
@@ -229,16 +230,18 @@ standalone with no other content, and no closing tag."
 
 (defun skip-space (offset)
   "A faster variant of `space' that just advances over whitespace chars."
-  (funcall (p:consume (lambda (c) (or (equal c #\space) (equal c #\tab))))
+  (funcall (p:consume (lambda (c) (or (equal c #\space) (equal c #\tab)))
+                      :id :xml-skip-space)
            offset))
 
 (declaim (ftype (function (string) simple-string) simplify-string))
 (defun skip-all-space (offset)
   "Like `skip-space' but consumes newlines as well."
-  (funcall (p:consume #'p:space?) offset))
+  (funcall (p:consume #'p:space? :id :xml-skip-all-space) offset))
 
 (defun skip-space-and-comments (offset)
   "Blows past all the stuff we don't care about."
   (funcall (*> #'skip-all-space
-               (p:skip (*> #'comment #'skip-all-space)))
+               (p:skip (*> #'comment #'skip-all-space)
+                 :id :xml-skip-space-and-comments))
            offset))
