@@ -11,13 +11,21 @@
 
 ;; --- Static Parsers --- ;;
 
-(defparameter +comment-open+  (p:string "<!--"))
-(defparameter +comment-close+ (p:string "-->"))
-(defparameter +tag-close+     (p:string "</"))
-(defparameter +tag-start+     (p:char #\<))
-(defparameter +tag-end+       (p:char #\>))
-(defparameter +space+         (p:char #\space))
-(defparameter +slash+         (p:char #\/))
+(defparameter +comment-open+   (p:string "<!--"))
+(defparameter +comment-close+  (p:string "-->"))
+(defparameter +tag-close+      (p:string "</"))
+(defparameter +tag-start+      (p:char #\<))
+(defparameter +tag-end+        (p:char #\>))
+(defparameter +space+          (p:char #\space))
+(defparameter +slash+          (p:char #\/))
+(defparameter +quote+          (p:char #\"))
+(defparameter +skip-space+     (p:consume (lambda (c) (or (equal c #\space) (equal c #\tab)))))
+(defparameter +skip-all-space+ (p:consume #'p:space?))
+(defparameter +skip-comments+  (p:skip (*> #'comment +skip-all-space+)))
+(defparameter +skip-junk+      (*> +skip-all-space+ +skip-comments+))
+(defparameter +peek-close+     (p:peek +tag-close+))
+(defparameter +peek-no-slash+  (p:peek (p:any-but #\/)))
+(defparameter +until-close+    (p:take-until +comment-close+))
 
 ;; --- Types --- ;;
 
@@ -56,10 +64,9 @@ carried."
   (p:fmap (lambda (list)
             (destructuring-bind (metadata element) list
               (make-document :metadata metadata :element element)))
-          (funcall (*> #'skip-space-and-comments
+          (funcall (*> +skip-junk+
                        (<*> (p:opt #'document-type)
-                            (*> #'skip-space-and-comments
-                                #'element)))
+                            (*> +skip-junk+ #'element)))
                    offset)))
 
 #+nil
@@ -70,7 +77,7 @@ carried."
 (defun comment (offset)
   "Parser: A comment tag."
   (funcall (p:between +comment-open+
-                      (p:take-until +comment-close+ :id :xml-comment)
+                      +until-close+
                       +comment-close+
                       :id :xml-comment)
            offset))
@@ -87,9 +94,9 @@ carried."
   "Parser: Some key-value pair. Tag metadata?"
   (funcall (<*> (p:take-while1 (lambda (c) (not (or (eql #\= c) (eql #\> c)))))
                 (*> (p:char #\=)
-                    (p:between (p:char #\")
+                    (p:between +quote+
                                (p:take-while (lambda (c) (not (eql #\" c))))
-                               (p:char #\")
+                               +quote+
                                :id :xml-pair)))
            offset))
 
@@ -112,7 +119,7 @@ carried."
                     ;; but a list hasn't been started yet, so we start one.
                     (t (setf (gethash name ht) (list el got?))))))
               ht))
-          (funcall (p:sep-end1 #'skip-space-and-comments #'element) offset)))
+          (funcall (p:sep-end1 +skip-junk+ #'element) offset)))
 
 #+nil
 (p:parse #'elements "<greeting>hi!</greeting>
@@ -134,21 +141,21 @@ carried."
                    (cons (values (car res) (cdr res))))
                (p:fmap (lambda (content)
                          (make-element :name name :content content :metadata meta))
-                       (funcall (<* (*> #'skip-space-and-comments
+                       (funcall (<* (*> +skip-junk+
                                         (p:alt
                                          ;; Having this sneaky case here allows us to
                                          ;; assert `take-while1' below. Look
                                          ;; carefully; `sep-end' and `take-while'
                                          ;; would otherwise form an infinite loop.
-                                         (<$ "" (p:peek +tag-close+))
+                                         (<$ "" +peek-close+)
                                          #'elements
                                          ;; Preemptively unwrap a single-element list
                                          ;; so that it yields just the underlying
                                          ;; string.
                                          (p:pmap (lambda (list) (if (null (cdr list)) (car list) list))
-                                                 (p:sep-end1 #'skip-space-and-comments
+                                                 (p:sep-end1 +skip-junk+
                                                              (p:take-while1 (lambda (c) (not (or (eql #\< c) (eql #\newline c)))))))))
-                                    #'skip-space-and-comments
+                                    +skip-junk+
                                     (close-tag name))
                                 next)))))))
 
@@ -167,16 +174,15 @@ carried."
   "Parser: The <foo> part of an element. If shaped like <foo/> it is in fact
 standalone with no other content, and no closing tag."
   (multiple-value-bind (res next)
-      (funcall (p:between (*> +tag-start+
-                              (p:peek (p:any-but #\/)))
+      (funcall (p:between (*> +tag-start+ +peek-no-slash+)
                           (<*> (p:consume (lambda (c)
                                             (not (or (eql c #\>)
                                                      (eql c #\space)
                                                      (eql c #\/))))
                                           :id :xml-open-tag)
                                (p:opt (*> +space+
-                                          #'skip-space
-                                          (p:sep-end1 #'skip-space #'pair)))
+                                          +skip-space+
+                                          (p:sep-end1 +skip-space+ #'pair)))
                                (p:opt +slash+))
                           +tag-end+
                           :id :xml-open-tag)
@@ -228,28 +234,10 @@ standalone with no other content, and no closing tag."
                 (setf (gethash (car pair) ht) (cadr pair)))
               ht))
           (funcall (p:between (p:string "<?xml ")
-                              (p:sep-end1 #'skip-space #'pair)
+                              (p:sep-end1 +skip-space+ #'pair)
                               (p:string "?>")
                               :id :xml-document-type)
                    offset)))
 
 #+nil
 (p:parse #'document-type "<?xml version=\"1.0\" encoding=\"UTF-8\"?>")
-
-(defun skip-space (offset)
-  "A faster variant of `space' that just advances over whitespace chars."
-  (funcall (p:consume (lambda (c) (or (equal c #\space) (equal c #\tab)))
-                      :id :xml-skip-space)
-           offset))
-
-(declaim (ftype (function (string) simple-string) simplify-string))
-(defun skip-all-space (offset)
-  "Like `skip-space' but consumes newlines as well."
-  (funcall (p:consume #'p:space? :id :xml-skip-all-space) offset))
-
-(defun skip-space-and-comments (offset)
-  "Blows past all the stuff we don't care about."
-  (funcall (*> #'skip-all-space
-               (p:skip (*> #'comment #'skip-all-space)
-                 :id :xml-skip-space-and-comments))
-           offset))

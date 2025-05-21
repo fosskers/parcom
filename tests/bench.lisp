@@ -12,6 +12,12 @@
 #+sbcl
 (require :sb-sprof)
 
+(defun average (list)
+  (/ (apply #'+ list) (float (length list))))
+
+#+nil
+(average '(3.82 3.17 3.05 3.04 3.05))
+
 ;; --- COMPARISONS --- ;;
 
 #+nil
@@ -19,14 +25,34 @@
        (s (uiop:read-file-string path)))
   (format t "--- JZON ---~%")
   (time (jzon:parse s))
-  (time (jzon:parse path))
+  (time (jzon:parse s))
+  (time (jzon:parse s))
+  (time (jzon:parse s))
+  (time (jzon:parse s))
+  ;; (time (jzon:parse path))
   (format t "--- SHASHT ---~%")
+  (time (shasht:read-json s))
+  (time (shasht:read-json s))
+  (time (shasht:read-json s))
+  (time (shasht:read-json s))
   (time (shasht:read-json s))
   (format t "--- JSOWN ---~%")
   (time (jsown:parse s))
-  (format t "--- YASON ---~%")
-  (time (yason:parse s))
-  (format t "--- PARCOM/JZON ---~%")
+  (time (jsown:parse s))
+  (time (jsown:parse s))
+  (time (jsown:parse s))
+  (time (jsown:parse s))
+  ;; (format t "--- YASON ---~%")
+  ;; (time (yason:parse s))
+  ;; (time (yason:parse s))
+  ;; (time (yason:parse s))
+  ;; (time (yason:parse s))
+  ;; (time (yason:parse s))
+  (format t "--- PARCOM/JSON ---~%")
+  (time (pj:parse s))
+  (time (pj:parse s))
+  (time (pj:parse s))
+  (time (pj:parse s))
   (time (pj:parse s))
   t)
 
@@ -45,7 +71,7 @@
   (format t "--- JSOWN ---~%")
   (time (dotimes (n 10000)
           (jsown:parse +json-string+)))
-  (format t "--- PARCOM/JZON ---~%")
+  (format t "--- PARCOM/JSON ---~%")
   (time (dotimes (n 10000)
           (pj:parse +json-string+))))
 
@@ -89,6 +115,8 @@
 ;; (24) Detect when escaping isn't necessary: 0.26b, 0.8xs
 ;; (25) Use lower-level string copying: 0.26b, 0.8xs (nice speed up on ECL and ABCL)
 ;; (26) Avoid generic `>=': 0.26b, 0.75s
+;; (27) New baseline: 0.26b, 0.9s
+;; (28) Static parsers: 0.26b, 0.50s
 
 ;; --- XML --- ;;
 
@@ -127,4 +155,4 @@
 ;; (4) `:id' on `consume': 0.84b bytes, 1.45s
 ;; (5) Cache on `take-until': 0.75b bytes, 1.48s
 ;; (6) `consume' over `take-while': 0.65b bytes, 1.40s
-;; (7) Pre-saved global parsers: 0.65b bytes, 1.05s
+;; (7) Pre-saved global parsers: 0.59 bytes, 1.05s
