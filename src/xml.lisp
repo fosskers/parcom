@@ -38,7 +38,7 @@
 (defstruct element
   "The content of an element, alongside any metadata its opening tag may have
 carried."
-  (name     ""  :type simple-string)
+  (name     ""  :type p::char-string)
   (metadata nil :type (or null hash-table))
   (content  nil :type (or null string list hash-table)))
 
@@ -60,6 +60,7 @@ carried."
   "Attempt to parse a whole XML document."
   (p:parse #'xml input))
 
+(declaim (ftype (function (fixnum) (values (or document (member :fail)) fixnum)) xml))
 (defun xml (offset)
   "Parser: Parse an entire XML document into a Hash Table."
   (p:fmap (lambda (list)
@@ -75,6 +76,7 @@ carried."
 
 ;; --- Parsers --- ;;
 
+(declaim (ftype (function (fixnum) (values (or cl:string (member :fail)) fixnum)) comment))
 (defun comment (offset)
   "Parser: A comment tag."
   (funcall +comment+ offset))
@@ -87,6 +89,7 @@ carried."
 -->
 ")
 
+(declaim (ftype (function (fixnum) (values (or list (member :fail)) fixnum)) pair))
 (defun pair (offset)
   "Parser: Some key-value pair. Tag metadata?"
   (funcall (<*> (p:take-while1 (lambda (c) (not (or (eql #\= c) (eql #\> c)))))
@@ -100,6 +103,7 @@ carried."
 #+nil
 (pair (p:in "version=\"1.0\""))
 
+(declaim (ftype (function (fixnum) (values (or hash-table (member :fail)) fixnum)) elements))
 (defun elements (offset)
   "Parser: A linear series of elements parsed into a Hash Table."
   (p:fmap (lambda (els)
@@ -125,6 +129,7 @@ carried."
 <!-- comment -->
 ")
 
+(declaim (ftype (function (fixnum) (values (or element (member :fail)) fixnum)) element))
 (defun element (offset)
   "Parser: Some basic element with character contents."
   (multiple-value-bind (res next) (open-tag offset)
@@ -179,6 +184,7 @@ carried."
                   (p:opt +slash+))
              +tag-end+))
 
+(declaim (ftype (function (fixnum) (values (or element cons p::char-string (member :fail)) fixnum)) open-tag))
 (defun open-tag (offset)
   "Parser: The <foo> part of an element. If shaped like <foo/> it is in fact
 standalone with no other content, and no closing tag."
@@ -213,6 +219,7 @@ standalone with no other content, and no closing tag."
 #+nil
 (p:parse #'open-tag "<greeting foo=\"bar\" baz=\"zoo\"/>")
 
+(declaim (ftype (function (p::char-string) (function (fixnum) (values (or p::char-string (member :fail)) fixnum))) close-tag))
 (defun close-tag (label)
   (lambda (offset)
     (funcall (p:between +tag-close+
@@ -223,6 +230,7 @@ standalone with no other content, and no closing tag."
 #+nil
 (p:parse (close-tag "greeting") "</greeting>")
 
+(declaim (ftype (function (fixnum) (values (or hash-table (member :fail)) fixnum)) document-type))
 (defun document-type (offset)
   "Parser: The version, etc., declarations at the top of the document."
   (p:fmap (lambda (pairs)
