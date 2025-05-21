@@ -12,6 +12,22 @@
 
 (in-package :parcom/json)
 
+;; --- Static Parsers --- ;;
+
+(defparameter +open-bracket+  (p:char #\[))
+(defparameter +close-bracket+ (p:char #\]))
+(defparameter +open-brace+    (p:char #\{))
+(defparameter +close-brace+   (p:char #\}))
+(defparameter +comma+         (p:char #\,))
+(defparameter +colon+         (p:char #\:))
+(defparameter +quotes+        (p:char #\"))
+(defparameter +true+          (p:string "true"))
+(defparameter +false+         (p:string "false"))
+(defparameter +null+          (p:string "null"))
+(defparameter +consume-space+ (p:consume #'p:space?))
+
+;; --- Entry --- ;;
+
 (defparameter *open-slash* nil
   "A marker for detecting backslashes in string parsing.")
 (defparameter *slash-seen* nil
@@ -27,6 +43,8 @@
 (parse "{\"x\": 1, \"y\": 2, \"z\": [1, {\"a\" true}]}")
 #+nil
 (json (p:in "{\"x\": 1, \"y\": 2, \"z\": [1, {\"a\":true}]}"))
+
+;; --- Parsers --- ;;
 
 (declaim (ftype (function (fixnum) (values (or t (member :fail)) fixnum)) json))
 (defun json (offset)
@@ -44,17 +62,17 @@
   "Parser: Parse either an Object or an Array."
   (funcall (p:alt #'object #'array) offset))
 
+(defparameter +array+
+  (p:between (*> +open-bracket+ +consume-space+)
+             (p:sep (*> +comma+ +consume-space+)
+                    (<* #'json +consume-space+))
+             (*> +consume-space+ +close-bracket+)))
+
 (declaim (ftype (function (fixnum) (values (or vector (member :fail)) fixnum)) array))
 (defun array (offset)
   "Parser: Parse a JSON Array as a Lisp vector."
   (p:fmap (lambda (list) (coerce list 'vector))
-          (funcall (p:between (*> (p:char #\[) #'skip-space)
-                              (p:sep (*> (p:char #\,) #'skip-space)
-                                     (<* #'json #'skip-space)
-                                     :id :json-array)
-                              (*> #'skip-space (p:char #\]))
-                              :id :json-array)
-                   offset)))
+          (funcall +array+ offset)))
 
 #+nil
 (array (p:in "[]"))
@@ -65,6 +83,15 @@
 #+nil
 (p:parse #'array "[1 2]")
 
+(defparameter +object+
+  (p:between (*> +open-brace+ +consume-space+)
+             (p:sep (*> +comma+ +consume-space+)
+                    (<*> #'string (*> +consume-space+
+                                      +colon+
+                                      +consume-space+
+                                      (<* #'json +consume-space+))))
+             (*> +consume-space+ +close-brace+)))
+
 (declaim (ftype (function (fixnum) (values (or hash-table (member :fail)) fixnum)) object))
 (defun object (offset)
   "Parser: Parse a JSON Object as a Hash Table."
@@ -73,16 +100,7 @@
               (dolist (pair pairs)
                 (setf (gethash (car pair) ht) (cadr pair)))
               ht))
-          (funcall (p:between (*> (p:char #\{) #'skip-space)
-                              (p:sep (*> (p:char #\,) #'skip-space)
-                                     (<*> #'string (*> #'skip-space
-                                                       (p:char #\:)
-                                                       #'skip-space
-                                                       (<* #'json #'skip-space)))
-                                     :id :json-object)
-                              (*> #'skip-space (p:char #\}))
-                              :id :json-object)
-                   offset)))
+          (funcall +object+ offset)))
 
 #+nil
 (object (p:in "{\"x\": 1, \"y\": 2}"))
@@ -158,34 +176,34 @@
 #+nil
 (escaped "\\u03" 0 4)
 
+(defparameter +string+
+  (p:between +quotes+
+             ;; NOTE: 2025-05-04 This was originally a call to
+             ;; (many #'compound-char), which is conceptually
+             ;; much simpler, but it was discovered to allocate
+             ;; too many intermediate lists. Further, using
+             ;; `take-while' still allocates displaced arrays
+             ;; whose lookups as slow during escaping, so I
+             ;; realized that `consume' allows us to scream
+             ;; across the source string and retain fast lookups.
+             (p:consume (lambda (c)
+                          (cond (*open-slash*
+                                 (setf *open-slash* nil)
+                                 t)
+                                ((eql c #\\)
+                                 (setf *open-slash* t)
+                                 (setf *slash-seen* t))
+                                ((eql c #\") nil)
+                                (t t))))
+             +quotes+))
+
 (declaim (ftype (function (fixnum) (values (or p::char-string (member :fail)) fixnum)) string))
 (defun string (offset)
   "Parser: Parse any string."
   (setf *open-slash* nil)
   (setf *slash-seen* nil)
   (multiple-value-bind (res next)
-      (funcall (p:between (p:char #\")
-                          ;; NOTE: 2025-05-04 This was originally a call to
-                          ;; (many #'compound-char), which is conceptually
-                          ;; much simpler, but it was discovered to allocate
-                          ;; too many intermediate lists. Further, using
-                          ;; `take-while' still allocates displaced arrays
-                          ;; whose lookups as slow during escaping, so I
-                          ;; realized that `consume' allows us to scream
-                          ;; across the source string and retain fast lookups.
-                          (p:consume (lambda (c)
-                                       (cond (*open-slash*
-                                              (setf *open-slash* nil)
-                                              t)
-                                             ((eql c #\\)
-                                              (setf *open-slash* t)
-                                              (setf *slash-seen* t))
-                                             ((eql c #\") nil)
-                                             (t t)))
-                                     :id :json-string)
-                          (p:char #\")
-                          :id :json-string)
-               offset)
+      (funcall +string+ offset)
     (cond ((p:failure? res) (p:fail next))
           ((not *slash-seen*) (values (p::direct-copy p::*input* (1+ offset) (1- next)) next))
           (t (values (escaped p::*input* (1+ offset) (1- next)) next)))))
@@ -206,8 +224,8 @@
 (declaim (ftype (function (fixnum) (values (or t cl:null (member :fail)) fixnum)) boolean))
 (defun boolean (offset)
   "Parser: Parse `true' as T and `false' as NIL."
-  (funcall (p:alt (<$ t (p:string "true"))
-                  (<$ nil (p:string "false")))
+  (funcall (p:alt (<$ t +true+)
+                  (<$ nil +false+))
            offset))
 
 #+nil
@@ -235,18 +253,10 @@
 (declaim (ftype (function (fixnum) (values (member :null :fail) fixnum)) null))
 (defun null (offset)
   "Parser: Parse `null' as :null."
-  (funcall (<$ :null (p:string "null")) offset))
+  (funcall (<$ :null +null+) offset))
 
 #+nil
 (null "null")
 
 #+nil
 (array (p:in (uiop:read-file-string "tests/data/pass2.json")))
-
-(declaim (ftype (function (fixnum) (values t fixnum)) skip-space))
-(defun skip-space (offset)
-  "A faster variant of `multispace' that just advances over the space chars."
-  (funcall (p:consume #'p:space? :id :json-skip-space) offset))
-
-#+nil
-(funcall #'skip-space (p:in "   abc"))

@@ -127,40 +127,40 @@ SBCL:
 
 | Method      | Time (ms) | Memory (bytes) |
 |-------------+-----------+----------------|
-| jsown       |       150 | 135m           |
-| jzon        |       300 | 132m           |
-| shasht      |       600 | 400m           |
-| parcom/json |       750 | 260m           |
-| yason       |      1700 | 400m           |
+| jsown       |       160 | 135m           |
+| jzon        |       325 | 132m           |
+| parcom/json |       500 | 260m           |
+| shasht      |       650 | 400m           |
+| yason       |      1600 | 400m           |
 
 Allegro:
 
-| Method      | Time (s) | Memory (bytes) |
-|-------------+----------+----------------|
-| jsown       |      0.7 | 91m            |
-| jzon        |      1.9 | 258m           |
-| shasht      |      2.2 | 453m           |
-| parcom/json |      2.2 | 886m           |
-| yason       |      8.2 | 457m           |
+| Method      | Time (s) | Memory (cons) | Memory (bytes) |
+|-------------+----------+---------------+----------------|
+| jsown       |      0.7 | 1.3m          | 91m            |
+| parcom/json |      1.2 | 3.9m          | 242m           |
+| jzon        |      1.5 | 0.9m          | 258m           |
+| shasht      |      1.5 | 4.5m          | 452m           |
+| yason       |      8.2 | 6.4m          | 457m           |
 
 ECL:
 
 | Method      | Time (s) | Memory (bytes) |
 |-------------+----------+----------------|
-| shasht      |      3.1 | 1.8b           |
-| jzon        |      4.1 | 1.6b           |
-| parcom/json |      4.7 | 980m           |
-| yason       |      5.7 | 1.9b           |
-| jsown       |      6.2 | 165m           |
+| shasht      |      2.6 | 1.8b           |
+| parcom/json |      2.8 | 401m           |
+| jzon        |      3.2 | 1.6b           |
+| yason       |      5.4 | 1.9b           |
+| jsown       |      5.8 | 165m           |
 
 ABCL:
 
 | Method      | Time (s) | Memory (cons cells) |
 |-------------+----------+---------------------|
-| parcom/json |      6.9 | 2m                  |
-| jsown       |      8.0 | 25m                 |
-| jzon        |     12.0 | 864k                |
-| shasht      |     91.9 | 110m                |
+| jsown       |      7.4 | 25m                 |
+| jzon        |     11.3 | 864k                |
+| parcom/json |     39.7 | 204m                |
+| shasht      |     83.3 | 110m                |
 | yason       |    328.7 | 366m                |
 
 * API
