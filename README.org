@@ -112,7 +112,7 @@ read their associated formats:
 * Performance
 
 =parcom= operates over =simple-string= input, accessing its elements with =schar=. The
-=parcom/json= component has been measured to parse JSON at ~30mb/s on a 2016
+=parcom/json= component has been measured to parse JSON at ~50mb/s on a 2016
 ThinkPad, which should be sufficient for ordinary usage. Its performance is
 generally competitive across compilers, while remaining expressive and light in
 implementation.
@@ -866,13 +866,6 @@ Conversions:
 | Number | =double-float= |
 | String | String         |
 | =null=   | =:NULL=          |
-
-*Performance Note*
-
-As with the parent =parcom= library, =parcom/json= works strictly off of strings.
-With SBCL it parses JSON at about 30mb/s on my 2016 ThinkPad, which should be
-sufficient for ordinary usage. For a more "industrial strength" JSON parsing
-library, see [[https://github.com/Zulu-Inuoe/jzon][jzon]] which parses about 3x faster than =parcom/json=.
 
 *** parse
 
