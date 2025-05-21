@@ -127,3 +127,4 @@
 ;; (4) `:id' on `consume': 0.84b bytes, 1.45s
 ;; (5) Cache on `take-until': 0.75b bytes, 1.48s
 ;; (6) `consume' over `take-while': 0.65b bytes, 1.40s
+;; (7) Pre-saved global parsers: 0.65b bytes, 1.05s

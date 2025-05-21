@@ -9,6 +9,16 @@
 
 (in-package :parcom/xml)
 
+;; --- Static Parsers --- ;;
+
+(defparameter +comment-open+  (p:string "<!--"))
+(defparameter +comment-close+ (p:string "-->"))
+(defparameter +tag-close+     (p:string "</"))
+(defparameter +tag-start+     (p:char #\<))
+(defparameter +tag-end+       (p:char #\>))
+(defparameter +space+         (p:char #\space))
+(defparameter +slash+         (p:char #\/))
+
 ;; --- Types --- ;;
 
 (defstruct document
@@ -59,9 +69,9 @@ carried."
 
 (defun comment (offset)
   "Parser: A comment tag."
-  (funcall (p:between (p:string "<!--")
-                      (p:take-until (p:string "-->") :id :xml-comment)
-                      (p:string "-->")
+  (funcall (p:between +comment-open+
+                      (p:take-until +comment-close+ :id :xml-comment)
+                      +comment-close+
                       :id :xml-comment)
            offset))
 
@@ -130,7 +140,7 @@ carried."
                                          ;; assert `take-while1' below. Look
                                          ;; carefully; `sep-end' and `take-while'
                                          ;; would otherwise form an infinite loop.
-                                         (<$ "" (p:peek (p:string "</")))
+                                         (<$ "" (p:peek +tag-close+))
                                          #'elements
                                          ;; Preemptively unwrap a single-element list
                                          ;; so that it yields just the underlying
@@ -157,18 +167,18 @@ carried."
   "Parser: The <foo> part of an element. If shaped like <foo/> it is in fact
 standalone with no other content, and no closing tag."
   (multiple-value-bind (res next)
-      (funcall (p:between (*> (p:char #\<)
+      (funcall (p:between (*> +tag-start+
                               (p:peek (p:any-but #\/)))
                           (<*> (p:consume (lambda (c)
                                             (not (or (eql c #\>)
                                                      (eql c #\space)
                                                      (eql c #\/))))
                                           :id :xml-open-tag)
-                               (p:opt (*> (p:char #\space)
+                               (p:opt (*> +space+
                                           #'skip-space
                                           (p:sep-end1 #'skip-space #'pair)))
-                               (p:opt (p:char #\/)))
-                          (p:char #\>)
+                               (p:opt +slash+))
+                          +tag-end+
                           :id :xml-open-tag)
                offset)
     (if (p:failure? res)
@@ -202,9 +212,9 @@ standalone with no other content, and no closing tag."
 
 (defun close-tag (label)
   (lambda (offset)
-    (funcall (p:between (p:string "</")
+    (funcall (p:between +tag-close+
                         (p:string label)
-                        (p:char #\>))
+                        +tag-end+)
              offset)))
 
 #+nil

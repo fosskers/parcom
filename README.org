@@ -20,6 +20,7 @@ read their associated formats:
 
 - =parcom/json=
 - =parcom/toml=
+- =parcom/xml=
 - =parcom/datetime=
 
 =parcom= and its children have no dependencies.
@@ -83,6 +84,7 @@ read their associated formats:
   - [[#toml][TOML]]
     - [[#parse-1][parse]]
     - [[#toml-1][toml]]
+  - [[#xml][XML]]
   - [[#dates-and-times][Dates and Times]]
     - [[#parse-2][parse]]
     - [[#now][now]]
@@ -964,6 +966,18 @@ name = \"parcom\""))
 
 There are other subparsers exposed, but they are left out here for brevity.
 Please consult the source code if you need them.
+** XML
+
+The =parcom/xml= system provides types and parsers for [[https://www.w3.org/TR/xml11][XML]] files.
+
+=(in-package :parcom/xml)= is used below for brevity, but it's assumed that in
+your own code you will use a nickname, perhaps =px= or =xml=.
+
+If you don't care about the individual parsers per se and just want to simply
+parse some XML, use =px:parse=.
+
+This parser is gradually compliant to XML 1.1. If you discover XML files for
+which parsing fails, please open an issue.
 
 ** Dates and Times
 

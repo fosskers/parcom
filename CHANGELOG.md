@@ -2,9 +2,15 @@
 
 ### Unreleased
 
+#### Added
+
+- The `parcom/xml` system.
+
 #### Changed
 
 - Improved contextual output in parse failure condition.
+- `consume`: Yields the offset as a value instead of `t`.
+- A few more functions have been given lambda caches.
 
 ### 1.2.0 (2025-05-17)
 
