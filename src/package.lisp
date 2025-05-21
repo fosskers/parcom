@@ -186,10 +186,10 @@
 (declaim (ftype (function (character) boolean) space?))
 (defun space? (char)
   "Is a given character some sort of whitespace?"
-  (or (equal char #\space)
-      (equal char #\newline)
-      (equal char #\tab)
-      (equal char #\return)))
+  (or (eql char #\space)
+      (eql char #\newline)
+      (eql char #\tab)
+      (eql char #\return)))
 
 (declaim (ftype (function (char-string fixnum fixnum) char-string) direct-copy))
 (defun direct-copy (s from to)

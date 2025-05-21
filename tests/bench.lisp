@@ -16,38 +16,43 @@
   (/ (apply #'+ list) (float (length list))))
 
 #+nil
-(average '(3.82 3.17 3.05 3.04 3.05))
+(average '(0.831 0.838 0.852 0.817 0.823))
+
+;; --- ABCL --- ;;
+
+#+nil
+(let ((s (uiop:read-file-string "tests/data/large-file.json"))) (parcom/json:parse s) t)
 
 ;; --- COMPARISONS --- ;;
 
 #+nil
 (let* ((path #p"tests/data/large-file.json")
        (s (uiop:read-file-string path)))
-  (format t "--- JZON ---~%")
-  (time (jzon:parse s))
-  (time (jzon:parse s))
-  (time (jzon:parse s))
-  (time (jzon:parse s))
-  (time (jzon:parse s))
-  ;; (time (jzon:parse path))
-  (format t "--- SHASHT ---~%")
-  (time (shasht:read-json s))
-  (time (shasht:read-json s))
-  (time (shasht:read-json s))
-  (time (shasht:read-json s))
-  (time (shasht:read-json s))
-  (format t "--- JSOWN ---~%")
-  (time (jsown:parse s))
-  (time (jsown:parse s))
-  (time (jsown:parse s))
-  (time (jsown:parse s))
-  (time (jsown:parse s))
-  ;; (format t "--- YASON ---~%")
-  ;; (time (yason:parse s))
-  ;; (time (yason:parse s))
-  ;; (time (yason:parse s))
-  ;; (time (yason:parse s))
-  ;; (time (yason:parse s))
+  ;; (format t "--- JZON ---~%")
+  ;; (time (jzon:parse s))
+  ;; (time (jzon:parse s))
+  ;; (time (jzon:parse s))
+  ;; (time (jzon:parse s))
+  ;; (time (jzon:parse s))
+  ;; ;; (time (jzon:parse path))
+  ;; (format t "--- SHASHT ---~%")
+  ;; (time (shasht:read-json s))
+  ;; (time (shasht:read-json s))
+  ;; (time (shasht:read-json s))
+  ;; (time (shasht:read-json s))
+  ;; (time (shasht:read-json s))
+  ;; (format t "--- JSOWN ---~%")
+  ;; (time (jsown:parse s))
+  ;; (time (jsown:parse s))
+  ;; (time (jsown:parse s))
+  ;; (time (jsown:parse s))
+  ;; (time (jsown:parse s))
+  ;; ;; (format t "--- YASON ---~%")
+  ;; ;; (time (yason:parse s))
+  ;; ;; (time (yason:parse s))
+  ;; ;; (time (yason:parse s))
+  ;; ;; (time (yason:parse s))
+  ;; ;; (time (yason:parse s))
   (format t "--- PARCOM/JSON ---~%")
   (time (pj:parse s))
   (time (pj:parse s))
@@ -127,6 +132,14 @@
 #+nil
 (let ((s (uiop:read-file-string "tests/data/java.pom")))
   (time (dotimes (n 2000)
+          (px:parse s)))
+  (time (dotimes (n 2000)
+          (px:parse s)))
+  (time (dotimes (n 2000)
+          (px:parse s)))
+  (time (dotimes (n 2000)
+          (px:parse s)))
+  (time (dotimes (n 2000)
           (px:parse s))))
 
 ;; MEMORY
@@ -155,4 +168,4 @@
 ;; (4) `:id' on `consume': 0.84b bytes, 1.45s
 ;; (5) Cache on `take-until': 0.75b bytes, 1.48s
 ;; (6) `consume' over `take-while': 0.65b bytes, 1.40s
-;; (7) Pre-saved global parsers: 0.59 bytes, 1.05s
+;; (7) Pre-saved global parsers: 0.61 bytes, 0.83s

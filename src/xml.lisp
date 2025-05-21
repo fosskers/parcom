@@ -26,6 +26,7 @@
 (defparameter +peek-close+     (p:peek +tag-close+))
 (defparameter +peek-no-slash+  (p:peek (p:any-but #\/)))
 (defparameter +until-close+    (p:take-until +comment-close+))
+(defparameter +comment+        (p:between +comment-open+ +until-close+ +comment-close+))
 
 ;; --- Types --- ;;
 
@@ -76,11 +77,7 @@ carried."
 
 (defun comment (offset)
   "Parser: A comment tag."
-  (funcall (p:between +comment-open+
-                      +until-close+
-                      +comment-close+
-                      :id :xml-comment)
-           offset))
+  (funcall +comment+ offset))
 
 #+nil
 (comment (p:in "<!-- hello -->"))
@@ -170,23 +167,23 @@ carried."
 #+nil
 (p:parse #'element "<greeting/>")
 
+(defparameter +open-tag+
+  (p:between (*> +tag-start+ +peek-no-slash+)
+             (<*> (p:consume (lambda (c)
+                               (not (or (eql c #\>)
+                                        (eql c #\space)
+                                        (eql c #\/)))))
+                  (p:opt (*> +space+
+                             +skip-space+
+                             (p:sep-end1 +skip-space+ #'pair)))
+                  (p:opt +slash+))
+             +tag-end+))
+
 (defun open-tag (offset)
   "Parser: The <foo> part of an element. If shaped like <foo/> it is in fact
 standalone with no other content, and no closing tag."
   (multiple-value-bind (res next)
-      (funcall (p:between (*> +tag-start+ +peek-no-slash+)
-                          (<*> (p:consume (lambda (c)
-                                            (not (or (eql c #\>)
-                                                     (eql c #\space)
-                                                     (eql c #\/))))
-                                          :id :xml-open-tag)
-                               (p:opt (*> +space+
-                                          +skip-space+
-                                          (p:sep-end1 +skip-space+ #'pair)))
-                               (p:opt +slash+))
-                          +tag-end+
-                          :id :xml-open-tag)
-               offset)
+      (funcall +open-tag+ offset)
     (if (p:failure? res)
         (p:fail next)
         (destructuring-bind (consumed meta slash) res
