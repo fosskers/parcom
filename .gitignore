@@ -1,8 +1,9 @@
-*.fasl
+*.abcl
 *.fas
+*.fasl
+perf.stack
 repl.lisp
+tests/data/large-file.json
+tests/test/*
 turnip.lisp
 vendored/*
-tests/test/*
-tests/data/large-file.json
-perf.stack
