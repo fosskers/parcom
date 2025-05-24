@@ -1,3 +1,22 @@
+;;; JSON parsing via Parser Combinators.
+;;;
+;;; # Performance
+;;;
+;;; Two tricks are used to enable fast, memory-efficient parsing. The first is
+;;; _pre-cached parser lambas_, as can be seen in the `defparameter'
+;;; declarations below. By preallocating these closures, subsequent usage avoids
+;;; closure allocation, but also the Hash Table lookups otherwise associated
+;;; with the Lambda Caches established in the main `parcom' library.
+;;;
+;;; The second trick is for ABCL, and involves definining some of the larger
+;;; composed parsers within macros, such that under ABCL they are inlined
+;;; directly at their call sites, and on non-ABCL they are stored in a
+;;; `defparameter' as usual. Benchmarking and disassembly showed that ABCL is
+;;; able to highly optimize the macro-based manual inlining within its internal
+;;; class definitions, using "static final" values and avoiding intermediate
+;;; method calls. Overall it results in a 5x speedup and 100x reduction in
+;;; allocation.
+
 (defpackage parcom/json
   (:use :cl)
   (:shadow #:array #:string #:boolean #:null)
@@ -62,17 +81,26 @@
   "Parser: Parse either an Object or an Array."
   (funcall (p:alt #'object #'array) offset))
 
-(defparameter +array+
-  (p:between (*> +open-bracket+ +consume-space+)
-             (p:sep (*> +comma+ +consume-space+)
-                    (<* #'json +consume-space+))
-             (*> +consume-space+ +close-bracket+)))
+(defmacro array-parser ()
+  "A trick to enable efficient JVM optimizations."
+  `(p:between
+    (*> +open-bracket+ +consume-space+)
+    (p:sep (*> +comma+ +consume-space+)
+           (<* #'json +consume-space+))
+    (*> +consume-space+ +close-bracket+)
+    :id :array))
+
+#-abcl
+(defparameter +array+ (array-parser))
 
 (declaim (ftype (function (fixnum) (values (or vector (member :fail)) fixnum)) array))
 (defun array (offset)
   "Parser: Parse a JSON Array as a Lisp vector."
   (p:fmap (lambda (list) (coerce list 'vector))
-          (funcall +array+ offset)))
+          #-abcl
+          (funcall +array+ offset)
+          #+abcl
+          (funcall (array-parser) offset)))
 
 #+nil
 (array (p:in "[]"))
@@ -83,14 +111,20 @@
 #+nil
 (p:parse #'array "[1 2]")
 
-(defparameter +object+
-  (p:between (*> +open-brace+ +consume-space+)
-             (p:sep (*> +comma+ +consume-space+)
-                    (<*> #'string (*> +consume-space+
-                                      +colon+
-                                      +consume-space+
-                                      (<* #'json +consume-space+))))
-             (*> +consume-space+ +close-brace+)))
+(defmacro object-parser ()
+  "A trick to enable efficient JVM optimizations."
+  `(p:between
+    (*> +open-brace+ +consume-space+)
+    (p:sep (*> +comma+ +consume-space+)
+           (<*> #'string (*> +consume-space+
+                             +colon+
+                             +consume-space+
+                             (<* #'json +consume-space+))))
+    (*> +consume-space+ +close-brace+)
+    :id :object))
+
+#-abcl
+(defparameter +object+ (object-parser))
 
 (declaim (ftype (function (fixnum) (values (or hash-table (member :fail)) fixnum)) object))
 (defun object (offset)
@@ -100,7 +134,10 @@
               (dolist (pair pairs)
                 (setf (gethash (car pair) ht) (cadr pair)))
               ht))
-          (funcall +object+ offset)))
+          #-abcl
+          (funcall +object+ offset)
+          #+abcl
+          (funcall (object-parser) offset)))
 
 #+nil
 (object (p:in "{\"x\": 1, \"y\": 2}"))
@@ -176,26 +213,30 @@
 #+nil
 (escaped "\\u03" 0 4)
 
-(defparameter +string+
-  (p:between +quotes+
-             ;; NOTE: 2025-05-04 This was originally a call to
-             ;; (many #'compound-char), which is conceptually
-             ;; much simpler, but it was discovered to allocate
-             ;; too many intermediate lists. Further, using
-             ;; `take-while' still allocates displaced arrays
-             ;; whose lookups as slow during escaping, so I
-             ;; realized that `consume' allows us to scream
-             ;; across the source string and retain fast lookups.
-             (p:consume (lambda (c)
-                          (cond (*open-slash*
-                                 (setf *open-slash* nil)
-                                 t)
-                                ((eql c #\\)
-                                 (setf *open-slash* t)
-                                 (setf *slash-seen* t))
-                                ((eql c #\") nil)
-                                (t t))))
-             +quotes+))
+(defmacro string-parser ()
+  "A trick to enable efficient JVM optimizations."
+  `(p:between
+    +quotes+
+    ;; NOTE: 2025-05-04 This was originally a call to (many #'compound-char),
+    ;; which is conceptually much simpler, but it was discovered to allocate too
+    ;; many intermediate lists. Further, using `take-while' still allocates
+    ;; displaced arrays whose lookups as slow during escaping, so I realized
+    ;; that `consume' allows us to scream across the source string and retain
+    ;; fast lookups.
+    (p:consume (lambda (c)
+                 (cond (*open-slash*
+                        (setf *open-slash* nil)
+                        t)
+                       ((eql c #\\)
+                        (setf *open-slash* t)
+                        (setf *slash-seen* t))
+                       ((eql c #\") nil)
+                       (t t))))
+    +quotes+
+    :id :string))
+
+#-abcl
+(defparameter +string+ (string-parser))
 
 (declaim (ftype (function (fixnum) (values (or p::char-string (member :fail)) fixnum)) string))
 (defun string (offset)
@@ -203,7 +244,8 @@
   (setf *open-slash* nil)
   (setf *slash-seen* nil)
   (multiple-value-bind (res next)
-      (funcall +string+ offset)
+      #-abcl (funcall +string+ offset)
+    #+abcl (funcall (string-parser) offset)
     (cond ((p:failure? res) (p:fail next))
           ((not *slash-seen*) (values (p::direct-copy p::*input* (1+ offset) (1- next)) next))
           (t (values (escaped p::*input* (1+ offset) (1- next)) next)))))

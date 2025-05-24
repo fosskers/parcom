@@ -16,7 +16,7 @@
   (/ (apply #'+ list) (float (length list))))
 
 #+nil
-(average '(0.831 0.838 0.852 0.817 0.823))
+(average '(5.935 5.963 5.949 6.133 6.067))
 
 ;; --- ABCL --- ;;
 
@@ -60,25 +60,6 @@
   (time (pj:parse s))
   (time (pj:parse s))
   t)
-
-(defparameter +json-string+ "{\"key1\": \"value\\n\",
-\"key2\":1,\"key3\":[\"Hello \\u2604\",  1.2e-34 ,true,
-  false,null]}")
-
-#+nil
-(progn
-  (format t "--- JZON ---~%")
-  (time (dotimes (n 10000)
-          (jzon:parse +json-string+)))
-  (format t "--- SHASHT ---~%")
-  (time (dotimes (n 10000)
-          (shasht:read-json +json-string+)))
-  (format t "--- JSOWN ---~%")
-  (time (dotimes (n 10000)
-          (jsown:parse +json-string+)))
-  (format t "--- PARCOM/JSON ---~%")
-  (time (dotimes (n 10000)
-          (pj:parse +json-string+))))
 
 ;; --- HOT SPOT DETECTION --- ;;
 
