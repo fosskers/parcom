@@ -16,7 +16,6 @@
 (defparameter +tag-close+      (p:string "</"))
 (defparameter +tag-start+      (p:char #\<))
 (defparameter +tag-end+        (p:char #\>))
-(defparameter +space+          (p:char #\space))
 (defparameter +slash+          (p:char #\/))
 (defparameter +quote+          (p:char #\"))
 (defparameter +skip-space+     (p:consume (lambda (c) (or (equal c #\space) (equal c #\tab)))))
@@ -175,14 +174,22 @@ carried."
 (defparameter +open-tag+
   (p:between (*> +tag-start+ +peek-no-slash+)
              (<*> (p:consume (lambda (c)
-                               (not (or (eql c #\>)
-                                        (eql c #\space)
+                               (not (or (p:space? c)
+                                        (eql c #\>)
                                         (eql c #\/)))))
-                  (p:opt (*> +space+
-                             +skip-space+
-                             (p:sep-end1 +skip-space+ #'pair)))
-                  (p:opt +slash+))
+                  (p:opt (*> (p:any-if #'p:space?)
+                             +skip-all-space+
+                             (p:sep-end1 +skip-all-space+ #'pair)))
+                  (p:opt (*> +skip-space+ +slash+)))
              +tag-end+))
+
+#+nil
+(p:parse #'open-tag "<project
+  xmlns=\"http://maven.apache.org/POM/4.0.0\"
+  xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"
+  xsi:schemaLocation=\"http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd\">
+<greeting>hi</greeting>
+</project>")
 
 (declaim (ftype (function (fixnum) (values (or element cons p::char-string (member :fail)) fixnum)) open-tag))
 (defun open-tag (offset)
@@ -218,6 +225,8 @@ standalone with no other content, and no closing tag."
 (p:parse #'open-tag "<greeting foo=\"bar\" baz=\"zoo\">")
 #+nil
 (p:parse #'open-tag "<greeting foo=\"bar\" baz=\"zoo\"/>")
+#+nil
+(p:parse #'open-tag "<organization />")
 
 (declaim (ftype (function (p::char-string) (function (fixnum) (values (or p::char-string (member :fail)) fixnum))) close-tag))
 (defun close-tag (label)

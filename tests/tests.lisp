@@ -445,9 +445,12 @@ hi!
     (is equal "greeting" (px:element-name elem))
     (is = 2 (hash-table-count (px:element-metadata elem))))
   (let ((elem (pc:parse #'px::open-tag "<greeting/>")))
+    (is equal "greeting" (px:element-name elem)))
+  (let ((elem (pc:parse #'px::open-tag "<greeting />")))
     (is equal "greeting" (px:element-name elem))))
 
 (define-test xml-documents
   :parent xml
   (finish (px:parse (uiop:read-file-string "tests/data/java.pom")))
-  (finish (px:parse (uiop:read-file-string "tests/data/log4j.pom"))))
+  (finish (px:parse (uiop:read-file-string "tests/data/log4j.pom")))
+  (finish (px:parse (uiop:read-file-string "tests/data/lang3.pom"))))
