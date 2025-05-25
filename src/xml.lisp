@@ -111,7 +111,7 @@ carried."
 (defun elements (offset)
   "Parser: A linear series of elements parsed into a Hash Table."
   (p:fmap (lambda (els)
-            (let ((ht (make-hash-table :test #'equal)))
+            (let ((ht (make-hash-table :test #'equal :size 32)))
               (dolist (el els)
                 (let* ((name (element-name el))
                        (got? (gethash name ht)))
@@ -207,7 +207,7 @@ standalone with no other content, and no closing tag."
         (destructuring-bind (consumed meta slash) res
           (let ((meta (when meta
                         ;; TODO: 2025-05-20 Abstract this out.
-                        (let ((ht (make-hash-table :test #'equal)))
+                        (let ((ht (make-hash-table :test #'equal :size 32)))
                           (dolist (pair meta)
                             (setf (gethash (car pair) ht) (cadr pair)))
                           ht)))
@@ -248,7 +248,7 @@ standalone with no other content, and no closing tag."
 (defun document-type (offset)
   "Parser: The version, etc., declarations at the top of the document."
   (p:fmap (lambda (pairs)
-            (let ((ht (make-hash-table :test #'equal)))
+            (let ((ht (make-hash-table :test #'equal :size 16)))
               (dolist (pair pairs)
                 (setf (gethash (car pair) ht) (cadr pair)))
               ht))
