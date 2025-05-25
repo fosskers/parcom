@@ -3,7 +3,9 @@
   (:import-from :parcom #:<*> #:<* #:*> #:<$)
   (:local-nicknames (#:p #:parcom))
   ;; --- Types --- ;;
-  (:export #:element #:element-name #:element-content #:element-metadata #:content)
+  (:export #:element #:element-name #:element-content #:element-metadata
+           #:document #:document-metadata #:document-element
+           #:content)
   ;; --- Entry --- ;;
   (:export #:parse #:xml))
 
@@ -52,6 +54,9 @@ carried."
 
 (defmethod content ((elements hash-table))
   elements)
+
+(defmethod content ((document document))
+  (element-content (document-element document)))
 
 ;; --- Entry --- ;;
 
