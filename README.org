@@ -29,6 +29,7 @@ read their associated formats:
 - [[#compatibility][Compatibility]]
 - [[#performance][Performance]]
   - [[#json-benchmarks][JSON Benchmarks]]
+  - [[#xml-benchmarks][XML Benchmarks]]
 - [[#api][API]]
   - [[#types-and-running-parsers][Types and Running Parsers]]
   - [[#parsers][Parsers]]
@@ -85,8 +86,11 @@ read their associated formats:
     - [[#parse-1][parse]]
     - [[#toml-1][toml]]
   - [[#xml][XML]]
-  - [[#dates-and-times][Dates and Times]]
     - [[#parse-2][parse]]
+    - [[#xml-1][xml]]
+    - [[#content][content]]
+  - [[#dates-and-times][Dates and Times]]
+    - [[#parse-3][parse]]
     - [[#now][now]]
     - [[#date][date]]
     - [[#time][time]]
@@ -162,6 +166,36 @@ ABCL:
 | jzon        |     11.3 | 864k                |
 | shasht      |     83.3 | 110m                |
 | yason       |    328.7 | 366m                |
+
+** XML Benchmarks
+
+In parsing a Java =.pom= file 1000 times.
+
+SBCL:
+
+| Method     | Times (ms) | Memory (bytes) |
+|------------+------------+----------------|
+| parcom/xml |        447 | 423m           |
+| cxml       |        808 | 497m           |
+| plump      |       1460 | 656m           |
+
+Allegro:
+
+| Method     | Time (s) | Memory (cons) | Memory (bytes) |
+|------------+----------+---------------+----------------|
+| parcom/xml |      1.2 | 3m            | 777m           |
+| plump      |      4.2 | 10m           | 790m           |
+| cxml       |      4.3 | 13m           | 684m           |
+
+ABCL:
+
+| Method     | Time (s) | Memory (cons cells) |
+|------------+----------+---------------------|
+| parcom/xml |     32.3 | 171m                |
+| plump      |     66.7 | 85m                 |
+| cxml       |    139.6 | 150m                |
+
+=cxml= is quite old and one of its dependencies did not compile under ECL.
 
 * API
 
@@ -948,14 +982,14 @@ Parse TOML via the actual parser.
 
 #+begin_src lisp :exports both
 (in-package :parcom/toml)
-(funcall #'toml (parcom:in "# My Config
+(toml (parcom:in "# My Config
 
 [project]
 name = \"parcom\""))
 #+end_src
 
 #+RESULTS:
-: #<HASH-TABLE :TEST EQUAL :COUNT 1 {1008BBCAC3}>, 38
+: #<HASH-TABLE :TEST EQUAL :COUNT 1 {10066C8433}>, 38
 
 There are other subparsers exposed, but they are left out here for brevity.
 Please consult the source code if you need them.
@@ -971,6 +1005,51 @@ parse some XML, use =px:parse=.
 
 This parser is gradually compliant to XML 1.1. If you discover XML files for
 which parsing fails, please open an issue.
+
+*** parse
+
+=parse= produces a top-level =document= which may contain metadata.
+
+#+begin_src lisp :exports both
+(in-package :parcom/xml)
+(parse "<hello>yes</hello>")
+#+end_src
+
+#+RESULTS:
+: #S(DOCUMENT
+:    :METADATA NIL
+:    :ELEMENT #S(ELEMENT :NAME "hello" :METADATA NIL :CONTENT "yes"))
+
+*** xml
+
+The actual combinator is =xml=.
+
+#+begin_src lisp :exports both
+(in-package :parcom/xml)
+(xml (parcom:in "<hello>yes</hello>"))
+#+end_src
+
+#+RESULTS:
+: #S(DOCUMENT
+:    :METADATA NIL
+:    :ELEMENT #S(ELEMENT :NAME "hello" :METADATA NIL :CONTENT "yes"))
+: 18
+
+There are other subparsers exposed, but they are left out here for brevity.
+Please consult the source code if you need them.
+
+*** content
+
+A generic function to easily extract the meaningful content of anything
+element-like.
+
+#+begin_src lisp :exports both
+(in-package :parcom/xml)
+(content (parse "<hello>yes</hello>"))
+#+end_src
+
+#+RESULTS:
+: yes
 
 ** Dates and Times
 

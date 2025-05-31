@@ -1,5 +1,5 @@
 (defsystem "parcom"
-  :version "1.2.0"
+  :version "1.3.0"
   :author "Colin Woodbury <colin@fosskers.ca>"
   :license "MPL-2.0"
   :homepage "https://github.com/fosskers/parcom"
@@ -39,5 +39,7 @@
   :perform (test-op (op c) (symbol-call :parachute :test :parcom/tests)))
 
 (defsystem "parcom/benchmarks"
-  :depends-on (:parcom :parcom/json :parcom/xml :com.inuoe.jzon :shasht :jsown :yason)
+  :depends-on (:parcom
+               :parcom/json :com.inuoe.jzon :shasht :jsown :yason
+               :parcom/xml :plump :cxml)
   :components ((:module "tests" :components ((:file "bench")))))
