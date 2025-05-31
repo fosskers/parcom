@@ -15,6 +15,8 @@
 
 (defparameter +comment-open+   (p:string "<!--"))
 (defparameter +comment-close+  (p:string "-->"))
+(defparameter +until-close+    (p:take-until +comment-close+))
+(defparameter +comment+        (p:between +comment-open+ +until-close+ +comment-close+))
 (defparameter +tag-close+      (p:string "</"))
 (defparameter +tag-start+      (p:char #\<))
 (defparameter +tag-end+        (p:char #\>))
@@ -22,12 +24,10 @@
 (defparameter +quote+          (p:char #\"))
 (defparameter +skip-space+     (p:consume (lambda (c) (or (equal c #\space) (equal c #\tab)))))
 (defparameter +skip-all-space+ (p:consume #'p:space?))
-(defparameter +skip-comments+  (p:skip (*> #'comment +skip-all-space+)))
+(defparameter +skip-comments+  (p:skip (*> +comment+ +skip-all-space+)))
 (defparameter +skip-junk+      (*> +skip-all-space+ +skip-comments+))
 (defparameter +peek-close+     (p:peek +tag-close+))
 (defparameter +peek-no-slash+  (p:peek (p:any-but #\/)))
-(defparameter +until-close+    (p:take-until +comment-close+))
-(defparameter +comment+        (p:between +comment-open+ +until-close+ +comment-close+))
 
 ;; --- Types --- ;;
 
@@ -79,19 +79,6 @@ carried."
 (p:parse #'xml (uiop:read-file-string "tests/data/java.pom"))
 
 ;; --- Parsers --- ;;
-
-(declaim (ftype (function (fixnum) (values (or cl:string (member :fail)) fixnum)) comment))
-(defun comment (offset)
-  "Parser: A comment tag."
-  (funcall +comment+ offset))
-
-#+nil
-(comment (p:in "<!-- hello -->"))
-#+nil
-(p:parse #'comment "<!--
-  Hello!
--->
-")
 
 (declaim (ftype (function (fixnum) (values (or list (member :fail)) fixnum)) pair))
 (defun pair (offset)
@@ -176,17 +163,23 @@ carried."
 #+nil
 (p:parse #'element "<greeting/>")
 
-(defparameter +open-tag+
-  (p:between (*> +tag-start+ +peek-no-slash+)
-             (<*> (p:consume (lambda (c)
-                               (not (or (p:space? c)
-                                        (eql c #\>)
-                                        (eql c #\/)))))
-                  (p:opt (*> (p:any-if #'p:space?)
-                             +skip-all-space+
-                             (p:sep-end1 +skip-all-space+ #'pair)))
-                  (p:opt (*> +skip-space+ +slash+)))
-             +tag-end+))
+(defmacro open-tag-parser ()
+  "A trick to enable efficient JVM optimizations."
+  `(p:between
+    (*> +tag-start+ +peek-no-slash+)
+    (<*> (p:consume (lambda (c)
+                      (not (or (p:space? c)
+                               (eql c #\>)
+                               (eql c #\/)))))
+         (p:opt (*> (p:any-if #'p:space?)
+                    +skip-all-space+
+                    (p:sep-end1 +skip-all-space+ #'pair)))
+         (p:opt (*> +skip-space+ +slash+)))
+    +tag-end+
+    :id :open-tag))
+
+#-abcl
+(defparameter +open-tag+ (open-tag-parser))
 
 #+nil
 (p:parse #'open-tag "<project
@@ -201,7 +194,8 @@ carried."
   "Parser: The <foo> part of an element. If shaped like <foo/> it is in fact
 standalone with no other content, and no closing tag."
   (multiple-value-bind (res next)
-      (funcall +open-tag+ offset)
+      #-abcl (funcall +open-tag+ offset)
+    #+abcl (funcall (open-tag-parser) offset)
     (if (p:failure? res)
         (p:fail next)
         (destructuring-bind (consumed meta slash) res

@@ -191,7 +191,7 @@ ABCL:
 
 | Method     | Time (s) | Memory (cons cells) |
 |------------+----------+---------------------|
-| parcom/xml |     32.3 | 171m                |
+| parcom/xml |     12.8 | 35m                 |
 | plump      |     66.7 | 85m                 |
 | cxml       |    139.6 | 150m                |
 

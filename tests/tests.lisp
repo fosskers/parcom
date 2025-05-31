@@ -403,7 +403,7 @@
 
 (define-test xml-comment
   :parent xml
-  (is equal " hello " (pc:parse #'px::comment "<!-- hello -->")))
+  (is equal " hello " (pc:parse px::+comment+ "<!-- hello -->")))
 
 (define-test xml-element
   :parent xml
