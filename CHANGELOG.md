@@ -1,5 +1,16 @@
 # Parcom Changelog
 
+### Unreleased
+
+#### Changed
+
+- toml: `parse` checks if you've reached the end of the file.
+- xml: `parse` checks if you've reached the end of the file.
+
+#### Fixed
+
+- xml: Allow a `<!DOCTYPE ...>` tag near the top of the file.
+
 ### 1.3.0 (2025-05-31)
 
 #### Added

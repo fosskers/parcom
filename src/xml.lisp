@@ -34,7 +34,13 @@
 (defstruct document
   "The entire XML document."
   (metadata nil :type (or null hash-table))
+  (doctype  nil :type (or null doctype))
   (element  nil :type element))
+
+(defstruct doctype
+  "A `!DOCTYPE' tag."
+  (type   nil :type string)
+  (system nil :type string))
 
 (defstruct element
   "The content of an element, alongside any metadata its opening tag may have
@@ -68,10 +74,11 @@ carried."
 (defun xml (offset)
   "Parser: Parse an entire XML document into a Hash Table."
   (p:fmap (lambda (list)
-            (destructuring-bind (metadata element) list
-              (make-document :metadata metadata :element element)))
+            (destructuring-bind (metadata doctype element) list
+              (make-document :metadata metadata :doctype doctype :element element)))
           (funcall (*> +skip-junk+
-                       (<*> (p:opt #'document-type)
+                       (<*> (p:opt #'xml-metadata)
+                            (*> +skip-junk+ (p:opt #'doctype))
                             (*> +skip-junk+ #'element)))
                    offset)))
 
@@ -238,8 +245,8 @@ standalone with no other content, and no closing tag."
 #+nil
 (p:parse (close-tag "greeting") "</greeting>")
 
-(declaim (ftype (function (fixnum) (values (or hash-table (member :fail)) fixnum)) document-type))
-(defun document-type (offset)
+(declaim (ftype (function (fixnum) (values (or hash-table (member :fail)) fixnum)) xml-metadata))
+(defun xml-metadata (offset)
   "Parser: The version, etc., declarations at the top of the document."
   (p:fmap (lambda (pairs)
             (let ((ht (make-hash-table :test #'equal :size 16)))
@@ -249,8 +256,28 @@ standalone with no other content, and no closing tag."
           (funcall (p:between (p:string "<?xml ")
                               (p:sep-end1 +skip-space+ #'pair)
                               (p:string "?>")
-                              :id :xml-document-type)
+                              :id :xml-metadata)
                    offset)))
 
 #+nil
-(p:parse #'document-type "<?xml version=\"1.0\" encoding=\"UTF-8\"?>")
+(p:parse #'document-metadata "<?xml version=\"1.0\" encoding=\"UTF-8\"?>")
+
+(defun doctype (offset)
+  "Parse a `!DOCTYPE' block."
+  (p:fmap (lambda (pair)
+            (destructuring-bind (type system) pair
+              (make-doctype :type type :system system)))
+          (funcall (p:between (*> (p:string "<!DOCTYPE")
+                                  +skip-space+)
+                              (<*> (p:take-while1 (lambda (c) (not (eql c #\space))))
+                                   (*> +skip-space+
+                                       (p:string "SYSTEM")
+                                       +skip-space+
+                                       (p:between +quote+
+                                                  (p:take-while1 (lambda (c) (not (eql c #\"))))
+                                                  +quote+)))
+                              +tag-end+)
+                   offset)))
+
+#+nil
+(p:parse #'doctype "<!DOCTYPE supplementalData SYSTEM \"../../common/dtd/ldmlSupplemental.dtd\">")
