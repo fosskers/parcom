@@ -62,7 +62,7 @@ carried."
 
 (defun parse (input)
   "Attempt to parse a whole XML document."
-  (p:parse #'xml input))
+  (p:parse (<* #'xml +skip-junk+ #'p:eof)  input))
 
 (declaim (ftype (function (fixnum) (values (or document (member :fail)) fixnum)) xml))
 (defun xml (offset)
