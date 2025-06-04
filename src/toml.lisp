@@ -36,7 +36,7 @@
 
 (defun parse (input)
   "Attempt to parse any JSON value."
-  (p:parse #'toml input))
+  (p:parse (<* #'toml #'skip-space-and-comments #'p:eof) input))
 
 (defun toml (offset)
   "Parser: Parse a TOML document into a Hash Table."
