@@ -73,6 +73,7 @@ read their associated formats:
     - [[#count][count]]
     - [[#take-until][take-until]]
     - [[#recognize][recognize]]
+    - [[#maybe][maybe]]
   - [[#utilities][Utilities]]
     - [[#empty][empty?]]
     - [[#digit][digit?]]
@@ -814,6 +815,20 @@ instead.
 
 #+RESULTS:
 : "hi123", 5
+
+*** maybe
+
+If an initial parser succeeds, apply some =f= to the result of the second parser.
+If the first parser doesn't succeed, the second is attempted as usual but =f=
+isn't applied.
+
+#+begin_src lisp :exports both
+(in-package :parcom)
+(parse (maybe #'1+ (char #\a) #'integer) "a123")
+#+end_src
+
+#+RESULTS:
+: 124
 
 ** Utilities
 
