@@ -2,6 +2,10 @@
 
 ### Unreleased
 
+#### Added
+
+- Combinator: `maybe` for conditionally applying a function to the result of a parser.
+
 #### Changed
 
 - toml: `parse` checks if you've reached the end of the file.

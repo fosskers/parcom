@@ -20,7 +20,7 @@
            #:take #:take-while #:take-while1 #:rest
            #:pure)
   ;; --- Combinators --- ;;
-  (:export #:opt #:between #:pair
+  (:export #:opt #:between #:pair #:maybe
            #:many #:many1 #:sep #:sep1 #:sep-end #:sep-end1 #:take-until
            #:consume #:skip #:peek #:sneak #:count #:recognize)
   ;; --- Conditions --- ;;

@@ -269,3 +269,18 @@ input of the subparser."
 
 #+nil
 (funcall (pair #'any #'any) (in "hi"))
+
+(defun maybe (f p0 p1)
+  "Combinator: If an initial parser succeeds, apply some `f' to the result of the
+second parser. If the first parser doesn't succeed, the second is attempted as
+usual but `f' isn't applied."
+  (lambda (offset)
+    (multiple-value-bind (first next) (funcall p0 offset)
+      (if (failure? first)
+          (funcall p1 offset)
+          (fmap f (funcall p1 next))))))
+
+#+nil
+(parse (maybe #'1+ (char #\a) #'integer) "a123")
+#+nil
+(parse (maybe #'1+ (char #\a) #'integer) "123")
