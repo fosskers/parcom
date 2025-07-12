@@ -331,6 +331,8 @@ complex."
 #+nil
 (unsigned (in "123!"))
 
+(defparameter +minus+ (char #\-))
+
 (defmacro integer-parser ()
   "A trick to enable efficient JVM optimizations."
   `(maybe #'- +minus+ #'unsigned))
@@ -377,7 +379,3 @@ complex."
 (rest (in "hello"))
 #+nil
 (funcall (<*> (string "hi") (*> #'space #'rest)) (in "hi there"))
-
-;; --- Static Parsers --- ;;
-
-(defparameter +minus+ (char #\-))

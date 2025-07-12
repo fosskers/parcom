@@ -8,8 +8,8 @@
   :components ((:module "src"
                 :components ((:file "package")
                              (:file "fp")
-                             (:file "parsers")
-                             (:file "combinators"))))
+                             (:file "combinators")
+                             (:file "parsers"))))
   :in-order-to ((test-op (test-op :parcom/tests))))
 
 (defsystem "parcom/json"
