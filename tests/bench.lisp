@@ -18,6 +18,15 @@
 #+nil
 (average '(5.935 5.963 5.949 6.133 6.067))
 
+;; --- Integer Parsing --- ;;
+
+#+nil
+(time (dotimes (n 1000000)
+        (pc:parse #'pc:integer "-1234567890")))
+#+nil
+(time (dotimes (n 1000000)
+        (pc:parse #'pc::integer2 "-1234567890")))
+
 ;; --- ABCL --- ;;
 
 #+nil

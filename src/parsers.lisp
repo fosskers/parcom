@@ -331,16 +331,20 @@ complex."
 #+nil
 (unsigned (in "123!"))
 
+(defmacro integer-parser ()
+  "A trick to enable efficient JVM optimizations."
+  `(maybe #'- +minus+ #'unsigned))
+
+#-abcl
+(defparameter +integer+ (integer-parser))
+
 (declaim (ftype (function (fixnum) (values (or fixnum (member :fail)) fixnum)) integer))
 (defun integer (offset)
   "Parser: A positive or negative integer."
-  (fmap (lambda (pair) (if (null (car pair)) (cadr pair) (- (cadr pair))))
-        (funcall (<*> (opt (char #\-)) #'unsigned) offset)))
-
-#+nil
-(integer (in "123!"))
-#+nil
-(integer (in "-123!"))
+  #-abcl
+  (funcall +integer+ offset)
+  #+abcl
+  (funcall (integer-parser) offset))
 
 (declaim (ftype (function (fixnum) (values (or double-float (member :fail)) fixnum)) float))
 (defun float (offset)
@@ -373,3 +377,7 @@ complex."
 (rest (in "hello"))
 #+nil
 (funcall (<*> (string "hi") (*> #'space #'rest)) (in "hi there"))
+
+;; --- Static Parsers --- ;;
+
+(defparameter +minus+ (char #\-))
