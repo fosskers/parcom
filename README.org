@@ -131,11 +131,11 @@ SBCL:
 
 | Method      | Time (ms) | Memory (bytes) |
 |-------------+-----------+----------------|
-| jsown       |       160 | 135m           |
-| jzon        |       325 | 132m           |
-| parcom/json |       500 | 260m           |
-| shasht      |       650 | 400m           |
-| yason       |      1600 | 400m           |
+| jsown       |       200 | 135m           |
+| jzon        |       370 | 132m           |
+| parcom/json |       500 | 232m           |
+| shasht      |       650 | 410m           |
+| yason       |      1800 | 400m           |
 
 Allegro:
 

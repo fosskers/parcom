@@ -10,6 +10,8 @@
 
 - toml: `parse` checks if you've reached the end of the file.
 - xml: `parse` checks if you've reached the end of the file.
+- json: Numbers now parse as `fixnum` if they can be.
+- json: Number parsing is now 2x as fast and uses half as much memory.
 
 #### Fixed
 

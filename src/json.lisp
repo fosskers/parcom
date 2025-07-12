@@ -19,7 +19,7 @@
 
 (defpackage parcom/json
   (:use :cl)
-  (:shadow #:array #:string #:boolean #:null)
+  (:shadow #:array #:string #:boolean #:null #:number)
   (:import-from :parcom #:<*> #:<* #:*> #:<$)
   (:local-nicknames (#:p #:parcom))
   ;; --- Entry Points --- ;;
@@ -27,7 +27,7 @@
   ;; --- Parsers --- ;;
   (:export #:json
            #:collection #:array #:object
-           #:primitive #:string #:boolean #:scientific #:null))
+           #:primitive #:string #:boolean #:number #:null))
 
 (in-package :parcom/json)
 
@@ -40,10 +40,18 @@
 (defparameter +comma+         (p:char #\,))
 (defparameter +colon+         (p:char #\:))
 (defparameter +quotes+        (p:char #\"))
+(defparameter +period+        (p:char #\.))
+(defparameter +small-e+       (p:char #\e))
+(defparameter +big-e+         (p:char #\E))
+(defparameter +plus+          (p:char #\+))
+(defparameter +minus+         (p:char #\-))
+(defparameter +zero+          (p:char #\0))
 (defparameter +true+          (p:string "true"))
 (defparameter +false+         (p:string "false"))
 (defparameter +null+          (p:string "null"))
 (defparameter +consume-space+ (p:consume #'p:space?))
+(defparameter +digits+        (p:consume #'p:digit?))
+(defparameter +any-digit+     (p:any-if #'p:digit?))
 
 ;; --- Entry --- ;;
 
@@ -148,10 +156,10 @@
 #+nil
 (p:parse #'collection "[{}, { \"x\": 1 , \"y\" 2 }]")
 
-(declaim (ftype (function (fixnum) (values (or p::char-string double-float t (member :fail)) fixnum)) primitive))
+(declaim (ftype (function (fixnum) (values (or p::char-string fixnum double-float cl:boolean (member :null :fail)) fixnum)) primitive))
 (defun primitive (offset)
-  "Parser: Parse a string, number, or boolean."
-  (funcall (p:alt #'string #'scientific #'boolean #'null) offset))
+  "Parser: Parse a string, number, boolean, or null."
+  (funcall (p:alt #'string #'number #'boolean #'null) offset))
 
 (declaim (ftype (function (character) (or character cl:null)) escaped-variant))
 (defun escaped-variant (c)
@@ -273,20 +281,52 @@
 #+nil
 (boolean "true")
 
-(declaim (ftype (function (fixnum) (values (or double-float (member :fail)) fixnum)) scientific))
-(defun scientific (offset)
-  "Parser: Parse a JSON number in scientific notation."
-  (p:fmap (lambda (s)
-            (let ((*read-default-float-format* 'double-float))
-              (cl:float (read-from-string s) 1.0d0)))
-          (funcall (p:recognize (*> #'p:float
-                                    (p:opt (*> (p:alt (p:char #\E) (p:char #\e))
-                                               (p:opt (p:alt (p:char #\+) (p:char #\-)))
-                                               (*> (p:skip (p:char #\0)) (p:opt #'p:unsigned))))))
-                   offset)))
+(declaim (ftype (function (fixnum) (values (or fixnum double-float (member :fail)) fixnum)) number))
+(defun number (offset)
+  "Parser: Parse a JSON number, either a `fixnum' or something in scientific
+notation. Optimized to yield a fixnum early if no futher float-like characters
+could be parsed."
+  (multiple-value-bind (int off0) (funcall #'p:integer offset)
+    (if (p:failure? int)
+        (p:fail off0)
+        (multiple-value-bind (_ off1)
+            (funcall (*> (p:opt (*> +period+ +any-digit+ +digits+))
+                         (p:opt (*> (p:alt +small-e+ +big-e+)
+                                    (p:opt (p:alt +plus+ +minus+))
+                                    (p:skip +zero+)
+                                    ;; BUG: 2025-07-12 If someone attempts to
+                                    ;; parse just `1e' a condition will be
+                                    ;; raised by the compiler's float parser.
+                                    ;; The `opt' was initial added here to avoid
+                                    ;; the bug caused by `1e00'.
+                                    (p:opt #'p:unsigned))))
+                     off0)
+          (declare (ignore _))
+          ;; If the second parser moved _at all_ we have to consider it a
+          ;; "success" in terms of float parsing, since the two `opt' calls can
+          ;; otherwise not fail.
+          (if (= off0 off1)
+              (values int off0)
+              (let ((s (make-array (- off1 offset)
+                                   :element-type 'character
+                                   :displaced-to p::*input*
+                                   :displaced-index-offset offset))
+                    (*read-default-float-format* 'double-float))
+                (values (cl:float (read-from-string s) 1.0d0)
+                        off1)))))))
 
 #+nil
-(scientific "23456789012E66   ")
+(p:parse #'number "123456789!")
+#+nil
+(p:parse #'number "123.456!")
+#+nil
+(number (p:in "123.a"))
+#+nil
+(p:parse #'number "123E10!")
+#+nil
+(number (p:in "-123.456E10!"))
+#+nil
+(p:parse #'number "1e00")
 
 #+nil
 (let ((*read-default-float-format* 'double-float))
@@ -298,7 +338,7 @@
   (funcall (<$ :null +null+) offset))
 
 #+nil
-(null "null")
+(p:parse #'null "null")
 
 #+nil
-(array (p:in (uiop:read-file-string "tests/data/pass2.json")))
+(p:parse #'array (uiop:read-file-string "tests/data/pass2.json"))

@@ -16,7 +16,7 @@
   (/ (apply #'+ list) (float (length list))))
 
 #+nil
-(average '(5.935 5.963 5.949 6.133 6.067))
+(average '(0.508 0.440 0.619 0.491 0.431))
 
 ;; --- Integer Parsing --- ;;
 
@@ -26,6 +26,37 @@
 #+nil
 (time (dotimes (n 1000000)
         (pc:parse #'pc::integer2 "-1234567890")))
+
+#+nil
+(progn
+  (format t "--- NUMBER ---~%")
+  (time (dotimes (n 1000000)
+          (pc:parse #'pj::number "-1234567890")))
+  (format t "--- NUMBER2 ---~%")
+  (time (dotimes (n 1000000)
+          (pc:parse #'pj::number2 "-1234567890")))
+  (format t "--- SCIENTIFIC ---~%")
+  (time (dotimes (n 1000000)
+          (pc:parse #'pj::scientific "-1234567890"))))
+
+;; RESULT: `number' is slightly faster than `number2' for integer inputs. Both
+;; use about half as much memory as `scientific'.
+
+#+nil
+(progn
+  (format t "--- NUMBER ---~%")
+  (time (dotimes (n 1000000)
+          (pc:parse #'pj::number "-123.456E10")))
+  (format t "--- NUMBER2 ---~%")
+  (time (dotimes (n 1000000)
+          (pc:parse #'pj::number2 "-123.456E10")))
+  (format t "--- SCIENTIFIC ---~%")
+  (time (dotimes (n 1000000)
+          (pc:parse #'pj::scientific "-123.456E10"))))
+
+;; RESULT: `number2' (the highly optimized implementation) is 2x faster for
+;; float inputs than both `number' and `scientific' and uses half as much
+;; memory.
 
 ;; --- ABCL --- ;;
 
@@ -37,31 +68,31 @@
 #+nil
 (let* ((path #p"tests/data/large-file.json")
        (s (uiop:read-file-string path)))
-  ;; (format t "--- JZON ---~%")
-  ;; (time (jzon:parse s))
-  ;; (time (jzon:parse s))
-  ;; (time (jzon:parse s))
-  ;; (time (jzon:parse s))
-  ;; (time (jzon:parse s))
-  ;; ;; (time (jzon:parse path))
-  ;; (format t "--- SHASHT ---~%")
-  ;; (time (shasht:read-json s))
-  ;; (time (shasht:read-json s))
-  ;; (time (shasht:read-json s))
-  ;; (time (shasht:read-json s))
-  ;; (time (shasht:read-json s))
-  ;; (format t "--- JSOWN ---~%")
-  ;; (time (jsown:parse s))
-  ;; (time (jsown:parse s))
-  ;; (time (jsown:parse s))
-  ;; (time (jsown:parse s))
-  ;; (time (jsown:parse s))
-  ;; ;; (format t "--- YASON ---~%")
-  ;; ;; (time (yason:parse s))
-  ;; ;; (time (yason:parse s))
-  ;; ;; (time (yason:parse s))
-  ;; ;; (time (yason:parse s))
-  ;; ;; (time (yason:parse s))
+  (format t "--- JZON ---~%")
+  (time (jzon:parse s))
+  (time (jzon:parse s))
+  (time (jzon:parse s))
+  (time (jzon:parse s))
+  (time (jzon:parse s))
+  ;; (time (jzon:parse path))
+  (format t "--- SHASHT ---~%")
+  (time (shasht:read-json s))
+  (time (shasht:read-json s))
+  (time (shasht:read-json s))
+  (time (shasht:read-json s))
+  (time (shasht:read-json s))
+  (format t "--- JSOWN ---~%")
+  (time (jsown:parse s))
+  (time (jsown:parse s))
+  (time (jsown:parse s))
+  (time (jsown:parse s))
+  (time (jsown:parse s))
+  (format t "--- YASON ---~%")
+  (time (yason:parse s))
+  (time (yason:parse s))
+  (time (yason:parse s))
+  (time (yason:parse s))
+  (time (yason:parse s))
   (format t "--- PARCOM/JSON ---~%")
   (time (pj:parse s))
   (time (pj:parse s))

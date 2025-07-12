@@ -62,6 +62,7 @@
   (is = 123.0456d0 (p:parse #'p:float "123.0456!"))
   (is = -123.0456d0 (p:parse #'p:float "-123.0456!"))
   (is = 1.0 (p:parse #'p:float "1"))
+  (is = 1.0 (p:parse #'p:float "1.0"))
   (is = 0.0 (p:parse #'p:float "0"))
   (is = 2.3456789012d10 (p:parse #'p:float "23456789012")))
 
@@ -214,13 +215,15 @@
   :parent json
   (is = 0 (hash-table-count (pj:parse "{}")))
   (true (hash-table-p (pj:parse "{\"x\": 1, \"y\": 2}")))
-  (true (hash-table-p (pj:parse "{ \"x\" : 1 , \"y\":2}"))))
+  (true (hash-table-p (pj:parse "{ \"x\" : 1 , \"y\":2}")))
+  (of-type fixnum (gethash "x" (pj:parse "{\"x\": 1}"))))
 
 (define-test arrays
   :parent json
   (is equalp #() (pj:parse "[]"))
-  (is equalp #(1.0 2.0) (pj:parse "[1, 2]"))
-  (is equalp #(1.0 2.0) (pj:parse "[ 1 , 2 ]")))
+  (is equalp #(1 2) (pj:parse "[1, 2]"))
+  (is equalp #(1 2) (pj:parse "[ 1 , 2 ]"))
+  (of-type fixnum (aref (pj:parse "[1]") 0)))
 
 (define-test non-ascii
   :parent json
@@ -232,11 +235,15 @@
 
 (define-test numbers
   :parent json
-  (is = 0.0 (pj:parse "0"))
-  (multiple-value-bind (res next) (pj:scientific (p:in "1e00,"))
-    (declare (ignore res))
+  (let ((n (pj:parse "0")))
+    (is = 0 n)
+    (of-type fixnum n))
+  (multiple-value-bind (res next) (pj:number (p:in "1e00,"))
+    (of-type double-float res)
     (is equal #\, (schar p::*input* next)))
-  (is = 1234567890.0d0 (pj:parse "1234567890"))
+  (let ((n (pj:parse "1234567890")))
+    (is = 1234567890 n)
+    (of-type fixnum n))
   (is = -9876.543210d0 (pj:parse "-9876.543210"))
   (is = 23456789012d66 (pj:parse "23456789012E66"))
   (is = 1.234567890d+34 (pj:parse "1.234567890E+34"))
