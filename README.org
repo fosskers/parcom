@@ -168,6 +168,15 @@ ABCL:
 | shasht      |     83.3 | 110m                |
 | yason       |    328.7 | 366m                |
 
+CMUCL:
+
+| Method      | Time (s) | Memory (bytes) |
+|-------------+----------+----------------|
+| jsown       |      0.6 | 71m            |
+| parcom/json |      1.6 | 175m           |
+| shasht      |      4.5 | 348m           |
+| yason       |      9.1 | 346m           |
+
 ** XML Benchmarks
 
 In parsing a Java =.pom= file 1000 times.

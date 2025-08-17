@@ -5,7 +5,7 @@
   (:local-nicknames (#:pc #:parcom)
                     (#:pj #:parcom/json)
                     (#:px #:parcom/xml)
-                    (#:jzon #:com.inuoe.jzon)))
+                    #-cmucl (#:jzon #:com.inuoe.jzon)))
 
 (in-package :parcom/benchmarks)
 
@@ -65,41 +65,49 @@
 
 ;; --- COMPARISONS --- ;;
 
+(defun large-json ()
+  (let* ((path #p"tests/data/large-file.json")
+         (s (uiop:read-file-string path)))
+    #-cmucl
+    (progn
+      (format t "--- JZON ---~%")
+      (time (jzon:parse s))
+      (time (jzon:parse s))
+      (time (jzon:parse s))
+      (time (jzon:parse s))
+      (time (jzon:parse s)))
+    (progn
+      (format t "--- SHASHT ---~%")
+      (time (shasht:read-json s))
+      (time (shasht:read-json s))
+      (time (shasht:read-json s))
+      (time (shasht:read-json s))
+      (time (shasht:read-json s)))
+    (progn
+      (format t "--- JSOWN ---~%")
+      (time (jsown:parse s))
+      (time (jsown:parse s))
+      (time (jsown:parse s))
+      (time (jsown:parse s))
+      (time (jsown:parse s)))
+    (progn
+      (format t "--- YASON ---~%")
+      (time (yason:parse s))
+      (time (yason:parse s))
+      (time (yason:parse s))
+      (time (yason:parse s))
+      (time (yason:parse s)))
+    (progn
+      (format t "--- PARCOM/JSON ---~%")
+      (time (pj:parse s))
+      (time (pj:parse s))
+      (time (pj:parse s))
+      (time (pj:parse s))
+      (time (pj:parse s)))
+    t))
+
 #+nil
-(let* ((path #p"tests/data/large-file.json")
-       (s (uiop:read-file-string path)))
-  (format t "--- JZON ---~%")
-  (time (jzon:parse s))
-  (time (jzon:parse s))
-  (time (jzon:parse s))
-  (time (jzon:parse s))
-  (time (jzon:parse s))
-  ;; (time (jzon:parse path))
-  (format t "--- SHASHT ---~%")
-  (time (shasht:read-json s))
-  (time (shasht:read-json s))
-  (time (shasht:read-json s))
-  (time (shasht:read-json s))
-  (time (shasht:read-json s))
-  (format t "--- JSOWN ---~%")
-  (time (jsown:parse s))
-  (time (jsown:parse s))
-  (time (jsown:parse s))
-  (time (jsown:parse s))
-  (time (jsown:parse s))
-  (format t "--- YASON ---~%")
-  (time (yason:parse s))
-  (time (yason:parse s))
-  (time (yason:parse s))
-  (time (yason:parse s))
-  (time (yason:parse s))
-  (format t "--- PARCOM/JSON ---~%")
-  (time (pj:parse s))
-  (time (pj:parse s))
-  (time (pj:parse s))
-  (time (pj:parse s))
-  (time (pj:parse s))
-  t)
+(large-json)
 
 ;; --- HOT SPOT DETECTION --- ;;
 
@@ -152,13 +160,15 @@
 
 #+nil
 (let ((s (uiop:read-file-string "tests/data/java.pom")))
-  (format t "--- PLUMP ---~%")
-  (time (dotimes (n 1000)
-          (plump:parse s)))
-  (time (dotimes (n 1000)
-          (plump:parse s)))
-  (time (dotimes (n 1000)
-          (plump:parse s)))
+  #-cmucl
+  (progn
+    (format t "--- PLUMP ---~%")
+    (time (dotimes (n 1000)
+            (plump:parse s)))
+    (time (dotimes (n 1000)
+            (plump:parse s)))
+    (time (dotimes (n 1000)
+            (plump:parse s))))
   (format t "--- CXML ---~%")
   (time (dotimes (n 1000)
           (cxml:parse s (cxml-dom:make-dom-builder))))
