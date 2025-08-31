@@ -74,6 +74,7 @@ read their associated formats:
     - [[#take-until][take-until]]
     - [[#recognize][recognize]]
     - [[#maybe][maybe]]
+    - [[#not][not]]
   - [[#utilities][Utilities]]
     - [[#empty][empty?]]
     - [[#digit][digit?]]
@@ -838,6 +839,19 @@ isn't applied.
 
 #+RESULTS:
 : 124
+
+*** not
+
+Pass if the given parser fails, and don't advance the offset. Fail if it
+succeeds.
+
+#+begin_src lisp :exports both :results verbatim
+(in-package :parcom)
+(funcall (not (char #\a)) (in "bark"))
+#+end_src
+
+#+RESULTS:
+: T, 0
 
 ** Utilities
 

@@ -1,6 +1,6 @@
 (defpackage parcom
   (:use :cl)
-  (:shadow #:char #:string #:integer #:float #:count #:rest #:space)
+  (:shadow #:char #:string #:integer #:float #:count #:rest #:space #:not)
   ;; --- Types --- ;;
   (:export #:parse #:in
            #:failure? #:fail
@@ -20,7 +20,7 @@
            #:take #:take-while #:take-while1 #:rest
            #:pure)
   ;; --- Combinators --- ;;
-  (:export #:opt #:between #:pair #:maybe
+  (:export #:opt #:between #:pair #:maybe #:not
            #:many #:many1 #:sep #:sep1 #:sep-end #:sep-end1 #:take-until
            #:consume #:skip #:peek #:sneak #:count #:recognize)
   ;; --- Conditions --- ;;
@@ -97,7 +97,7 @@
 
 (defmacro ok? (x)
   "Did parsing succeed?"
-  `(not (failure? ,x)))
+  `(cl:not (failure? ,x)))
 
 (defmacro fail (offset)
   "Fail a parse while recording while recording how far it got."

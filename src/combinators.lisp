@@ -2,6 +2,21 @@
 
 (in-package :parcom)
 
+(defun not (parser)
+  "Pass if the given parser fails, and don't advance the offset. Fail if it
+succeeds."
+  (lambda (offset)
+    (multiple-value-bind (res next) (funcall parser offset)
+      (declare (ignore next))
+      (if (ok? res)
+          (fail offset)
+          (values t offset)))))
+
+#+nil
+(funcall (not (char #\a)) (in "bark"))
+#+nil
+(parse (not (char #\a)) "ark")
+
 (defun opt (parser)
   "Yield nil if the parser failed, but don't fail the whole process nor consume any
 input."

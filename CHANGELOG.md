@@ -1,5 +1,12 @@
 # Parcom Changelog
 
+### Unreleased
+
+#### Added
+
+- Combinator: `not` for succeeding when a parser fails. Useful when trying to
+  test a complicated parse boundary, say in combination with `sep-end`.
+
 ### 1.4.0 (2025-08-17)
 
 #### Added
