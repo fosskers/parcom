@@ -24,6 +24,14 @@
 
 (in-package :parcom/datetime)
 
+(defparameter +T+      (p:char #\T))
+(defparameter +Z+      (p:char #\Z))
+(defparameter +dash+   (p:char #\-))
+(defparameter +plus+   (p:char #\+))
+(defparameter +colon+  (p:char #\:))
+(defparameter +space+  (p:char #\space))
+(defparameter +period+ (p:char #\.))
+
 (defun parse (offset)
   "Leniently parse some kind of date/time. It's up to the user to detect what they
 actually received."
@@ -59,8 +67,8 @@ actually received."
 (defun local-date (offset)
   "Parser: The YYYY-MM-DD portion."
   (multiple-value-bind (res next) (funcall (<*> (*> (p:count 4 (p:any-if #'p:digit?)))
-                                                (*> (p:char #\-) #'2-digits)
-                                                (*> (p:char #\-) #'2-digits))
+                                                (*> +dash+ #'2-digits)
+                                                (*> +dash+ #'2-digits))
                                            offset)
     (if (p:failure? res)
         (p:fail next)
@@ -107,9 +115,9 @@ additional factional seconds are present, the value will be truncated. Parsing
 of a leap second is generally permitted, since the year/month/day cannot be
 known here."
   (multiple-value-bind (res next) (funcall (<*> #'2-digits
-                                                (*> (p:char #\:) #'2-digits)
-                                                (*> (p:char #\:) #'2-digits)
-                                                (p:opt (*> (p:char #\.) (p:many1 (p:any-if #'p:digit?)))))
+                                                (*> +colon+ #'2-digits)
+                                                (*> +colon+ #'2-digits)
+                                                (p:opt (*> +period+ (p:many1 (p:any-if #'p:digit?)))))
                                            offset)
     (if (p:failure? res)
         (p:fail next)
@@ -145,8 +153,7 @@ known here."
             (destructuring-bind (date time) xs
               (make-local-date-time :date date :time time)))
           (funcall (<*> #'local-date
-                        (*> (p:alt (p:char #\T)
-                                   (p:char #\space))
+                        (*> (p:alt +T+ +space+)
                             #'local-time))
                    offset)))
 
@@ -166,12 +173,10 @@ known here."
                 (destructuring-bind (sign hours mins) off
                   (make-offset :hour (if (equal #\- sign) (- hours) hours)
                                :minute mins))))
-          (funcall (p:alt (p:char #\Z)
-                          (<*> (p:alt (p:char #\+)
-                                      (p:char #\-))
+          (funcall (p:alt +Z+
+                          (<*> (p:alt +plus+ +dash+)
                                #'2-digits
-                               (*> (p:char #\:)
-                                   #'2-digits)))
+                               (*> +colon+ #'2-digits)))
                    offset)))
 
 #+nil
