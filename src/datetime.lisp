@@ -17,6 +17,8 @@
            #:local-date-time #:local-date-time-date #:local-date-time-time
            #:offset-date-time #:offset-date-time-date #:offset-date-time-time
            #:offset #:offset-hour #:offset-minute)
+  ;; --- Other Parsers --- ;;
+  (:export #:simple-local-time)
   ;; --- Generics --- ;;
   (:export #:date #:time #:format)
   ;; --- Utilities --- ;;
@@ -108,6 +110,30 @@ actually received."
   (minute 0 :type fixnum)
   (second 0 :type fixnum)
   (millis 0 :type fixnum))
+
+(defun simple-local-time (offset)
+  "Parser: Like `local-time', but only parses HH:MM(:SS). Seconds are optional
+here, unlike the usual spec requirement."
+  (multiple-value-bind (res next) (funcall (<*> #'2-digits
+                                                (*> +colon+ #'2-digits)
+                                                (p:opt (*> +colon+ #'2-digits)))
+                                           offset)
+    (if (p:failure? res)
+        (p:fail next)
+        (destructuring-bind (h m s) res
+          (let ((s (or s 0)))
+            (cond ((not (<= 0 h 23)) (p:fail offset))
+                  ((not (<= 0 m 59)) (p:fail offset))
+                  ((or (and (= h 23) (= m 59) (> s 60))
+                       (and (not (= h 23))
+                            (not (= m 59))
+                            (not (<= 0 s 59))))
+                   (p:fail offset))
+                  (t (p:ok next
+                           (make-local-time :hour h :minute m :second s :millis 0)))))))))
+
+#+nil
+(p:parse #'simple-local-time "13:00")
 
 (defun local-time (offset)
   "Parser: A time in the format HH:MM:SS.XXX to millisecond precision. If

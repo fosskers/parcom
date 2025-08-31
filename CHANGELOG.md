@@ -6,6 +6,7 @@
 
 - Combinator: `not` for succeeding when a parser fails. Useful when trying to
   test a complicated parse boundary, say in combination with `sep-end`.
+- datetime: The `simple-local-time` parser for lenient parsing of local times.
 
 ### 1.4.0 (2025-08-17)
 
