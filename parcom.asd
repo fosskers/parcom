@@ -33,6 +33,11 @@
   :components ((:module "src" :components ((:file "xml"))))
   :in-order-to ((test-op (test-op :parcom/tests))))
 
+(defsystem "parcom/email"
+  :depends-on (:parcom)
+  :components ((:module "src" :components ((:file "email"))))
+  :in-order-to ((test-op (test-op :parcom/tests))))
+
 (defsystem "parcom/tests"
   :depends-on (:parcom :parcom/json :parcom/datetime :parcom/toml :parcom/xml :parachute)
   :components ((:module "tests" :components ((:file "tests"))))
