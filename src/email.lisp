@@ -29,7 +29,9 @@
 (defpackage parcom/email
   (:use :cl)
   (:import-from :parcom #:<*> #:<* #:*> #:<$)
-  (:local-nicknames (#:p #:parcom)))
+  (:local-nicknames (#:p #:parcom))
+  ;; --- Types --- ;;
+  (:export #:address #:address-name #:address-domain))
 
 (in-package :parcom/email)
 
@@ -39,6 +41,21 @@
 (defparameter +bracket-open+ (p:char #\[))
 (defparameter +bracket-close+ (p:char #\]))
 (defparameter +period+ (p:char #\.))
+
+;; --- Types --- ;;
+
+(defstruct address
+  "A valid email address. Must be obtained through the parsing process and cannot
+be directly constructed by the user."
+  (name   nil :type string)
+  (domain nil :type string))
+
+(defun pretty (addr &optional (stream nil))
+  "Pretty-print an `address'."
+  (format stream "~a@~a" (address-name addr) (address-domain addr)))
+
+#+nil
+(pretty (p:parse #'msg-id "colin@fosskers.ca"))
 
 ;; --- Entry --- ;;
 
@@ -64,7 +81,11 @@
 ;; latter should be easier.
 
 (defun msg-id (offset)
-  (funcall (<*> #'id-left (*> +@+ #'id-right)) offset))
+  (p:fmap (lambda (list) (make-address :name (car list) :domain (cadr list)))
+          (funcall (<*> #'id-left (*> +@+ #'id-right)) offset)))
+
+#+nil
+(p:parse #'msg-id "colin@fosskers.ca")
 
 (defun id-left (offset)
   (funcall (p:alt #'dot-atom-text #'local-part) offset))
@@ -76,6 +97,7 @@
   (funcall (p:recognize (*> +bracket-open+ #'many-dtext +bracket-close+)) offset))
 
 (defun many-dtext (offset)
+  "Parser: Potentially escaped characters."
   (funcall (sliding-take (lambda (a b)
                            (cond ((or (char<= #\! a #\Z)
                                       (char<= #\^ a #\~)
@@ -84,6 +106,9 @@
                                  ((quoted-pair? a b)
                                   (values :two b)))))
            offset))
+
+#+nil
+(p:parse #'many-dtext "Hello\\ there")
 
 (declaim (ftype (function (character) boolean) obs-no-ws-ctl?))
 (defun obs-no-ws-ctl? (c)
