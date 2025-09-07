@@ -1,7 +1,9 @@
 ;;; RFC5322-compliant email parsing.
 ;;;
 ;;; For clarity, the name of each parser in this package is lifted directly from
-;;; the spec.
+;;; the spec and the layout of the parsers generally follows the ABNF, except
+;;; where doing so literally would be inefficient. Specifically, some of the
+;;; low-level character checks have been fused into smarter `take-while' calls.
 ;;;
 ;;; See also the following relevant sections in various RFCs.
 ;;;
@@ -71,37 +73,53 @@
   (funcall (p:alt #'dot-atom-text #'no-fold-literal #'domain) offset))
 
 (defun no-fold-literal (offset)
-  (funcall (p:recognize (*> +bracket-open+ #'dtext +bracket-close+)) offset))
+  (funcall (p:recognize (*> +bracket-open+ #'many-dtext +bracket-close+)) offset))
 
-(defun dtext (offset)
-  ())
+(defun many-dtext (offset)
+  (funcall (sliding-take (lambda (a b)
+                           (cond ((or (char<= #\! a #\Z)
+                                      (char<= #\^ a #\~)
+                                      (obs-no-ws-ctl? a))
+                                  (values :one a))
+                                 ((quoted-pair? a b)
+                                  (values :two b)))))
+           offset))
+
+(declaim (ftype (function (character) boolean) obs-no-ws-ctl?))
+(defun obs-no-ws-ctl? (c)
+  (or (char<= #\Soh c #\backspace)
+      (char<= #\Vt c #\Page)
+      (char<= #\So c #\Us)
+      (char= #\Rubout c)))
+
+(declaim (ftype (function (character character) boolean) quoted-pair?))
+(defun quoted-pair? (a b)
+  (and (char= a #\\)
+       (or (char<= #\! b #\~)
+           (char= b #\space)
+           (char= b #\tab)
+           (char= b #\nul)
+           (obs-no-ws-ctl? b)
+           (char= b #\newline)
+           (char= b #\return))))
+
+#+nil
+(quoted-pair? #\\ #\newline)
 
 (declaim (ftype (function (character) boolean) atext?))
 (defun atext? (c)
   "Printable US-ASCII characters not including specials."
   (or (p:ascii-letter? c)
       (p:digit? c)
-      ;; FIXME: 2025-09-06 See if you can fold these into range comparisons. It
-      ;; might just be a set that excludes @.
       (char= c #\!)
-      (char= c #\#)
-      (char= c #\$)
-      (char= c #\%)
-      (char= c #\&)
-      (char= c #\')
-      (char= c #\*)
-      (char= c #\+)
+      (char<= #\# c #\')
+      (char<= #\* c #\+)
       (char= c #\-)
       (char= c #\/)
       (char= c #\=)
       (char= c #\?)
-      (char= c #\^)
-      (char= c #\_)
-      (char= c #\`)
-      (char= c #\{)
-      (char= c #\|)
-      (char= c #\})
-      (char= c #\~)))
+      (char<= #\^ c #\`)
+      (char<= #\{ c #\~)))
 
 (defun dot-atom-text (offset)
   "Parser: Simple dot-separated ascii atoms."
@@ -145,7 +163,9 @@
 
 ;; --- Utilities --- ;;
 
-(declaim (ftype (function ((function (character character) keyword))) consume2))
+;; TODO: 2025-09-06 Start here. Use this to parse escape characters.
+
+;; (declaim (ftype (function ((function (character character) keyword))) consume2))
 (defun consume2 (p)
   "Like `consume' from the main library, but inspects two characters at a time in
 a sliding window. This is intended for the detection of slash-escaped character
@@ -179,4 +199,43 @@ predicate-lambda."
 (p:parse (consume2 (lambda (a b)
                      (cond ((and (char= a #\a) (char= b #\b)) :two)
                            ((char= a #\a) :one))))
-         "aaabb")
+         "aabb")
+
+;; TODO: 2025-09-07 Looks like I need to filter out comments and all sorts of
+;; other gross things, so this won't be a matter of just using `recognize' on
+;; everything. For some simple parts yes, but in general I will have to actually
+;; claim each character into a new string.
+
+;; (declaim (ftype (function ((function (character character) (values keyword character)))
+;;                           (values string fixnum))
+;;                 sliding-take))
+(defun sliding-take (f)
+  (lambda (offset)
+    (declare (optimize (speed 3) (safety 0)))
+    (let* ((s (make-array 16 :element-type 'character :adjustable t :fill-pointer 0))
+           (keep (loop :with i fixnum := offset
+                       :while (< i p::*input-length*)
+                       :do (let* ((a (schar p::*input* i))
+                                  (b (if (< i (1- p::*input-length*))
+                                         (schar p::*input* (1+ i))
+                                         #\Nul)))
+                             (multiple-value-bind (kw c) (funcall f a b)
+                               (case kw
+                                 (:one
+                                  (incf i)
+                                  (vector-push-extend c s))
+                                 (:two
+                                  (incf i 2)
+                                  (vector-push-extend c s))
+                                 (t (return (- i offset))))))
+                       :finally (return (- i offset))))
+           (next (p::off keep offset)))
+      (values s next))))
+
+#+nil
+(p:parse (sliding-take (lambda (a b)
+                         (cond ((and (char= a #\\)
+                                     (char= b #\n))
+                                (values :two #\newline))
+                               (t (values :one a)))))
+         "Hello \\n there!")
