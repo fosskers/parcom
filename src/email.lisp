@@ -28,6 +28,7 @@
 
 (defpackage parcom/email
   (:use :cl)
+  (:shadow #:atom)
   (:import-from :parcom #:<*> #:<* #:*> #:<$)
   (:local-nicknames (#:p #:parcom))
   ;; --- Types --- ;;
@@ -81,7 +82,10 @@ be directly constructed by the user."
 ;; Whitespace: https://datatracker.ietf.org/doc/html/rfc5322#section-3.2.2
 
 (defun dot-atom (offset)
-  (funcall (*> (p:opt #'cfws) (<* #'dot-atom-text (p:opt #'cfws))) offset))
+  (funcall (p:between (p:opt #'cfws)
+                      #'dot-atom-text
+                      (p:opt #'cfws))
+           offset))
 
 #+nil
 (p:parse #'dot-atom "   (hi)hello(there)    ")
@@ -114,6 +118,38 @@ be directly constructed by the user."
       (char<= #\# c #\[)
       (char<= #\] c #\~)
       (obs-no-ws-ctl? c)))
+
+(defun obs-local-part (offset)
+  (p:fmap (lambda (list) (format nil "~{~a~^.~}" list))
+          (funcall (p:sep1 +period+ #'word) offset)))
+
+#+nil
+(p:parse #'obs-local-part "hello . there . hi")
+
+(defun domain-literal (offset)
+  (p:fmap (lambda (list) (format nil "[~{~a~}]" (cadr list)))
+          (funcall (p:between (p:opt #'cfws)
+                              (<*> +bracket-open+
+                                   (p:many (*> (p:opt #'fws)
+                                               #'many-dtext1))
+                                   (*> (p:opt #'fws) +bracket-close+))
+                              (p:opt #'cfws))
+                   offset)))
+
+#+nil
+(p:parse #'domain-literal "[hello there]")
+
+(defun word (offset)
+  (funcall (p:alt #'atom #'quoted-string) offset))
+
+(defun atom (offset)
+  (funcall (p:between (p:opt #'cfws)
+                      (p:take-while1 #'atext?)
+                      (p:opt #'cfws))
+           offset))
+
+#+nil
+(p:parse #'atom " hello ")
 
 ;; NOTE: From the spec.
 ;;
@@ -197,16 +233,30 @@ be directly constructed by the user."
 (defun many-dtext (offset)
   "Parser: Potentially escaped characters."
   (funcall (sliding-take (lambda (a b)
-                           (cond ((or (char<= #\! a #\Z)
-                                      (char<= #\^ a #\~)
-                                      (obs-no-ws-ctl? a))
-                                  (values :one a))
-                                 ((quoted-pair? a b)
-                                  (values :two b)))))
+                           (cond ((dtext? a) (values :one a))
+                                 ((quoted-pair? a b) (values :two b)))))
            offset))
 
 #+nil
 (p:parse #'many-dtext "Hello\\ there")
+#+nil
+(p:parse #'many-dtext "Hello there")
+
+(defun many-dtext1 (offset)
+  "Parser: Potentially escaped characters."
+  (multiple-value-bind (res next) (many-dtext offset)
+    (cond ((p:failure? res) (p:fail offset))
+          ((p:empty? res) (p:fail offset))
+          (t (values res next)))))
+
+#+nil
+(p:parse #'many-dtext1 "")
+
+(declaim (ftype (function (character) boolean) dtext?))
+(defun dtext? (c)
+  (or (char<= #\! c #\Z)
+      (char<= #\^ c #\~)
+      (obs-no-ws-ctl? c)))
 
 (declaim (ftype (function (character) boolean) obs-no-ws-ctl?))
 (defun obs-no-ws-ctl? (c)
@@ -242,6 +292,8 @@ be directly constructed by the user."
       (char<= #\^ c #\`)
       (char<= #\{ c #\~)))
 
+;; FIXME: 2025-09-10 Consider `consume1' here since we just `recognize'
+;; afterward anyway.
 (defun dot-atom-text (offset)
   "Parser: Simple dot-separated ascii atoms."
   (funcall (p:recognize (p:sep1 +period+ (p:take-while1 #'atext?))) offset))
