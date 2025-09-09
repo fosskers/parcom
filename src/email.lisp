@@ -41,6 +41,10 @@
 (defparameter +bracket-open+ (p:char #\[))
 (defparameter +bracket-close+ (p:char #\]))
 (defparameter +period+ (p:char #\.))
+(defparameter +skipws1+ (*> (p:any-if #'ws?) (p:consume #'ws?)))
+(defparameter +paren-open+ (p:char #\())
+(defparameter +paren-close+ (p:char #\)))
+(defparameter +quote+ (p:char #\"))
 
 ;; --- Types --- ;;
 
@@ -76,9 +80,103 @@ be directly constructed by the user."
 
 ;; Whitespace: https://datatracker.ietf.org/doc/html/rfc5322#section-3.2.2
 
-;; TODO: 2025-09-05 Start here. Provide both the simpler `msg-id' parser and the
-;; full `address' one from above. If you can prove the former works, then the
-;; latter should be easier.
+(defun dot-atom (offset)
+  (funcall (*> (p:opt #'cfws) (<* #'dot-atom-text (p:opt #'cfws))) offset))
+
+#+nil
+(p:parse #'dot-atom "   (hi)hello(there)    ")
+
+(defun quoted-string (offset)
+  "No whitespace around or within the quotes is considered actual content."
+  (p:fmap (lambda (list) (apply #'concatenate 'string list))
+          (funcall (*> (p:opt #'cfws)
+                       +quote+
+                       ;; FIXME: 2025-09-10 This `many' is wasteful and forces a
+                       ;; reallocation into a single string above. I'm not sure
+                       ;; how to get around it though, given that `fws' has a
+                       ;; specific structure that is not just a matter of
+                       ;; `consuming' over whitespace.
+                       (<* (p:many (*> (p:opt #'fws)
+                                       (sliding-take1 (lambda (a b)
+                                                        (cond ((qtext? a) (values :one a))
+                                                              ((quoted-pair? a b) (values :two b)))))))
+                           (p:opt #'fws)
+                           +quote+
+                           (p:opt #'cfws)))
+                   offset)))
+
+#+nil
+(p:parse #'quoted-string "\"hello \\\" there\"")
+
+(declaim (ftype (function (character) boolean) qtext?))
+(defun qtext? (c)
+  (or (char= #\! c)
+      (char<= #\# c #\[)
+      (char<= #\] c #\~)
+      (obs-no-ws-ctl? c)))
+
+;; NOTE: From the spec.
+;;
+;; > Runs of FWS, comment, or CFWS that occur between lexical tokens in a
+;; > structured header field are semantically interpreted as a single space
+;; > character.))
+;;
+;; I interpret this to mean that comments and run of spaces can be entirely
+;; ignored within an address.
+(defun cfws (offset)
+  (funcall (p:alt (*> (p:many1 (*> (p:opt #'fws) #'comment))
+                      (p:opt #'fws))
+                  #'fws)
+           offset))
+
+(defun fws (offset)
+  "Parser: Folding white space."
+  (funcall (p:alt (*> (p:opt (*> (p:consume #'ws?)
+                                 (p:any-if #'crlf?)))
+                      +skipws1+)
+                  #'obs-fws)
+           offset))
+
+#+nil
+(p:parse #'fws "   ")
+
+(defun obs-fws (offset)
+  (funcall (*> +skipws1+
+               (p:many (*> (p:any-if #'crlf?)
+                           +skipws1+)))
+           offset))
+
+#+nil
+(p:parse #'obs-fws "   ")
+
+(defun comment (offset)
+  "Yields NIL if successful."
+  (funcall (p:between +paren-open+
+                      (*> (p:many (*> (p:opt #'fws)
+                                      #'ccontent))
+                          (p:opt #'fws))
+                      +paren-close+)
+           offset))
+
+#+nil
+(p:parse #'comment "(hello(there))")
+
+(defun ccontent (offset)
+  (funcall (p:alt (sliding-take1 (lambda (a b)
+                                   (cond ((ctext? a) (values :one a))
+                                         ((quoted-pair? a b) (values :two b)))))
+                  #'comment)
+           offset))
+
+#+nil
+(p:parse #'ccontent "hello)")
+
+(declaim (ftype (function (character) boolean) ctext?))
+(defun ctext? (c)
+  (or (char<= #\! c #\')
+      (char<= #\* c #\[)
+      (char<= #\] c #\~)
+      (obs-no-ws-ctl? c)))
 
 (defun msg-id (offset)
   (p:fmap (lambda (list) (make-address :name (car list) :domain (cadr list)))
@@ -121,12 +219,10 @@ be directly constructed by the user."
 (defun quoted-pair? (a b)
   (and (char= a #\\)
        (or (char<= #\! b #\~)
-           (char= b #\space)
-           (char= b #\tab)
+           (ws? b)
            (char= b #\nul)
            (obs-no-ws-ctl? b)
-           (char= b #\newline)
-           (char= b #\return))))
+           (crlf? b))))
 
 #+nil
 (quoted-pair? #\\ #\newline)
@@ -149,6 +245,16 @@ be directly constructed by the user."
 (defun dot-atom-text (offset)
   "Parser: Simple dot-separated ascii atoms."
   (funcall (p:recognize (p:sep1 +period+ (p:take-while1 #'atext?))) offset))
+
+(declaim (ftype (function (character) boolean) ws?))
+(defun ws? (c)
+  (or (char= c #\space)
+      (char= c #\tab)))
+
+(declaim (ftype (function (character) boolean) ws?))
+(defun crlf? (c)
+  (or (char= c #\newline)
+      (char= c #\return)))
 
 #+nil
 (p:parse #'dot-atom-text "foo.bar.baz")
@@ -188,7 +294,7 @@ be directly constructed by the user."
 
 ;; --- Utilities --- ;;
 
-;; TODO: 2025-09-06 Start here. Use this to parse escape characters.
+;; TODO: Remove consume2
 
 ;; (declaim (ftype (function ((function (character character) keyword))) consume2))
 (defun consume2 (p)
@@ -226,11 +332,6 @@ predicate-lambda."
                            ((char= a #\a) :one))))
          "aabb")
 
-;; TODO: 2025-09-07 Looks like I need to filter out comments and all sorts of
-;; other gross things, so this won't be a matter of just using `recognize' on
-;; everything. For some simple parts yes, but in general I will have to actually
-;; claim each character into a new string.
-
 ;; (declaim (ftype (function ((function (character character) (values keyword character)))
 ;;                           (values string fixnum))
 ;;                 sliding-take))
@@ -264,3 +365,18 @@ predicate-lambda."
                                 (values :two #\newline))
                                (t (values :one a)))))
          "Hello \\n there!")
+
+(defun sliding-take1 (f)
+  (lambda (offset)
+    (multiple-value-bind (res next) (funcall (sliding-take f) offset)
+      (cond ((p:failure? res) (p:fail offset))
+            ((p:empty? res) (p:fail offset))
+            (t (values res next))))))
+
+#+nil
+(p:parse (sliding-take1 (lambda (a b)
+                          (cond ((and (char= a #\\)
+                                      (char= b #\n))
+                                 (values :two #\newline))
+                                (t (values :one a)))))
+         "")
