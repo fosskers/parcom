@@ -64,14 +64,28 @@ be directly constructed by the user."
 
 ;; --- Entry --- ;;
 
-;; TODO: Convert to a simple-array if not already one.
-(declaim (ftype (function (string) boolean) valid-address?))
-(defun valid-email-address? (s))
+(declaim (ftype (function (string) boolean) valid-email-address?))
+(defun valid-email-address? (s)
+  (let ((s (etypecase s
+             ((simple-array character (*)) s)
+             (string (coerce s '(simple-array character (*)))))))
+    (multiple-value-bind (res next) (funcall #'addr-spec (p:in s))
+      (declare (ignore next))
+      (p:ok? res))))
+
+#+nil
+(valid-email-address? "alice@bob.com")
+#+nil
+(valid-email-address? "alice")
 
 ;; --- Parsers --- ;;
 
 (defun addr-spec (offset)
-  (funcall (<*> local-part (*> +@+ domain)) offset))
+  (p:fmap (lambda (list) (make-address :name (car list) :domain (cadr list)))
+          (funcall (<*> #'local-part (*> +@+ #'domain)) offset)))
+
+#+nil
+(p:parse #'addr-spec "   alice  (comment)   @bob.com")
 
 (defun local-part (offset)
   (funcall (p:alt #'dot-atom #'quoted-string #'obs-local-part) offset))
@@ -138,6 +152,13 @@ be directly constructed by the user."
 
 #+nil
 (p:parse #'domain-literal "[hello there]")
+
+(defun obs-domain (offset)
+  (p:fmap (lambda (list) (format nil "~{~a~^.~}" list))
+          (funcall (p:sep1 +period+ #'atom) offset)))
+
+#+nil
+(p:parse #'obs-domain "yes . hello . there")
 
 (defun word (offset)
   (funcall (p:alt #'atom #'quoted-string) offset))
