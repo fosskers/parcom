@@ -218,6 +218,18 @@ complex."
 #+nil
 (funcall (consume (lambda (c) (eql c #\a))) (in "aaabcd!"))
 
+(declaim (ftype (function ((function (character) boolean)) (function (fixnum) (values fixnum fixnum))) consume1))
+(defun consume1 (p)
+  "Like `consume', but guarantee that at least one check of the predicate must succeed."
+  (lambda (offset)
+    (multiple-value-bind (res next) (funcall (consume p) offset)
+      (cond ((failure? res) (fail offset))
+            ((= next offset) (fail offset))
+            (t (values res next))))))
+
+#+nil
+(funcall (consume1 (lambda (c) (eql c #\!))) (in "aaabcd!"))
+
 (declaim (ftype (function ((function (character) boolean)) (function (fixnum) (values cl:string fixnum))) take-while))
 (defun take-while (p)
   "Parser: Take characters while some predicate holds."

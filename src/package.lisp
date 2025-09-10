@@ -22,7 +22,7 @@
   ;; --- Combinators --- ;;
   (:export #:opt #:between #:pair #:maybe #:not
            #:many #:many1 #:sep #:sep1 #:sep-end #:sep-end1 #:take-until
-           #:consume #:skip #:peek #:sneak #:count #:recognize)
+           #:consume #:consume1 #:skip #:peek #:sneak #:count #:recognize)
   ;; --- Conditions --- ;;
   (:export #:parse-failure)
   (:documentation "A simple parser combinator library."))
