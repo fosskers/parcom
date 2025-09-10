@@ -228,3 +228,4 @@
 
 ;; (0) Base: 1.3b bytes, 966ms
 ;; (1) Static `any-if': 998m bytes, 855ms
+;; (2) Static `consume': 895m bytes, 805ms

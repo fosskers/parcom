@@ -46,12 +46,13 @@
 (defparameter +bracket-open+ (p:char #\[))
 (defparameter +bracket-close+ (p:char #\]))
 (defparameter +period+ (p:char #\.))
-(defparameter +skipws1+ (*> +any-ws+ (p:consume #'ws?)))
+(defparameter +skipws1+ (*> +any-ws+ +consume-ws+))
 (defparameter +paren-open+ (p:char #\())
 (defparameter +paren-close+ (p:char #\)))
 (defparameter +quote+ (p:char #\"))
 (defparameter +any-ws+ (p:any-if #'ws?))
 (defparameter +any-crlf+ (p:any-if #'crlf?))
+(defparameter +consume-ws+ (p:consume #'ws?))
 
 ;; --- Types --- ;;
 
@@ -208,8 +209,7 @@ have contained any number of junk characters or comments."
            offset))
 
 (defparameter +fws+
-  (p:alt (*> (p:opt (*> (p:consume #'ws?)
-                        +any-crlf+))
+  (p:alt (*> (p:opt (*> +consume-ws+ +any-crlf+))
              +skipws1+)
          #'obs-fws))
 
