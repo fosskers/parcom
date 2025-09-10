@@ -53,6 +53,7 @@
 (defparameter +any-ws+ (p:any-if #'ws?))
 (defparameter +any-crlf+ (p:any-if #'crlf?))
 (defparameter +consume-ws+ (p:consume #'ws?))
+(defparameter +consume-atext+ (p:consume1 #'atext?))
 
 ;; --- Types --- ;;
 
@@ -337,11 +338,9 @@ have contained any number of junk characters or comments."
       (char<= #\^ c #\`)
       (char<= #\{ c #\~)))
 
-;; FIXME: 2025-09-10 Consider `consume1' here since we just `recognize'
-;; afterward anyway.
 (defun dot-atom-text (offset)
   "Parser: Simple dot-separated ascii atoms."
-  (funcall (p:recognize (p:sep1 +period+ (p:take-while1 #'atext?))) offset))
+  (funcall (p:recognize (p:sep1 +period+ +consume-atext+)) offset))
 
 (declaim (ftype (function (character) boolean) ws?))
 (defun ws? (c)

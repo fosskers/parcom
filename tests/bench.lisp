@@ -220,12 +220,21 @@
   (time (dotimes (n 400000)
           (pe:parse email))))
 
+;; MEMORY
 #+nil
 (let ((email "alice.fun.party@bobs.house.com"))
   (sb-sprof:with-profiling (:max-samples 100000 :sample-interval 0.00001 :report :graph :mode :alloc)
     (dotimes (n 400000)
       (pe:parse email))))
 
+;; TIME
+#+nil
+(let ((email "alice.fun.party@bobs.house.com"))
+  (sb-sprof:with-profiling (:max-samples 100000 :sample-interval 0.00001 :report :graph)
+    (dotimes (n 400000)
+      (pe:parse email))))
+
 ;; (0) Base: 1.3b bytes, 966ms
 ;; (1) Static `any-if': 998m bytes, 855ms
 ;; (2) Static `consume': 895m bytes, 805ms
+;; (3) `consume1': 716m bytes, 725ms
