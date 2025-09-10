@@ -46,10 +46,12 @@
 (defparameter +bracket-open+ (p:char #\[))
 (defparameter +bracket-close+ (p:char #\]))
 (defparameter +period+ (p:char #\.))
-(defparameter +skipws1+ (*> (p:any-if #'ws?) (p:consume #'ws?)))
+(defparameter +skipws1+ (*> +any-ws+ (p:consume #'ws?)))
 (defparameter +paren-open+ (p:char #\())
 (defparameter +paren-close+ (p:char #\)))
 (defparameter +quote+ (p:char #\"))
+(defparameter +any-ws+ (p:any-if #'ws?))
+(defparameter +any-crlf+ (p:any-if #'crlf?))
 
 ;; --- Types --- ;;
 
@@ -159,8 +161,6 @@ have contained any number of junk characters or comments."
 #+nil
 (p:parse #'obs-local-part "hello . there . hi")
 
-(p:parse #'domain "machine(comment).  example")
-
 (defun domain-literal (offset)
   (p:fmap (lambda (list) (format nil "[~{~a~}]" (cadr list)))
           (funcall (p:between (p:opt #'cfws)
@@ -207,22 +207,25 @@ have contained any number of junk characters or comments."
                   #'fws)
            offset))
 
+(defparameter +fws+
+  (p:alt (*> (p:opt (*> (p:consume #'ws?)
+                        +any-crlf+))
+             +skipws1+)
+         #'obs-fws))
+
 (defun fws (offset)
   "Parser: Folding white space."
-  (funcall (p:alt (*> (p:opt (*> (p:consume #'ws?)
-                                 (p:any-if #'crlf?)))
-                      +skipws1+)
-                  #'obs-fws)
-           offset))
+  (funcall +fws+ offset))
 
 #+nil
 (p:parse #'fws "   ")
 
+(defparameter +obs-fws+
+  (*> +skipws1+
+      (p:many (*> +any-crlf+ +skipws1+))))
+
 (defun obs-fws (offset)
-  (funcall (*> +skipws1+
-               (p:many (*> (p:any-if #'crlf?)
-                           +skipws1+)))
-           offset))
+  (funcall +obs-fws+ offset))
 
 #+nil
 (p:parse #'obs-fws "   ")

@@ -46,5 +46,6 @@
 (defsystem "parcom/benchmarks"
   :depends-on (:parcom
                :parcom/json (:feature (:not :cmucl) :com.inuoe.jzon) :shasht :jsown :yason
-               :parcom/xml (:feature (:not :cmucl) :plump) :cxml)
+               :parcom/xml (:feature (:not :cmucl) :plump) :cxml
+               :parcom/email)
   :components ((:module "tests" :components ((:file "bench")))))

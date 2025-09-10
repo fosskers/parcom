@@ -5,6 +5,7 @@
   (:local-nicknames (#:pc #:parcom)
                     (#:pj #:parcom/json)
                     (#:px #:parcom/xml)
+                    (#:pe #:parcom/email)
                     #-cmucl (#:jzon #:com.inuoe.jzon)))
 
 (in-package :parcom/benchmarks)
@@ -211,3 +212,19 @@
 ;; (5) Cache on `take-until': 0.75b bytes, 1.48s
 ;; (6) `consume' over `take-while': 0.65b bytes, 1.40s
 ;; (7) Pre-saved global parsers: 0.61 bytes, 0.83s
+
+;; --- EMAIL --- ;;
+
+#+nil
+(let ((email "alice.fun.party@bobs.house.com"))
+  (time (dotimes (n 400000)
+          (pe:parse email))))
+
+#+nil
+(let ((email "alice.fun.party@bobs.house.com"))
+  (sb-sprof:with-profiling (:max-samples 100000 :sample-interval 0.00001 :report :graph :mode :alloc)
+    (dotimes (n 400000)
+      (pe:parse email))))
+
+;; (0) Base: 1.3b bytes, 966ms
+;; (1) Static `any-if': 998m bytes, 855ms
