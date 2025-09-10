@@ -36,7 +36,7 @@
   ;; --- Types --- ;;
   (:export #:address #:address-name #:address-domain)
   ;; --- Other --- ;;
-  (:export #:valid-email-address? #:pretty))
+  (:export #:parse #:valid-email-address? #:pretty))
 
 (in-package :parcom/email)
 
@@ -70,12 +70,16 @@ have contained any number of junk characters or comments."
 
 ;; --- Entry --- ;;
 
+(defun parse (input)
+  "Attempt to parse an email address."
+  (p:parse (<* #'addr-spec #'p:eof) input))
+
 (declaim (ftype (function (string) boolean) valid-email-address?))
 (defun valid-email-address? (s)
   (let ((s (etypecase s
              ((simple-array character (*)) s)
              (string (coerce s '(simple-array character (*)))))))
-    (multiple-value-bind (res next) (funcall #'addr-spec (p:in s))
+    (multiple-value-bind (res next) (funcall (<* #'addr-spec #'p:eof) (p:in s))
       (declare (ignore next))
       (p:ok? res))))
 
@@ -93,11 +97,20 @@ have contained any number of junk characters or comments."
 #+nil
 (p:parse #'addr-spec "   alice  (comment)   @bob.com")
 
+#+nil
+(p:parse #'addr-spec "alice@bob@charles.com")
+
 (defun local-part (offset)
-  (funcall (p:alt #'dot-atom #'quoted-string #'obs-local-part) offset))
+  (funcall (p:alt (<* #'dot-atom (p:peek (p:alt +@+ #'p:eof)))
+                  (<* #'quoted-string (p:peek (p:alt +@+ #'p:eof)))
+                  #'obs-local-part)
+           offset))
 
 (defun domain (offset)
-  (funcall (p:alt #'dot-atom #'domain-literal #'obs-domain) offset))
+  (funcall (p:alt (<* #'dot-atom (p:peek #'p:eof))
+                  #'domain-literal
+                  #'obs-domain)
+           offset))
 
 ;; Whitespace: https://datatracker.ietf.org/doc/html/rfc5322#section-3.2.2
 
@@ -145,6 +158,8 @@ have contained any number of junk characters or comments."
 
 #+nil
 (p:parse #'obs-local-part "hello . there . hi")
+
+(p:parse #'domain "machine(comment).  example")
 
 (defun domain-literal (offset)
   (p:fmap (lambda (list) (format nil "[~{~a~}]" (cadr list)))

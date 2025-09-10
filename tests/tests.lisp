@@ -4,7 +4,8 @@
                     (#:pj #:parcom/json)
                     (#:pt #:parcom/toml)
                     (#:pd #:parcom/datetime)
-                    (#:px #:parcom/xml)))
+                    (#:px #:parcom/xml)
+                    (#:pe #:parcom/email)))
 
 (in-package :parcom/tests)
 
@@ -468,3 +469,51 @@ hi!
   (finish (px:parse (uiop:read-file-string "tests/data/java.pom")))
   (finish (px:parse (uiop:read-file-string "tests/data/log4j.pom")))
   (finish (px:parse (uiop:read-file-string "tests/data/lang3.pom"))))
+
+(define-test email)
+
+(define-test email-basic
+  :parent email
+  (let ((e (pe:parse "alice@bob.com")))
+    (is string= "alice" (pe:address-name e))
+    (is string= "bob.com" (pe:address-domain e)))
+  (let ((e (pe:parse "a.l.i.c.e@bob.com")))
+    (is string= "a.l.i.c.e" (pe:address-name e))))
+
+(define-test email-strange
+  :parent email
+  (finish (pe:parse "email@[123.123.123.123]"))
+  (finish (pe:parse "much.\"more\\ unusual\"@example.com"))
+  (finish (pe:parse "very.unusual.\"@\".unusual.com@example.com")))
+
+(define-test email-from-spec
+  (finish (pe:parse "1234@local.machine.example"))
+  (finish (pe:parse "pete(his account)@silly.test(his host)"))
+  (finish (pe:parse "c@(Chris's host.)public.example")))
+
+;; Obsolete syntax that we must nonetheless parse.
+(define-test email-obsolete
+  :parent email
+  (is string= "a.l.i.c.e" (pe:address-name (pe:parse "a . l . i . c . e@bob.com")))
+  (finish (pe:parse "jdoe@machine(comment).  example")))
+
+;; Things that are obviously false.
+(define-test email-failures
+  :parent email
+  (fail (pe:parse "a..lice@bob.com"))
+  (fail (pe:parse "@bob.com"))
+  (fail (pe:parse "a@"))
+  (fail (pe:parse "@"))
+  (fail (pe:parse ""))
+  (fail (pe:parse "alice@bob@charles.com"))
+  (fail (pe:parse "#@%^%#$@#$@#.com"))
+  (fail (pe:parse "\"(),:;<>[\\]@example.com")))
+
+(define-test email-local
+  :parent email
+  (is string= "alice" (p:parse #'pe::local-part "   alice   "))
+  (is string= "alice" (p:parse #'pe::local-part "   (comment)alice(comment)   "))
+  (is string= "a.l.i.c.e" (p:parse #'pe::local-part "a . l . i . c . e")))
+
+(define-test email-domain
+  :parent email)
