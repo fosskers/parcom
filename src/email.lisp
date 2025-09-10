@@ -31,8 +31,12 @@
   (:shadow #:atom)
   (:import-from :parcom #:<*> #:<* #:*> #:<$)
   (:local-nicknames (#:p #:parcom))
+  ;; --- Exposed Parsers --- ;;
+  (:export #:addr-spec #:msg-id)
   ;; --- Types --- ;;
-  (:export #:address #:address-name #:address-domain))
+  (:export #:address #:address-name #:address-domain)
+  ;; --- Other --- ;;
+  (:export #:valid-email-address? #:pretty))
 
 (in-package :parcom/email)
 
@@ -56,7 +60,9 @@ be directly constructed by the user."
   (domain nil :type string))
 
 (defun pretty (addr &optional (stream nil))
-  "Pretty-print an `address'."
+  "Pretty-print an `address'. Not at all guaranteed to be an isomorphism
+with the original string from which the address was parsed, as the original may
+have contained any number of junk characters or comments."
   (format stream "~a@~a" (address-name addr) (address-domain addr)))
 
 #+nil
@@ -332,78 +338,7 @@ be directly constructed by the user."
 #+nil
 (p:parse #'dot-atom-text "foo.bar.baz")
 
-;; dtext           =   %d33-90 /          ; Printable US-ASCII
-;;                     %d94-126 /         ;  characters not including
-;;                     obs-dtext          ;  "[", "]", or "\"
-
-;; obs-dtext       =   obs-NO-WS-CTL / quoted-pair)
-
-;; quoted-pair     =   ("\" (VCHAR / WSP)) / obs-qp
-
-;; VCHAR          =  %x21-7E)
-;;                        ; visible (printing) characters
-
-;; WSP            =  SP / HTAB)
-;;                        ; white space
-
-;; SP             =  %x20)
-
-;; HTAB           =  %x09))
-;;                        ; horizontal tab
-
-;; obs-qp          =   \ (%d0 / obs-NO-WS-CTL / LF / CR)
-
-;; LF             =  %x0A
-;;                        ; linefeed
-
-;; CR             =  %x0D
-;;                        ; carriage return
-
-;; obs-NO-WS-CTL   =   %d1-8 /            ; US-ASCII control
-;;                     %d11 /             ;  characters that do not
-;;                     %d12 /             ;  include the carriage
-;;                     %d14-31 /          ;  return, line feed, and
-;;                     %d127              ;  white space characters
-
 ;; --- Utilities --- ;;
-
-;; TODO: Remove consume2
-
-;; (declaim (ftype (function ((function (character character) keyword))) consume2))
-(defun consume2 (p)
-  "Like `consume' from the main library, but inspects two characters at a time in
-a sliding window. This is intended for the detection of slash-escaped character
-pairs.
-
-Note that the given predicate-lambda must yield a keyword. `:one' will advance
-the parser by one place. `:two' will advance it by two (i.e. the escaped char
-case). Anything else is equivalent to NIL and will halt the consumption.
-
-In the event that the parser advanced to the very last character via a `:one'
-step, a `#\Nul' character will be passed as the second one to the
-predicate-lambda."
-  (lambda (offset)
-    (declare (optimize (speed 3) (safety 0)))
-    (let* ((keep (loop :with i fixnum := offset
-                       :while (< i p::*input-length*)
-                       :do (let* ((a (schar p::*input* i))
-                                  (b (if (< i (1- p::*input-length*))
-                                         (schar p::*input* (1+ i))
-                                         #\0))
-                                  (kw (funcall p a b)))
-                             (case kw
-                               (:one (incf i))
-                               (:two (incf i 2))
-                               (t (return (- i offset)))))
-                       :finally (return (- i offset))))
-           (next (p::off keep offset)))
-      (p:ok next next))))
-
-#+nil
-(p:parse (consume2 (lambda (a b)
-                     (cond ((and (char= a #\a) (char= b #\b)) :two)
-                           ((char= a #\a) :one))))
-         "aabb")
 
 ;; (declaim (ftype (function ((function (character character) (values keyword character)))
 ;;                           (values string fixnum))
