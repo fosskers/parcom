@@ -244,5 +244,6 @@
 ;; (7) A `sep1' allocation: 320m bytes, 610ms
 ;; (8) `sep1' doesn't wrap: 294m bytes, 610ms
 ;; (9) Avoid a `many1' allocation: 243m bytes, 600ms
+;; (10) `consume1' doesn't wrap: 166m bytes, 550ms
 
 ;; TODO: 2025-09-11 Start here. Reduce allocations of `between' and `opt'.

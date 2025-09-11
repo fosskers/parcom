@@ -220,12 +220,16 @@ complex."
 
 (declaim (ftype (function ((function (character) boolean)) (function (fixnum) (values fixnum fixnum))) consume1))
 (defun consume1 (p)
-  "Like `consume', but guarantee that at least one check of the predicate must succeed."
+  "Like `consume', but guarantees that at least one check of the predicate must succeed."
   (lambda (offset)
-    (multiple-value-bind (res next) (funcall (consume p) offset)
-      (cond ((failure? res) (fail offset))
-            ((= next offset) (fail offset))
-            (t (values res next))))))
+    (declare (optimize (speed 3) (safety 0)))
+    (let* ((keep (loop :for i fixnum :from offset :below *input-length*
+                       :while (funcall p (schar *input* i))
+                       :finally (return (- i offset))))
+           (next (off keep offset)))
+      (if (= offset next)
+          (fail offset)
+          (ok next next)))))
 
 #+nil
 (funcall (consume1 (lambda (c) (eql c #\!))) (in "aaabcd!"))
