@@ -69,10 +69,18 @@ kept. Good for parsing backets, parentheses, etc."
 (defun many1 (parser)
   "Parse 1 or more occurrences of a `parser'."
   (lambda (offset)
-    (multiple-value-bind (res next) (funcall (many parser) offset)
-      (cond ((failure? res) (fail next))
-            ((null res) (fail offset))
-            (t (values res next))))))
+    (declare (optimize (speed 3)))
+    (multiple-value-bind (res next) (funcall parser offset)
+      (if (failure? res)
+          (fail offset)
+          (let* ((inp next)
+                 (res res)
+                 (final (loop :while (ok? res)
+                              :collect res
+                              :do (multiple-value-bind (r i) (funcall parser inp)
+                                    (setf res r)
+                                    (when i (setf inp i))))))
+            (ok inp final))))))
 
 #+nil
 (funcall (many1 (string "ovēs")) (in "ovis"))
@@ -111,10 +119,18 @@ kept. Good for parsing backets, parentheses, etc."
 (defun sep1 (sep parser)
   "Parse 1 or more instances of a `parser' separated by some `sep' parser."
   (lambda (offset)
-    (multiple-value-bind (res next) (funcall (sep sep parser) offset)
-      (cond ((failure? res) (fail next))
-            ((null res) (fail offset))
-            (t (values res next))))))
+    (labels ((recurse (acc in)
+               (multiple-value-bind (sep-res sep-next) (funcall sep in)
+                 (if (failure? sep-res)
+                     (ok in acc)
+                     (multiple-value-bind (res next) (funcall parser sep-next)
+                       (if (failure? res)
+                           (fail next)
+                           (recurse (cons res acc) next)))))))
+      (multiple-value-bind (res next) (funcall parser offset)
+        (if (failure? res)
+            (fail offset)
+            (fmap #'nreverse (recurse (list res) next)))))))
 
 #+nil
 (funcall (sep1 (char #\!) (string "pilum")) (in "."))
