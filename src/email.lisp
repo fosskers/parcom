@@ -108,18 +108,18 @@
 
 ;; --- Static Parsers --- ;;
 
-(defparameter +@+ (p:char #\@))
-(defparameter +bracket-open+ (p:char #\[))
+(defparameter +@+             (p:char #\@))
+(defparameter +bracket-open+  (p:char #\[))
 (defparameter +bracket-close+ (p:char #\]))
-(defparameter +period+ (p:char #\.))
-(defparameter +paren-open+ (p:char #\())
-(defparameter +paren-close+ (p:char #\)))
-(defparameter +quote+ (p:char #\"))
-(defparameter +any-ws+ (p:any-if #'ws?))
-(defparameter +any-crlf+ (p:any-if #'crlf?))
-(defparameter +consume-ws+ (p:consume #'ws?))
+(defparameter +period+        (p:char #\.))
+(defparameter +paren-open+    (p:char #\())
+(defparameter +paren-close+   (p:char #\)))
+(defparameter +quote+         (p:char #\"))
+(defparameter +any-crlf+      (p:any-if #'crlf?))
+(defparameter +consume-ws+    (p:consume #'ws?))
 (defparameter +consume-atext+ (p:consume1 #'atext?))
-(defparameter +skipws1+ (*> +any-ws+ +consume-ws+))
+(defparameter +skipws1+       (p:consume1 #'ws?))
+(defparameter +peek-@+        (p:peek (p:alt +@+ #'p:eof)))
 
 ;; --- Types --- ;;
 
@@ -260,8 +260,8 @@ have contained any number of junk characters or comments."
 (p:parse #'addr-spec "alice@bob@charles.com")
 
 (defun local-part (offset)
-  (funcall (p:alt (<* #'dot-atom (p:peek (p:alt +@+ #'p:eof)))
-                  (<* #'quoted-string (p:peek (p:alt +@+ #'p:eof)))
+  (funcall (p:alt (<* #'dot-atom +peek-@+)
+                  (<* #'quoted-string +peek-@+)
                   #'obs-local-part)
            offset))
 

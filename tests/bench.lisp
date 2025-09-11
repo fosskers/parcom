@@ -66,6 +66,11 @@
 
 ;; --- COMPARISONS --- ;;
 
+#+nil
+(let* ((path #p"tests/data/large-file.json")
+       (s (uiop:read-file-string path)))
+  (time (pj:parse s)))
+
 (defun large-json ()
   (let* ((path #p"tests/data/large-file.json")
          (s (uiop:read-file-string path)))
@@ -245,5 +250,8 @@
 ;; (8) `sep1' doesn't wrap: 294m bytes, 610ms
 ;; (9) Avoid a `many1' allocation: 243m bytes, 600ms
 ;; (10) `consume1' doesn't wrap: 166m bytes, 550ms
+;; (11) Avoid an `any-if' call: 166m bytes, 510ms
+;; (12) Static `peek': 153m bytes, 510ms
+;; (13) `any-if' doesn't wrap: 153m bytes, 500ms
 
 ;; TODO: 2025-09-11 Start here. Reduce allocations of `between' and `opt'.
