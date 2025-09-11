@@ -162,8 +162,7 @@ have contained any number of junk characters or comments."
 
 (defparameter +consume-ws-crlf+ (p:opt (*> +consume-ws+ +any-crlf+)))
 
-(defparameter +fws+
-  (p:alt (*> +consume-ws-crlf+ +skipws1+) #'obs-fws))
+(defparameter +fws+ (p:alt (*> +consume-ws-crlf+ +skipws1+) #'obs-fws))
 
 (defun fws (offset)
   "Parser: Folding white space."
@@ -200,13 +199,15 @@ have contained any number of junk characters or comments."
 
 (defparameter +opt-cfws+ (p:opt #'cfws))
 
+(defparameter +comment+
+  (p:between +paren-open+
+             (*> (p:many (*> +opt-fws+ #'ccontent))
+                 +opt-fws+)
+             +paren-close+))
+
 (defun comment (offset)
   "Yields NIL if successful."
-  (funcall (p:between +paren-open+
-                      (*> (p:many (*> +opt-fws+ #'ccontent))
-                          +opt-fws+)
-                      +paren-close+)
-           offset))
+  (funcall +comment+ offset))
 
 #+nil
 (p:parse #'comment "(hello(there))")
@@ -220,6 +221,26 @@ have contained any number of junk characters or comments."
 
 #+nil
 (p:parse #'ccontent "hello)")
+
+;; --- Atoms --- ;;
+
+(defun dot-atom-text (offset)
+  "Parser: Simple dot-separated ascii atoms."
+  (funcall (p:recognize (p:sep1 +period+ +consume-atext+)) offset))
+
+#+nil
+(p:parse #'dot-atom-text "foo.bar.baz")
+
+(defparameter +dot-atom+
+  (p:between +opt-cfws+
+             #'dot-atom-text
+             +opt-cfws+))
+
+(defun dot-atom (offset)
+  (funcall +dot-atom+ offset))
+
+#+nil
+(p:parse #'dot-atom "   (hi)hello(there)    ")
 
 ;; --- Content Parsers --- ;;
 
@@ -246,15 +267,6 @@ have contained any number of junk characters or comments."
            offset))
 
 ;; Whitespace: https://datatracker.ietf.org/doc/html/rfc5322#section-3.2.2
-
-(defun dot-atom (offset)
-  (funcall (p:between +opt-cfws+
-                      #'dot-atom-text
-                      +opt-cfws+)
-           offset))
-
-#+nil
-(p:parse #'dot-atom "   (hi)hello(there)    ")
 
 (defun quoted-string (offset)
   "No whitespace around or within the quotes is considered actual content."
@@ -354,13 +366,6 @@ have contained any number of junk characters or comments."
 
 #+nil
 (p:parse #'many-dtext1 "")
-
-(defun dot-atom-text (offset)
-  "Parser: Simple dot-separated ascii atoms."
-  (funcall (p:recognize (p:sep1 +period+ +consume-atext+)) offset))
-
-#+nil
-(p:parse #'dot-atom-text "foo.bar.baz")
 
 ;; --- Utilities --- ;;
 
