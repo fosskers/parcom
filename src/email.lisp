@@ -40,13 +40,78 @@
 
 (in-package :parcom/email)
 
+;; --- Helpers --- ;;
+
+(declaim (ftype (function (character) boolean) ws?))
+(defun ws? (c)
+  (or (char= c #\space)
+      (char= c #\tab)))
+
+(declaim (ftype (function (character) boolean) crlf?))
+(defun crlf? (c)
+  (or (char= c #\newline)
+      (char= c #\return)))
+
+(declaim (ftype (function (character) boolean) atext?))
+(defun atext? (c)
+  "Printable US-ASCII characters not including specials."
+  (or (p:ascii-letter? c)
+      (p:digit? c)
+      (char= c #\!)
+      (char<= #\# c #\')
+      (char<= #\* c #\+)
+      (char= c #\-)
+      (char= c #\/)
+      (char= c #\=)
+      (char= c #\?)
+      (char<= #\^ c #\`)
+      (char<= #\{ c #\~)))
+
+(declaim (ftype (function (character) boolean) dtext?))
+(defun dtext? (c)
+  (or (char<= #\! c #\Z)
+      (char<= #\^ c #\~)
+      (obs-no-ws-ctl? c)))
+
+(declaim (ftype (function (character) boolean) obs-no-ws-ctl?))
+(defun obs-no-ws-ctl? (c)
+  (or (char<= #\Soh c #\backspace)
+      (char<= #\Vt c #\Page)
+      (char<= #\So c #\Us)
+      (char= #\Rubout c)))
+
+(declaim (ftype (function (character character) boolean) quoted-pair?))
+(defun quoted-pair? (a b)
+  (and (char= a #\\)
+       (or (char<= #\! b #\~)
+           (ws? b)
+           (char= b #\nul)
+           (obs-no-ws-ctl? b)
+           (crlf? b))))
+
+#+nil
+(quoted-pair? #\\ #\newline)
+
+(declaim (ftype (function (character) boolean) qtext?))
+(defun qtext? (c)
+  (or (char= #\! c)
+      (char<= #\# c #\[)
+      (char<= #\] c #\~)
+      (obs-no-ws-ctl? c)))
+
+(declaim (ftype (function (character) boolean) ctext?))
+(defun ctext? (c)
+  (or (char<= #\! c #\')
+      (char<= #\* c #\[)
+      (char<= #\] c #\~)
+      (obs-no-ws-ctl? c)))
+
 ;; --- Static Parsers --- ;;
 
 (defparameter +@+ (p:char #\@))
 (defparameter +bracket-open+ (p:char #\[))
 (defparameter +bracket-close+ (p:char #\]))
 (defparameter +period+ (p:char #\.))
-(defparameter +skipws1+ (*> +any-ws+ +consume-ws+))
 (defparameter +paren-open+ (p:char #\())
 (defparameter +paren-close+ (p:char #\)))
 (defparameter +quote+ (p:char #\"))
@@ -54,6 +119,7 @@
 (defparameter +any-crlf+ (p:any-if #'crlf?))
 (defparameter +consume-ws+ (p:consume #'ws?))
 (defparameter +consume-atext+ (p:consume1 #'atext?))
+(defparameter +skipws1+ (*> +any-ws+ +consume-ws+))
 
 ;; --- Types --- ;;
 
@@ -92,7 +158,70 @@ have contained any number of junk characters or comments."
 #+nil
 (valid-email-address? "alice")
 
-;; --- Parsers --- ;;
+;; --- Whitespace and Comments --- ;;
+
+(defparameter +consume-ws-crlf+ (p:opt (*> +consume-ws+ +any-crlf+)))
+
+(defparameter +fws+
+  (p:alt (*> +consume-ws-crlf+ +skipws1+) #'obs-fws))
+
+(defun fws (offset)
+  "Parser: Folding white space."
+  (funcall +fws+ offset))
+
+#+nil
+(p:parse #'fws "   ")
+
+(defparameter +opt-fws+ (p:opt #'fws))
+
+(defparameter +obs-fws+
+  (*> +skipws1+
+      (p:many (*> +any-crlf+ +skipws1+))))
+
+(defun obs-fws (offset)
+  (funcall +obs-fws+ offset))
+
+#+nil
+(p:parse #'obs-fws "   ")
+
+;; NOTE: From the spec.
+;;
+;; > Runs of FWS, comment, or CFWS that occur between lexical tokens in a
+;; > structured header field are semantically interpreted as a single space
+;; > character.))
+;;
+;; I interpret this to mean that comments and run of spaces can be entirely
+;; ignored within an address.
+(defun cfws (offset)
+  (funcall (p:alt (*> (p:many1 (*> +opt-fws+ #'comment))
+                      +opt-fws+)
+                  #'fws)
+           offset))
+
+(defparameter +opt-cfws+ (p:opt #'cfws))
+
+(defun comment (offset)
+  "Yields NIL if successful."
+  (funcall (p:between +paren-open+
+                      (*> (p:many (*> +opt-fws+ #'ccontent))
+                          +opt-fws+)
+                      +paren-close+)
+           offset))
+
+#+nil
+(p:parse #'comment "(hello(there))")
+
+(defun ccontent (offset)
+  (funcall (p:alt (sliding-take1 (lambda (a b)
+                                   (cond ((ctext? a) (values :one a))
+                                         ((quoted-pair? a b) (values :two b)))))
+                  #'comment)
+           offset))
+
+#+nil
+(p:parse #'ccontent "hello)")
+
+;; --- Content Parsers --- ;;
 
 (defun addr-spec (offset)
   (p:fmap (lambda (list) (make-address :name (car list) :domain (cadr list)))
@@ -119,9 +248,9 @@ have contained any number of junk characters or comments."
 ;; Whitespace: https://datatracker.ietf.org/doc/html/rfc5322#section-3.2.2
 
 (defun dot-atom (offset)
-  (funcall (p:between (p:opt #'cfws)
+  (funcall (p:between +opt-cfws+
                       #'dot-atom-text
-                      (p:opt #'cfws))
+                      +opt-cfws+)
            offset))
 
 #+nil
@@ -130,31 +259,24 @@ have contained any number of junk characters or comments."
 (defun quoted-string (offset)
   "No whitespace around or within the quotes is considered actual content."
   (p:fmap (lambda (list) (apply #'concatenate 'string list))
-          (funcall (*> (p:opt #'cfws)
+          (funcall (*> +opt-cfws+
                        +quote+
                        ;; FIXME: 2025-09-10 This `many' is wasteful and forces a
                        ;; reallocation into a single string above. I'm not sure
                        ;; how to get around it though, given that `fws' has a
                        ;; specific structure that is not just a matter of
                        ;; `consuming' over whitespace.
-                       (<* (p:many (*> (p:opt #'fws)
+                       (<* (p:many (*> +opt-fws+
                                        (sliding-take1 (lambda (a b)
                                                         (cond ((qtext? a) (values :one a))
                                                               ((quoted-pair? a b) (values :two b)))))))
-                           (p:opt #'fws)
+                           +opt-fws+
                            +quote+
-                           (p:opt #'cfws)))
+                           +opt-cfws+))
                    offset)))
 
 #+nil
 (p:parse #'quoted-string "\"hello \\\" there\"")
-
-(declaim (ftype (function (character) boolean) qtext?))
-(defun qtext? (c)
-  (or (char= #\! c)
-      (char<= #\# c #\[)
-      (char<= #\] c #\~)
-      (obs-no-ws-ctl? c)))
 
 (defun obs-local-part (offset)
   (p:fmap (lambda (list) (format nil "~{~a~^.~}" list))
@@ -165,12 +287,12 @@ have contained any number of junk characters or comments."
 
 (defun domain-literal (offset)
   (p:fmap (lambda (list) (format nil "[~{~a~}]" (cadr list)))
-          (funcall (p:between (p:opt #'cfws)
+          (funcall (p:between +opt-cfws+
                               (<*> +bracket-open+
-                                   (p:many (*> (p:opt #'fws)
+                                   (p:many (*> +opt-fws+
                                                #'many-dtext1))
-                                   (*> (p:opt #'fws) +bracket-close+))
-                              (p:opt #'cfws))
+                                   (*> +opt-fws+ +bracket-close+))
+                              +opt-cfws+)
                    offset)))
 
 #+nil
@@ -187,78 +309,13 @@ have contained any number of junk characters or comments."
   (funcall (p:alt #'atom #'quoted-string) offset))
 
 (defun atom (offset)
-  (funcall (p:between (p:opt #'cfws)
+  (funcall (p:between +opt-cfws+
                       (p:take-while1 #'atext?)
-                      (p:opt #'cfws))
+                      +opt-cfws+)
            offset))
 
 #+nil
 (p:parse #'atom " hello ")
-
-;; NOTE: From the spec.
-;;
-;; > Runs of FWS, comment, or CFWS that occur between lexical tokens in a
-;; > structured header field are semantically interpreted as a single space
-;; > character.))
-;;
-;; I interpret this to mean that comments and run of spaces can be entirely
-;; ignored within an address.
-(defun cfws (offset)
-  (funcall (p:alt (*> (p:many1 (*> (p:opt #'fws) #'comment))
-                      (p:opt #'fws))
-                  #'fws)
-           offset))
-
-(defparameter +fws+
-  (p:alt (*> (p:opt (*> +consume-ws+ +any-crlf+))
-             +skipws1+)
-         #'obs-fws))
-
-(defun fws (offset)
-  "Parser: Folding white space."
-  (funcall +fws+ offset))
-
-#+nil
-(p:parse #'fws "   ")
-
-(defparameter +obs-fws+
-  (*> +skipws1+
-      (p:many (*> +any-crlf+ +skipws1+))))
-
-(defun obs-fws (offset)
-  (funcall +obs-fws+ offset))
-
-#+nil
-(p:parse #'obs-fws "   ")
-
-(defun comment (offset)
-  "Yields NIL if successful."
-  (funcall (p:between +paren-open+
-                      (*> (p:many (*> (p:opt #'fws)
-                                      #'ccontent))
-                          (p:opt #'fws))
-                      +paren-close+)
-           offset))
-
-#+nil
-(p:parse #'comment "(hello(there))")
-
-(defun ccontent (offset)
-  (funcall (p:alt (sliding-take1 (lambda (a b)
-                                   (cond ((ctext? a) (values :one a))
-                                         ((quoted-pair? a b) (values :two b)))))
-                  #'comment)
-           offset))
-
-#+nil
-(p:parse #'ccontent "hello)")
-
-(declaim (ftype (function (character) boolean) ctext?))
-(defun ctext? (c)
-  (or (char<= #\! c #\')
-      (char<= #\* c #\[)
-      (char<= #\] c #\~)
-      (obs-no-ws-ctl? c)))
 
 (defun msg-id (offset)
   (p:fmap (lambda (list) (make-address :name (car list) :domain (cadr list)))
@@ -298,59 +355,9 @@ have contained any number of junk characters or comments."
 #+nil
 (p:parse #'many-dtext1 "")
 
-(declaim (ftype (function (character) boolean) dtext?))
-(defun dtext? (c)
-  (or (char<= #\! c #\Z)
-      (char<= #\^ c #\~)
-      (obs-no-ws-ctl? c)))
-
-(declaim (ftype (function (character) boolean) obs-no-ws-ctl?))
-(defun obs-no-ws-ctl? (c)
-  (or (char<= #\Soh c #\backspace)
-      (char<= #\Vt c #\Page)
-      (char<= #\So c #\Us)
-      (char= #\Rubout c)))
-
-(declaim (ftype (function (character character) boolean) quoted-pair?))
-(defun quoted-pair? (a b)
-  (and (char= a #\\)
-       (or (char<= #\! b #\~)
-           (ws? b)
-           (char= b #\nul)
-           (obs-no-ws-ctl? b)
-           (crlf? b))))
-
-#+nil
-(quoted-pair? #\\ #\newline)
-
-(declaim (ftype (function (character) boolean) atext?))
-(defun atext? (c)
-  "Printable US-ASCII characters not including specials."
-  (or (p:ascii-letter? c)
-      (p:digit? c)
-      (char= c #\!)
-      (char<= #\# c #\')
-      (char<= #\* c #\+)
-      (char= c #\-)
-      (char= c #\/)
-      (char= c #\=)
-      (char= c #\?)
-      (char<= #\^ c #\`)
-      (char<= #\{ c #\~)))
-
 (defun dot-atom-text (offset)
   "Parser: Simple dot-separated ascii atoms."
   (funcall (p:recognize (p:sep1 +period+ +consume-atext+)) offset))
-
-(declaim (ftype (function (character) boolean) ws?))
-(defun ws? (c)
-  (or (char= c #\space)
-      (char= c #\tab)))
-
-(declaim (ftype (function (character) boolean) ws?))
-(defun crlf? (c)
-  (or (char= c #\newline)
-      (char= c #\return)))
 
 #+nil
 (p:parse #'dot-atom-text "foo.bar.baz")

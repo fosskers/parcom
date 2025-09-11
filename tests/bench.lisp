@@ -238,3 +238,6 @@
 ;; (1) Static `any-if': 998m bytes, 855ms
 ;; (2) Static `consume': 895m bytes, 805ms
 ;; (3) `consume1': 716m bytes, 725ms
+;; (4) `opt' sweep: 511m bytes, 680ms
+
+;; TODO: 2025-09-11 Start here. Reduce allocations of `between' and `opt'.

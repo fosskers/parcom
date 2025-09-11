@@ -258,6 +258,8 @@ complex."
                                (eql #\d c)))))
          (in "aaabcd!"))
 
+;; FIXME: 2025-09-12 Every call to `take-while1' needs to allocate a
+;; `take-while' lambda. Likewise for `consume1'.
 (declaim (ftype (function ((function (character) boolean)) (function (fixnum) (values (or cl:string (member :fail)) fixnum))) take-while1))
 (defun take-while1 (p)
   "Parser: Take characters while some predicate holds. Must succeed at least once."

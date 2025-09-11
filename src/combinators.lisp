@@ -20,7 +20,10 @@ succeeds."
 (defun opt (parser)
   "Yield nil if the parser failed, but don't fail the whole process nor consume any
 input."
-  (alt parser (lambda (offset) (ok offset nil)))) ; Clever.
+  (lambda (offset)
+    (multiple-value-bind (res next) (funcall parser offset)
+      (cond ((failure? res) (values nil offset))
+            (t (values res next))))))
 
 #+nil
 (funcall (opt (string "Ex")) (in "Exercitus"))
