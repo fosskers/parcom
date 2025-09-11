@@ -46,10 +46,12 @@
 (defun any-if (pred)
   "Parser: Any character, as long as it passes the predicate."
   (lambda (offset)
-    (multiple-value-bind (res next) (any offset)
-      (cond ((failure? res) (fail next))
-            ((funcall pred res) (values res next))
-            (t (fail offset))))))
+    (if (>= offset *input-length*)
+        (fail offset)
+        (let ((c (schar *input* offset)))
+          (if (funcall pred c)
+              (values c (off 1 offset))
+              (fail offset))))))
 
 #+nil
 (funcall (any-if #'digit?) (in "8a"))
