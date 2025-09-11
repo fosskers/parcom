@@ -223,7 +223,7 @@
 ;; MEMORY
 #+nil
 (let ((email "alice.fun.party@bobs.house.com"))
-  (sb-sprof:with-profiling (:max-samples 100000 :sample-interval 0.00001 :report :graph :mode :alloc)
+  (sb-sprof:with-profiling (:max-samples 100000 :sample-interval 0.001 :report :graph :mode :alloc)
     (dotimes (n 400000)
       (pe:parse email))))
 
@@ -240,5 +240,9 @@
 ;; (3) `consume1': 716m bytes, 725ms
 ;; (4) `opt' sweep: 511m bytes, 680ms
 ;; (5) `between' allocation: 396m bytes, 645ms
+;; (6) `many1' doesn't wrap: 345m bytes,  620ms
+;; (7) A `sep1' allocation: 320m bytes, 610ms
+;; (8) `sep1' doesn't wrap: 294m bytes, 610ms
+;; (9) Avoid a `many1' allocation: 243m bytes, 600ms
 
 ;; TODO: 2025-09-11 Start here. Reduce allocations of `between' and `opt'.

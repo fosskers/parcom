@@ -183,6 +183,9 @@ have contained any number of junk characters or comments."
 #+nil
 (p:parse #'obs-fws "   ")
 
+(defparameter +many-comments+
+  (p:many1 (*> +opt-fws+ #'comment)))
+
 ;; NOTE: From the spec.
 ;;
 ;; > Runs of FWS, comment, or CFWS that occur between lexical tokens in a
@@ -192,8 +195,7 @@ have contained any number of junk characters or comments."
 ;; I interpret this to mean that comments and run of spaces can be entirely
 ;; ignored within an address.
 (defun cfws (offset)
-  (funcall (p:alt (*> (p:many1 (*> +opt-fws+ #'comment))
-                      +opt-fws+)
+  (funcall (p:alt (*> +many-comments+ +opt-fws+)
                   #'fws)
            offset))
 
@@ -224,9 +226,12 @@ have contained any number of junk characters or comments."
 
 ;; --- Atoms --- ;;
 
+(defparameter +period-sep-atext+
+  (p:sep1 +period+ +consume-atext+))
+
 (defun dot-atom-text (offset)
   "Parser: Simple dot-separated ascii atoms."
-  (funcall (p:recognize (p:sep1 +period+ +consume-atext+)) offset))
+  (funcall (p:recognize +period-sep-atext+) offset))
 
 #+nil
 (p:parse #'dot-atom-text "foo.bar.baz")
