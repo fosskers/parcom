@@ -97,7 +97,7 @@ kept. Good for parsing backets, parentheses, etc."
                                   (ok in acc)
                                   (multiple-value-bind (res next) (funcall parser sep-next)
                                     (if (failure? res)
-                                        (fail next)
+                                        (fail sep-next)
                                         (recurse (cons res acc) next)))))))
                    (multiple-value-bind (res next) (funcall parser offset)
                      (if (failure? res)
@@ -125,7 +125,7 @@ kept. Good for parsing backets, parentheses, etc."
                      (ok in acc)
                      (multiple-value-bind (res next) (funcall parser sep-next)
                        (if (failure? res)
-                           (fail next)
+                           (fail sep-next)
                            (recurse (cons res acc) next)))))))
       (multiple-value-bind (res next) (funcall parser offset)
         (if (failure? res)
@@ -184,6 +184,50 @@ even if not followed by an instance of the main parser."
 (funcall (sep-end1 (char #\!) (string "pilum")) (in "pilum!pilum!pilum."))
 #+nil
 (funcall (sep-end1 (char #\!) (string "pilum")) (in "pilum!pilum!pilum!"))
+
+(defun consume-sep (sep parser)
+  "Like `sep', but similar to `consume' it ignores all success of the parsers in a
+memory-efficient way and simply advances the parsing offset. The main parser
+need not succeed even once."
+  (lambda (offset)
+    (labels ((recurse (in)
+               (multiple-value-bind (sep-res sep-next) (funcall sep in)
+                 (if (failure? sep-res)
+                     (ok in in)
+                     (multiple-value-bind (res next) (funcall parser sep-next)
+                       (if (failure? res)
+                           (fail sep-next)
+                           (recurse next)))))))
+      (multiple-value-bind (res next) (funcall parser offset)
+        (if (failure? res)
+            (ok offset offset)
+            (recurse next))))))
+
+#+nil
+(parse (consume-sep (char #\!) (string "pilum")) "pilum!pilum!pilum.")
+#+nil
+(parse (consume-sep (char #\!) (string "pilum")) "")
+
+(defun consume-sep1 (sep parser)
+  "Like `consume-sep' but expects the main parser to succeed at least once."
+  (lambda (offset)
+    (labels ((recurse (in)
+               (multiple-value-bind (sep-res sep-next) (funcall sep in)
+                 (if (failure? sep-res)
+                     (ok in in)
+                     (multiple-value-bind (res next) (funcall parser sep-next)
+                       (if (failure? res)
+                           (fail sep-next)
+                           (recurse next)))))))
+      (multiple-value-bind (res next) (funcall parser offset)
+        (if (failure? res)
+            (fail offset)
+            (recurse next))))))
+
+#+nil
+(parse (consume-sep1 (char #\!) (string "pilum")) "pilum!pilum!pilum.")
+#+nil
+(parse (consume-sep1 (char #\!) (string "pilum")) "")
 
 (defun skip (parser &key (id nil))
   "Parse some `parser' 0 or more times, but throw away all the results."
