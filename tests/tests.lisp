@@ -514,6 +514,3 @@ hi!
   (is string= "alice" (p:parse #'pe::local-part "   alice   "))
   (is string= "alice" (p:parse #'pe::local-part "   (comment)alice(comment)   "))
   (is string= "a.l.i.c.e" (p:parse #'pe::local-part "a . l . i . c . e")))
-
-(define-test email-domain
-  :parent email)

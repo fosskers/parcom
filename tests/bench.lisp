@@ -253,5 +253,14 @@
 ;; (11) Avoid an `any-if' call: 166m bytes, 510ms
 ;; (12) Static `peek': 153m bytes, 510ms
 ;; (13) `any-if' doesn't wrap: 153m bytes, 500ms
+;; (14) Avoid another `peek' alloc: 141m bytes, 500ms
+;; (15) `consume-sep1': 102m bytes, 475ms
+;; (16) `ap': 89m bytes, 475ms
 
-;; TODO: 2025-09-11 Start here. Reduce allocations of `between' and `opt'.
+;; TODO: 2025-09-12 Start here. Implement `consume-sep' and `consume-sep1' which
+;; act like `sep' but don't collect their results.
+;;
+;; Then, think about how it would be possible to simulate applicative functors
+;; without needing to allocate the list in between. Perhaps `ap' as a macro that
+;; accepts the function you want to apply plus N parsers, and then expands out
+;; to a chain of parse checks followed by the `funcall' in the final position.

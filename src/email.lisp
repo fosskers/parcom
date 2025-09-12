@@ -120,6 +120,7 @@
 (defparameter +consume-atext+ (p:consume1 #'atext?))
 (defparameter +skipws1+       (p:consume1 #'ws?))
 (defparameter +peek-@+        (p:peek (p:alt +@+ #'p:eof)))
+(defparameter +peek-eof+      (p:peek #'p:eof))
 
 ;; --- Types --- ;;
 
@@ -227,7 +228,7 @@ have contained any number of junk characters or comments."
 ;; --- Atoms --- ;;
 
 (defparameter +period-sep-atext+
-  (p:sep1 +period+ +consume-atext+))
+  (p:consume-sep1 +period+ +consume-atext+))
 
 (defun dot-atom-text (offset)
   "Parser: Simple dot-separated ascii atoms."
@@ -250,8 +251,10 @@ have contained any number of junk characters or comments."
 ;; --- Content Parsers --- ;;
 
 (defun addr-spec (offset)
-  (p:fmap (lambda (list) (make-address :name (car list) :domain (cadr list)))
-          (funcall (<*> #'local-part (*> +@+ #'domain)) offset)))
+  (funcall (p:ap (lambda (name domain) (make-address :name name :domain domain))
+                 #'local-part
+                 (*> +@+ #'domain))
+           offset))
 
 #+nil
 (p:parse #'addr-spec "   alice  (comment)   @bob.com")
@@ -266,7 +269,7 @@ have contained any number of junk characters or comments."
            offset))
 
 (defun domain (offset)
-  (funcall (p:alt (<* #'dot-atom (p:peek #'p:eof))
+  (funcall (p:alt (<* #'dot-atom +peek-eof+)
                   #'domain-literal
                   #'obs-domain)
            offset))
