@@ -104,6 +104,30 @@ its inner result if it happened to be successful."
   "Combination of parsers yielding the result of the leftmost one."
   `(<* ,parser ,@parsers))
 
+(defmacro ap (f parser &rest parsers)
+  "Run many parsers that must all succeed, and apply their success values to a
+given lambda. More memory-efficient than the combination of `<*>' and `fmap'."
+  (let ((offset (gensym "ap-OFFSET")))
+    `(lambda (,offset)
+       ,(labels ((recurse (ps rs i)
+                   (if (null ps)
+                       (let ((ordered (nreverse rs)))
+                         `(values (funcall ,f ,@ordered) ,i))
+                       (let ((res  (gensym "ap-RES"))
+                             (next (gensym "ap-NEXT")))
+                         `(multiple-value-bind (,res ,next) (funcall ,(car ps) ,i)
+                            (if (failure? ,res)
+                                (fail ,next)
+                                ,(recurse (cdr ps) (cons res rs) next)))))))
+          (recurse (cons parser parsers) '() offset)))))
+
+#+nil
+(parse (ap (lambda (a b c) (list a b c))
+           #'unsigned
+           (*> (char #\.) #'unsigned)
+           (*> (char #\.) #'unsigned))
+       "1.2.3")
+
 (defmacro <*> (parser &rest parsers)
   "Combination of parsers yielding all results as a list."
   (let ((offset (gensym "<*>-OFFSET")))

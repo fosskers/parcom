@@ -11,7 +11,7 @@
   ;; --- Functional Programming --- ;;
   (:export #:fmap #:pmap #:const
            #:all #:right #:left #:instead
-           #:*> #:<* #:<*> #:<$ #:alt)
+           #:*> #:<* #:ap #:<*> #:<$ #:alt)
   ;; --- Parsers --- ;;
   (:export #:any #:any-but #:any-if #:hex #:unicode #:control-char #:eof
            #:char #:string
