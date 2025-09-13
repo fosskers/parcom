@@ -278,3 +278,4 @@
 
 ;; (0) Base: 979m bytes, 2562ms
 ;; (1) Custom `sliding-take1': 787m bytes, 2460ms
+;; (2) Non-wrapping `take-while1': 710m bytes, 24xxms

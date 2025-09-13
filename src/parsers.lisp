@@ -264,16 +264,21 @@ complex."
                                (eql #\d c)))))
          (in "aaabcd!"))
 
-;; FIXME: 2025-09-12 Every call to `take-while1' needs to allocate a
-;; `take-while' lambda. Likewise for `consume1'.
 (declaim (ftype (function ((function (character) boolean)) (function (fixnum) (values (or cl:string (member :fail)) fixnum))) take-while1))
 (defun take-while1 (p)
   "Parser: Take characters while some predicate holds. Must succeed at least once."
   (lambda (offset)
-    (multiple-value-bind (res next) (funcall (take-while p) offset)
-      (cond ((failure? res) (fail offset))
-            ((empty? res) (fail offset))
-            (t (values res next))))))
+    (declare (optimize (speed 3) (safety 0)))
+    (let ((keep (loop :for i fixnum :from offset :below *input-length*
+                      :while (funcall p (schar *input* i))
+                      :finally (return (- i offset)))))
+      (ok (off keep offset)
+          (if (zerop keep)
+              (fail offset)
+              (make-array keep
+                          :element-type 'character
+                          :displaced-to *input*
+                          :displaced-index-offset offset))))))
 
 #+nil
 (funcall (take-while1 #'digit?) (in "bob!"))
