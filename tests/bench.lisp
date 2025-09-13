@@ -280,3 +280,5 @@
 ;; (1) Custom `sliding-take1': 787m bytes, 2460ms
 ;; (2) Non-wrapping `take-while1': 710m bytes, 24xxms
 ;; (3) Static `between': 499m bytes, 23xxms
+;; (4) Static `sep1': 473m bytes, 23xxms
+;; (5) Static `many': 447m bytes, 23xxms

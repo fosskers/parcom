@@ -202,9 +202,12 @@ have contained any number of junk characters or comments."
 
 (defparameter +opt-cfws+ (p:opt #'cfws))
 
+(defparameter +maybe-many-comments+
+  (p:many (*> +opt-fws+ #'ccontent)))
+
 (defparameter +comment+
   (p:between +paren-open+
-             (*> (p:many (*> +opt-fws+ #'ccontent))
+             (*> +maybe-many-comments+
                  +opt-fws+)
              +paren-close+))
 
@@ -301,13 +304,6 @@ have contained any number of junk characters or comments."
 #+nil
 (p:parse #'quoted-string "\"hello \\\" there\"")
 
-(defun obs-local-part (offset)
-  (p:fmap (lambda (list) (format nil "~{~a~^.~}" list))
-          (funcall (p:sep1 +period+ #'word) offset)))
-
-#+nil
-(p:parse #'obs-local-part "hello . there . hi")
-
 (defparameter +domain-literal+
   (p:between +opt-cfws+
              (<*> +bracket-open+
@@ -323,13 +319,6 @@ have contained any number of junk characters or comments."
 #+nil
 (p:parse #'domain-literal "[hello there]")
 
-(defun obs-domain (offset)
-  (p:fmap (lambda (list) (format nil "~{~a~^.~}" list))
-          (funcall (p:sep1 +period+ #'atom) offset)))
-
-#+nil
-(p:parse #'obs-domain "yes . hello . there")
-
 (defun word (offset)
   (funcall (p:alt #'atom #'quoted-string) offset))
 
@@ -343,6 +332,26 @@ have contained any number of junk characters or comments."
 
 #+nil
 (p:parse #'atom " hello ")
+
+(defparameter +obs-local-part+
+  (p:sep1 +period+ #'word))
+
+(defun obs-local-part (offset)
+  (p:fmap (lambda (list) (format nil "~{~a~^.~}" list))
+          (funcall +obs-local-part+ offset)))
+
+#+nil
+(p:parse #'obs-local-part "hello . there . hi")
+
+(defparameter +obs-domain+
+  (p:sep1 +period+ #'atom))
+
+(defun obs-domain (offset)
+  (p:fmap (lambda (list) (format nil "~{~a~^.~}" list))
+          (funcall +obs-domain+ offset)))
+
+#+nil
+(p:parse #'obs-domain "yes . hello . there")
 
 (defun msg-id (offset)
   (funcall (p:ap (lambda (name domain) (make-address :name name :domain domain))
@@ -463,4 +472,4 @@ and only after that do we allocate a result vector."
                                       (char= b #\n))
                                  (values :two #\newline))
                                 (t (values :one a)))))
-         "")
+         "Hello \\n there!")
