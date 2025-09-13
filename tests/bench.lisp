@@ -256,11 +256,10 @@
 ;; (14) Avoid another `peek' alloc: 141m bytes, 500ms
 ;; (15) `consume-sep1': 102m bytes, 475ms
 ;; (16) `ap': 89m bytes, 475ms
+;; (17) Avoid `recognize' alloc: 64m bytes, 470ms
 
-;; TODO: 2025-09-12 Start here. Implement `consume-sep' and `consume-sep1' which
-;; act like `sep' but don't collect their results.
-;;
-;; Then, think about how it would be possible to simulate applicative functors
-;; without needing to allocate the list in between. Perhaps `ap' as a macro that
-;; accepts the function you want to apply plus N parsers, and then expands out
-;; to a chain of parse checks followed by the `funcall' in the final position.
+;; TODO: 2025-09-13 This is probably about as fast as a simple email can get.
+;; Now parse an evil one and make similar fixes. Also avoid wrapping in
+;; `take-while1', and go see how `parcom/json' can benefit from the newest
+;; advancements. Before that though, add docs for `email'. We'll release all
+;; this together as 1.5.

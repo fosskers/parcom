@@ -230,9 +230,12 @@ have contained any number of junk characters or comments."
 (defparameter +period-sep-atext+
   (p:consume-sep1 +period+ +consume-atext+))
 
+(defparameter +recognize-atoms+
+  (p:recognize +period-sep-atext+))
+
 (defun dot-atom-text (offset)
   "Parser: Simple dot-separated ascii atoms."
-  (funcall (p:recognize +period-sep-atext+) offset))
+  (funcall +recognize-atoms+ offset))
 
 #+nil
 (p:parse #'dot-atom-text "foo.bar.baz")
