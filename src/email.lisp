@@ -308,15 +308,17 @@ have contained any number of junk characters or comments."
 #+nil
 (p:parse #'obs-local-part "hello . there . hi")
 
+(defparameter +domain-literal+
+  (p:between +opt-cfws+
+             (<*> +bracket-open+
+                  (p:many (*> +opt-fws+
+                              #'many-dtext1))
+                  (*> +opt-fws+ +bracket-close+))
+             +opt-cfws+))
+
 (defun domain-literal (offset)
   (p:fmap (lambda (list) (format nil "[~{~a~}]" (cadr list)))
-          (funcall (p:between +opt-cfws+
-                              (<*> +bracket-open+
-                                   (p:many (*> +opt-fws+
-                                               #'many-dtext1))
-                                   (*> +opt-fws+ +bracket-close+))
-                              +opt-cfws+)
-                   offset)))
+          (funcall +domain-literal+ offset)))
 
 #+nil
 (p:parse #'domain-literal "[hello there]")
@@ -331,11 +333,13 @@ have contained any number of junk characters or comments."
 (defun word (offset)
   (funcall (p:alt #'atom #'quoted-string) offset))
 
+(defparameter +atom+
+  (p:between +opt-cfws+
+             (p:take-while1 #'atext?)
+             +opt-cfws+))
+
 (defun atom (offset)
-  (funcall (p:between +opt-cfws+
-                      (p:take-while1 #'atext?)
-                      +opt-cfws+)
-           offset))
+  (funcall +atom+ offset))
 
 #+nil
 (p:parse #'atom " hello ")
