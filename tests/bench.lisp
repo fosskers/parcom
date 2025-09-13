@@ -263,3 +263,18 @@
 ;; `take-while1', and go see how `parcom/json' can benefit from the newest
 ;; advancements. Before that though, add docs for `email'. We'll release all
 ;; this together as 1.5.
+
+#+nil
+(let ((email "alice . fun . party@bobs(comment).house .com"))
+  (time (dotimes (n 400000)
+          (pe:parse email))))
+
+;; MEMORY
+#+nil
+(let ((email "alice . fun . party@bobs(comment).house .com"))
+  (sb-sprof:with-profiling (:max-samples 100000 :sample-interval 0.001 :report :graph :mode :alloc)
+    (dotimes (n 400000)
+      (pe:parse email))))
+
+;; (0) Base: 979m bytes, 2562ms
+;; (1) Custom `sliding-take1': 787m bytes, 2460ms

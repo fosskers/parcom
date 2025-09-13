@@ -57,15 +57,15 @@
   "Printable US-ASCII characters not including specials."
   (or (p:ascii-letter? c)
       (p:digit? c)
-      (char= c #\!)
       (char<= #\# c #\')
       (char<= #\* c #\+)
+      (char<= #\^ c #\`)
+      (char<= #\{ c #\~)
+      (char= c #\!)
       (char= c #\-)
       (char= c #\/)
       (char= c #\=)
-      (char= c #\?)
-      (char<= #\^ c #\`)
-      (char<= #\{ c #\~)))
+      (char= c #\?)))
 
 (declaim (ftype (function (character) boolean) dtext?))
 (defun dtext? (c)
@@ -341,8 +341,10 @@ have contained any number of junk characters or comments."
 (p:parse #'atom " hello ")
 
 (defun msg-id (offset)
-  (p:fmap (lambda (list) (make-address :name (car list) :domain (cadr list)))
-          (funcall (<*> #'id-left (*> +@+ #'id-right)) offset)))
+  (funcall (p:ap (lambda (name domain) (make-address :name name :domain domain))
+                 #'id-left
+                 (*> +@+ #'id-right))
+           offset))
 
 #+nil
 (p:parse #'msg-id "colin@fosskers.ca")
@@ -389,10 +391,10 @@ have contained any number of junk characters or comments."
     (let* ((s (make-array 16 :element-type 'character :adjustable t :fill-pointer 0))
            (keep (loop :with i fixnum := offset
                        :while (< i p::*input-length*)
-                       :do (let* ((a (schar p::*input* i))
-                                  (b (if (< i (1- p::*input-length*))
-                                         (schar p::*input* (1+ i))
-                                         #\Nul)))
+                       :do (let ((a (schar p::*input* i))
+                                 (b (if (< i (1- p::*input-length*))
+                                        (schar p::*input* (1+ i))
+                                        #\Nul)))
                              (multiple-value-bind (kw c) (funcall f a b)
                                (case kw
                                  (:one
@@ -415,11 +417,41 @@ have contained any number of junk characters or comments."
          "Hello \\n there!")
 
 (defun sliding-take1 (f)
+  "A variant of `sliding-take' which requires the predicate to pass at least once.
+Implementation note: We are checking by hand if an initial parse will succeed,
+and only after that do we allocate a result vector."
   (lambda (offset)
-    (multiple-value-bind (res next) (funcall (sliding-take f) offset)
-      (cond ((p:failure? res) (p:fail offset))
-            ((p:empty? res) (p:fail offset))
-            (t (values res next))))))
+    (declare (optimize (speed 3) (safety 0)))
+    (if (>= offset p::*input-length*)
+        (p:fail offset)
+        (let ((a (schar p::*input* offset))
+              (b (if (< offset (1- p::*input-length*))
+                     (schar p::*input* (1+ offset))
+                     #\Nul)))
+          (multiple-value-bind (kw c) (funcall f a b)
+            (if (not (or (eq :one kw)
+                         (eq :two kw)))
+                (p:fail offset)
+                (let* ((s (make-array 8 :element-type 'character :adjustable t :fill-pointer 1 :initial-element c))
+                       (start (if (eq :one kw) (1+ offset) (+ 2 offset)))
+                       (keep (loop :with i fixnum := start
+                                   :while (< i p::*input-length*)
+                                   :do (let* ((a (schar p::*input* i))
+                                              (b (if (< i (1- p::*input-length*))
+                                                     (schar p::*input* (1+ i))
+                                                     #\Nul)))
+                                         (multiple-value-bind (kw c) (funcall f a b)
+                                           (case kw
+                                             (:one
+                                              (incf i)
+                                              (vector-push-extend c s))
+                                             (:two
+                                              (incf i 2)
+                                              (vector-push-extend c s))
+                                             (t (return (- i offset))))))
+                                   :finally (return (- i offset))))
+                       (next (p::off keep offset)))
+                  (values s next))))))))
 
 #+nil
 (p:parse (sliding-take1 (lambda (a b)
