@@ -1,12 +1,20 @@
 # Parcom Changelog
 
-### Unreleased
+### 1.5.0 (2025-09-14)
 
 #### Added
 
 - Combinator: `not` for succeeding when a parser fails. Useful when trying to
   test a complicated parse boundary, say in combination with `sep-end`.
+- Combinator: `consume-sep` and `consume-sep1` for advancing the parser like
+  `sep` but without allocating.
 - datetime: The `simple-local-time` parser for lenient parsing of local times.
+- email: The new `parcom/email` system.
+
+#### Changed
+
+- A number of parsers/combinators are now more memory efficient by avoiding
+  internal lambda allocations.
 
 ### 1.4.0 (2025-08-17)
 

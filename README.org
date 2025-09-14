@@ -54,7 +54,7 @@ read their associated formats:
     - [[#taking-in-bulk][Taking in Bulk]]
       - [[#take][take]]
       - [[#take-while-take-while1][take-while, take-while1]]
-      - [[#consume][consume]]
+      - [[#consume-consume1][consume, consume1]]
       - [[#rest][rest]]
     - [[#other][Other]]
       - [[#pure][pure]]
@@ -69,6 +69,7 @@ read their associated formats:
     - [[#many-many1][many, many1]]
     - [[#sep-sep1][sep, sep1]]
     - [[#sep-end-sep-end1][sep-end, sep-end1]]
+    - [[#consume-sep-consume-sep1][consume-sep, consume-sep1]]
     - [[#skip][skip]]
     - [[#peek][peek]]
     - [[#count][count]]
@@ -141,7 +142,7 @@ SBCL:
 |-------------+-----------+----------------|
 | jsown       |       200 | 135m           |
 | jzon        |       370 | 132m           |
-| parcom/json |       500 | 232m           |
+| parcom/json |       500 | 227m           |
 | shasht      |       650 | 410m           |
 | yason       |      1800 | 400m           |
 
@@ -546,7 +547,7 @@ Take characters while some predicate holds.
 #+RESULTS:
 : :FAIL, 0
 
-**** consume
+**** consume, consume1
 
 A faster version of =take-while= and =skip= when you know you're character-based and
 don't need the parsed output.
@@ -558,6 +559,8 @@ don't need the parsed output.
 
 #+RESULTS:
 : T, 3
+
+=consume1= requires at least one application of the predicate to succeed.
 
 **** rest
 
@@ -765,6 +768,22 @@ Likewise, =sep-end1= demands that at least one parse of the parent succeeds.
 
 #+RESULTS:
 : ("pilum" "pilum" "pilum")
+
+*** consume-sep, consume-sep1
+
+A combination of =sep= and =consume= for when you just wish to advance the parser
+and don't actually require the output. This avoids a lot of wasteful,
+intermediate list allocation.
+
+#+begin_src lisp :exports both
+(in-package :parcom)
+(parse (consume-sep (char #\!) (string "pilum")) "pilum!pilum!pilum.")
+#+end_src
+
+#+RESULTS:
+: 17
+
+=consume-sep1= requires at least one application of the main parser to succeed.
 
 *** skip
 
