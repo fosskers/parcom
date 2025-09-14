@@ -22,6 +22,7 @@ read their associated formats:
 - =parcom/toml=
 - =parcom/xml=
 - =parcom/datetime=
+- =parcom/email=
 
 =parcom= and its children have no dependencies.
 
@@ -97,6 +98,11 @@ read their associated formats:
     - [[#date][date]]
     - [[#time][time]]
     - [[#format][format]]
+  - [[#email-addresses][Email Addresses]]
+    - [[#parse-4][parse]]
+    - [[#pretty][pretty]]
+    - [[#valid-email-address][valid-email-address?]]
+    - [[#addr-spec-msg-id][addr-spec, msg-id]]
 - [[#writing-your-own-parsers][Writing your own Parsers]]
   - [[#basics][Basics]]
   - [[#parameterized-parsers][Parameterized Parsers]]
@@ -117,11 +123,11 @@ read their associated formats:
 
 * Performance
 
-=parcom= operates over =simple-string= input, accessing its elements with =schar=. The
-=parcom/json= component has been measured to parse JSON at ~50mb/s on a 2016
-ThinkPad, which should be sufficient for ordinary usage. Its performance is
-competitive across compilers, while remaining expressive and light in
-implementation.
+=parcom= operates over =(simple-array character (*))= input, accessing its elements
+with =schar=. The =parcom/json= component has been measured to parse JSON at ~50mb/s
+on a 2016 ThinkPad, which should be sufficient for ordinary usage. Its
+performance is competitive across compilers, while remaining expressive and
+light in implementation.
 
 See also [[https://www.fosskers.ca/en/blog/optimizing-common-lisp][this article]] about some of the optimization techniques used within =parcom=.
 
@@ -1179,6 +1185,86 @@ different from =cl:format=!
 
 #+RESULTS:
 : 1975-04-05
+** Email Addresses
+
+The =parcom/email= system provides types and parsers for [[https://datatracker.ietf.org/doc/html/rfc5322][RFC5322]] email addresses.
+The implementation is RFC-compliant and particularly memory-efficient for
+well-behaved addresses.
+
+=(in-package :parcom/email)= is used below for brevity, but it's assumed that
+in your own code you will use a nickname, perhaps =pe=.
+
+*** parse
+
+Simply parse an email address.
+
+#+begin_src lisp :exports both
+(in-package :parcom/email)
+(parse "alice@bob.com")
+#+end_src
+
+#+RESULTS:
+: #S(ADDRESS :NAME "alice" :DOMAIN "bob.com")
+
+*** pretty
+
+Rerender a parsed email address.
+
+#+begin_src lisp :exports both
+(in-package :parcom/email)
+(pretty (parse "alice@bob.com"))
+#+end_src
+
+#+RESULTS:
+: alice@bob.com
+
+It will even clean up obsolete syntax for you.
+
+#+begin_src lisp :exports both
+(in-package :parcom/email)
+(pretty (parse "alice(comment)@bob(comment) .com"))
+#+end_src
+
+#+RESULTS:
+: alice@bob.com
+
+*** valid-email-address?
+
+Simply validate that a given address is legal.
+
+#+begin_src lisp :exports both
+(in-package :parcom/email)
+(valid-email-address? "alice@bob.com")
+#+end_src
+
+#+RESULTS:
+: T
+
+#+begin_src lisp :exports both
+(in-package :parcom/email)
+(valid-email-address? "...alice...@bob.com")
+#+end_src
+
+#+RESULTS:
+: NIL
+
+*** addr-spec, msg-id
+
+The top-level parsers that can be fitted in anywhere else you use =parcom=.
+
+#+begin_src lisp :exports both
+(in-package :parcom/email)
+(parcom:parse (*> (parcom:string "address: ")
+                  #'addr-spec)
+              "address: alice@bob.com")
+#+end_src
+
+#+RESULTS:
+: #S(ADDRESS :NAME "alice" :DOMAIN "bob.com")
+
+=msg-id= is a simpler variant also found in the spec that denies certain more
+complicated syntax.
+
 * Writing your own Parsers
 
 ** Basics
