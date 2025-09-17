@@ -61,7 +61,7 @@ read their associated formats:
   - [[#combinators][Combinators]]
     - [[#-right][*>, right]]
     - [[#-left][<*, left]]
-    - [[#-all][<*>, all]]
+    - [[#ap][ap]]
     - [[#-instead][<$, instead]]
     - [[#alt][alt]]
     - [[#opt][opt]]
@@ -632,29 +632,25 @@ one. =left= is an alias.
 #+RESULTS:
 : #\!
 
-*** <*>, all
+*** ap
 
-Combination of parsers yielding all results as a list. =all= is an alias.
+Apply a function to the result of any number of parsers. The main way to parse
+multiple values into a single struct/class.
 
-#+begin_src lisp :exports both
+#+begin_src lisp :exports both :results verbatim
 (in-package :parcom)
-(parse (<*> #'unsigned (char #\!) #'unsigned) "123!456")
+(parse (ap (lambda (a b c) (list a (+ b c)))
+           #'unsigned
+           (*> (char #\.) #'unsigned)
+           (*> (char #\.) #'unsigned))
+       "1.2.3")
 #+end_src
 
 #+RESULTS:
-: (123 #\! 456)
+: (1 5)
 
-This library does not offer a currying mechanism, so the technique usually
-available in Haskell of fmap'ing a function over chain of =<*>= must be done
-instead with =apply=:
-
-#+begin_src lisp :exports both
-(in-package :parcom)
-(apply #'+ (parse (<*> #'unsigned (*> (char #\!) #'unsigned)) "123!456"))
-#+end_src
-
-#+RESULTS:
-: 579
+This is much more memory-efficient variant of the previously Haskell-inspired
+combination of =fmap= and =<*>=.
 
 *** <$, instead
 
