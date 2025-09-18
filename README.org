@@ -81,7 +81,6 @@ read their associated formats:
     - [[#empty][empty?]]
     - [[#digit][digit?]]
     - [[#fmap][fmap]]
-    - [[#pmap][pmap]]
     - [[#const][const]]
   - [[#json][JSON]]
     - [[#parse][parse]]
@@ -912,18 +911,8 @@ Apply a pure function to the result of a successful parse.
 #+RESULTS:
 : 2, 1
 
-*** pmap
-
-Similar to =fmap=, but this transforms a parser into another one, altering its
-inner result if it happened to be successful.
-
-#+begin_src lisp :exports both
-(in-package :parcom)
-(parse (pmap #'1+ #'unsigned) "123")
-#+end_src
-
-#+RESULTS:
-: 124
+However, in general you should consider =ap= for applying functions to the
+combined results of multiple parsers.
 
 *** const
 
