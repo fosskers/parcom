@@ -56,7 +56,7 @@ kept. Good for parsing backets, parentheses, etc."
                               :collect res
                               :do (multiple-value-bind (r i) (funcall parser inp)
                                     (setf res r)
-                                    (when i (setf inp i))))))
+                                    (when (ok? r) (setf inp i))))))
             (ok inp final))))))
 
 #+nil
@@ -79,7 +79,7 @@ kept. Good for parsing backets, parentheses, etc."
                               :collect res
                               :do (multiple-value-bind (r i) (funcall parser inp)
                                     (setf res r)
-                                    (when i (setf inp i))))))
+                                    (when (ok? r) (setf inp i))))))
             (ok inp final))))))
 
 #+nil

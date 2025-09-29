@@ -132,12 +132,18 @@
   :parent combinators
   (is equal nil (p:parse (p:many (p:string "ovēs")) "ovis"))
   (is equal '("ovēs" "ovēs" "ovēs") (p:parse (p:many (p:string "ovēs")) "ovēsovēsovēs!"))
-  (is equal '("ovēs" "ovēs" "avis") (p:parse (p:many (p:alt (p:string "ovēs") (p:string "avis"))) "ovēsovēsavis!")))
+  (is equal '("ovēs" "ovēs" "avis") (p:parse (p:many (p:alt (p:string "ovēs") (p:string "avis"))) "ovēsovēsavis!"))
+  (finish (p:parse (p:*> (p:many (p:*> (p:string "ov") (p:string "ēs")))
+                         (p:string "ov!"))
+                   "ovēsovēsov!")))
 
 (define-test many1
   :parent combinators
   (fail (p:parse (p:many1 (p:string "ovēs")) "ovis"))
-  (is equal '("ovēs" "ovēs" "ovēs") (p:parse (p:many1 (p:string "ovēs")) "ovēsovēsovēs!")))
+  (is equal '("ovēs" "ovēs" "ovēs") (p:parse (p:many1 (p:string "ovēs")) "ovēsovēsovēs!"))
+  (finish (p:parse (p:*> (p:many1 (p:*> (p:string "ov") (p:string "ēs")))
+                         (p:string "ov!"))
+                   "ovēsovēsov!")))
 
 (define-test sep
   :parent combinators
@@ -487,7 +493,7 @@ hi!
   (finish (pe:parse "very.unusual.\"@\".unusual.com@example.com")))
 
 (define-test email-from-spec
-  (finish (pe:parse "1234@local.machine.example"))
+    (finish (pe:parse "1234@local.machine.example"))
   (finish (pe:parse "pete(his account)@silly.test(his host)"))
   (finish (pe:parse "c@(Chris's host.)public.example")))
 

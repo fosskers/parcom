@@ -1,5 +1,14 @@
 # Parcom Changelog
 
+### Unreleased
+
+#### Fixed
+
+- Depending on the parser they were given, `many` and `many1` were consuming too
+  much offset. I only discovered this now as I mostly avoid `many` in favour of
+  `take-while` or `sep`, but in some recent code I needed `many` for its
+  original purpose (collecting a list), and the bug surfaced.
+
 ### 1.5.0 (2025-09-14)
 
 #### Added
