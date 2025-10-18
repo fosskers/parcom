@@ -32,11 +32,11 @@ input."
 #+nil
 (funcall (opt (string "Ex")) (in "Facēre"))
 
-(defun between (a parser b &key (id nil))
+(defmacro between (a parser b &key (id nil))
   "A main parser flanked by two other ones. Only the value of the main parser is
 kept. Good for parsing backets, parentheses, etc."
   (declare (ignore id))
-  (*> a (<* parser b)))
+  `(*> ,a (<* ,parser ,b)))
 
 #+nil
 (funcall (between (char #\!) (string "Salvē") (char #\!)) (in "!Salvē!"))

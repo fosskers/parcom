@@ -10,6 +10,7 @@
 #### Changed
 
 - `<$` is now a macro.
+- `between` is now a macro.
 
 #### Removed
 
