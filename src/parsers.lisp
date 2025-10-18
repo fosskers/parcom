@@ -29,14 +29,11 @@
 (fn any-but (-> character (maybe character)))
 (defun any-but (c)
   "Parser: Any character except the given one."
-  (or (gethash c *any-but-cache*)
-      (let ((f (lambda (offset)
-                 (multiple-value-bind (res next) (any offset)
-                   (cond ((failure? res) (fail next))
-                         ((eql c res) (fail offset))
-                         (t (values res next)))))))
-        (setf (gethash c *any-but-cache*) f)
-        f)))
+  (lambda (offset)
+    (multiple-value-bind (res next) (any offset)
+      (cond ((failure? res) (fail next))
+            ((eql c res) (fail offset))
+            (t (values res next))))))
 
 #+nil
 (funcall (any-but #\") (in "hi"))
@@ -200,17 +197,14 @@ further point. Yields the new offset (i.e. how far it got), not the characters
 that were parsed. A faster variant of `take-while' when you don't actually need
 the parsed characters, and `skip' when you don't need to parse something
 complex."
-  (or (gethash id *consume-cache*)
-      (let ((f (lambda (offset)
-                 (declare (optimize (speed 3) (safety 0)))
-                 (let* ((keep (loop :for i fixnum :from offset :below *input-length*
-                                    :while (funcall p (schar *input* i))
-                                    :finally (return (- i offset))))
-                        (next (off keep offset)))
-                   (ok next next)))))
-        (when id
-          (setf (gethash id *consume-cache*) f))
-        f)))
+  (declare (ignore id))
+  (lambda (offset)
+    (declare (optimize (speed 3) (safety 0)))
+    (let* ((keep (loop :for i fixnum :from offset :below *input-length*
+                       :while (funcall p (schar *input* i))
+                       :finally (return (- i offset))))
+           (next (off keep offset)))
+      (ok next next))))
 
 #+nil
 (funcall (consume (lambda (c) (eql c #\a))) (in "aaabcd!"))

@@ -35,11 +35,8 @@ input."
 (defun between (a parser b &key (id nil))
   "A main parser flanked by two other ones. Only the value of the main parser is
 kept. Good for parsing backets, parentheses, etc."
-  (or (gethash id *between-cache*)
-      (let ((f (*> a (<* parser b))))
-        (when id
-          (setf (gethash id *between-cache*) f))
-        f)))
+  (declare (ignore id))
+  (*> a (<* parser b)))
 
 #+nil
 (funcall (between (char #\!) (string "Salvē") (char #\!)) (in "!Salvē!"))
@@ -92,23 +89,20 @@ kept. Good for parsing backets, parentheses, etc."
 
 (defun sep (sep parser &key (id nil))
   "Parse 0 or more instances of a `parser' separated by some `sep' parser."
-  (or (gethash id *sep-cache*)
-      (let ((f (lambda (offset)
-                 (labels ((recurse (acc in)
-                            (multiple-value-bind (sep-res sep-next) (funcall sep in)
-                              (if (failure? sep-res)
-                                  (ok in acc)
-                                  (multiple-value-bind (res next) (funcall parser sep-next)
-                                    (if (failure? res)
-                                        (fail sep-next)
-                                        (recurse (cons res acc) next)))))))
-                   (multiple-value-bind (res next) (funcall parser offset)
-                     (if (failure? res)
-                         (ok offset '())
-                         (fmap #'nreverse (recurse (list res) next))))))))
-        (when id
-          (setf (gethash id *sep-cache*) f))
-        f)))
+  (declare (ignore id))
+  (lambda (offset)
+    (labels ((recurse (acc in)
+               (multiple-value-bind (sep-res sep-next) (funcall sep in)
+                 (if (failure? sep-res)
+                     (ok in acc)
+                     (multiple-value-bind (res next) (funcall parser sep-next)
+                       (if (failure? res)
+                           (fail sep-next)
+                           (recurse (cons res acc) next)))))))
+      (multiple-value-bind (res next) (funcall parser offset)
+        (if (failure? res)
+            (ok offset '())
+            (fmap #'nreverse (recurse (list res) next)))))))
 
 #+nil
 (funcall (sep (char #\!) (string "pilum")) (in "."))
@@ -238,17 +232,14 @@ need not succeed even once."
 
 (defun skip (parser &key (id nil))
   "Parse some `parser' 0 or more times, but throw away all the results."
-  (or (gethash id *skip-cache*)
-      (let ((f (lambda (offset)
-                 (labels ((recurse (in)
-                            (multiple-value-bind (res next) (funcall parser in)
-                              (if (failure? res)
-                                  (ok in t)
-                                  (recurse next)))))
-                   (recurse offset)))))
-        (when id
-          (setf (gethash id *skip-cache*) f))
-        f)))
+  (declare (ignore id))
+  (lambda (offset)
+    (labels ((recurse (in)
+               (multiple-value-bind (res next) (funcall parser in)
+                 (if (failure? res)
+                     (ok in t)
+                     (recurse next)))))
+      (recurse offset))))
 
 #+nil
 (funcall (skip (char #\!)) (in ""))
@@ -292,14 +283,11 @@ input of the subparser."
 (fn sneak (-> character (maybe character)))
 (defun sneak (c)
   "Combinator: Like `peek' but specialized for characters and thus more performant."
-  (or (gethash c *sneak-cache*)
-      (let ((f (lambda (offset)
-                 (multiple-value-bind (res next) (funcall (char c) offset)
-                   (if (failure? res)
-                       (fail next)
-                       (ok offset res))))))
-        (setf (gethash c *sneak-cache*) f)
-        f)))
+  (lambda (offset)
+    (multiple-value-bind (res next) (funcall (char c) offset)
+      (if (failure? res)
+          (fail next)
+          (ok offset res)))))
 
 #+nil
 (funcall (sneak #\a) (in "aaabcd"))

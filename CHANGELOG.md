@@ -28,9 +28,9 @@ your composite parsers. This avoids a significant amount of lambda allocation at
 runtime. By doing this consistently you can expect a 3x-10x reduction in memory
 allocation and a 2x-3x speed up.
 
-For parsers/combinators that have a `&key id` in their arguments lists, these
-have been left alone to avoid API breakage. Even so, you should define your own
-`defparameter`s for these as well.
+For parsers/combinators that have a `&key id` in their arguments lists, the
+argument have been left alone to avoid API breakage, although it now has no
+effect. Even so, you should define your own `defparameter`s for these as well.
 
 ### 1.5.1 (2025-09-30)
 

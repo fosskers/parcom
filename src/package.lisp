@@ -65,16 +65,6 @@
 (defparameter *input-length* 0
   "The length of the current global input.")
 
-;; --- Lambda Caches --- ;;
-
-(defparameter *any-but-cache* (make-hash-table :size 32 :test #'eql))
-(defparameter *sneak-cache*   (make-hash-table :size 32 :test #'eql))
-(defparameter *consume-cache* (make-hash-table :size 16 :test #'eq))
-(defparameter *between-cache* (make-hash-table :size 16 :test #'eq))
-(defparameter *sep-cache*     (make-hash-table :size 16 :test #'eq))
-(defparameter *skip-cache*    (make-hash-table :size 16 :test #'eq))
-(defparameter *string-cache*  (make-hash-table :size 64 :test #'equal))
-
 ;; --- Conditions --- ;;
 
 (define-condition parse-failure (error)
