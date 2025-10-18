@@ -2,6 +2,7 @@
 
 (in-package :parcom)
 
+(fn not (-> (maybe t) (maybe t)))
 (defun not (parser)
   "Pass if the given parser fails, and don't advance the offset. Fail if it
 succeeds."
@@ -17,6 +18,7 @@ succeeds."
 #+nil
 (parse (not (char #\a)) "ark")
 
+(fn opt (-> (maybe t) (maybe t)))
 (defun opt (parser)
   "Yield nil if the parser failed, but don't fail the whole process nor consume any
 input."
@@ -42,7 +44,7 @@ kept. Good for parsing backets, parentheses, etc."
 #+nil
 (funcall (between (char #\!) (string "Salvē") (char #\!)) (in "!Salvē!"))
 
-(declaim (ftype (function (maybe-parse) (function (fixnum) (values list fixnum))) many))
+(fn many (-> (maybe t) (always list)))
 (defun many (parser)
   "Parse 0 or more occurrences of a `parser'."
   (lambda (offset)
@@ -66,6 +68,7 @@ kept. Good for parsing backets, parentheses, etc."
 #+nil
 (funcall (many (alt (string "ovēs") (string "avis"))) (in "ovēsovēsavis!"))
 
+(fn many1 (-> (maybe t) (maybe list)))
 (defun many1 (parser)
   "Parse 1 or more occurrences of a `parser'."
   (lambda (offset)
@@ -116,6 +119,7 @@ kept. Good for parsing backets, parentheses, etc."
 #+nil
 (funcall (sep (char #\!) (string "pilum")) (in "pilum!pilum!pilum!"))
 
+(fn sep1 (-> (maybe t) (maybe t) (maybe list)))
 (defun sep1 (sep parser)
   "Parse 1 or more instances of a `parser' separated by some `sep' parser."
   (lambda (offset)
@@ -141,7 +145,7 @@ kept. Good for parsing backets, parentheses, etc."
 #+nil
 (funcall (sep1 (char #\!) (string "pilum")) (in "pilum!pilum!pilum!"))
 
-(declaim (ftype (function (maybe-parse maybe-parse) (function (fixnum) (values list fixnum))) sep-end))
+(fn sep-end (-> (maybe t) (maybe t) (maybe list)))
 (defun sep-end (sep parser)
   "Parse 0 or more instances of a `parser' separated by some `sep' parser. Parses
 the separator eagerly, such that a final instance of it will also be parsed,
@@ -166,6 +170,7 @@ even if not followed by an instance of the main parser."
 #+nil
 (funcall (sep-end (char #\!) (string "pilum")) (in "pilum!pilum!pilum!"))
 
+(fn sep-end1 (-> (maybe t) (maybe t) (maybe list)))
 (defun sep-end1 (sep parser)
   "Parse 1 or more instances of a `parser' separated by some `sep' parser. Parses
 the separator eagerly, such that a final instance of it will also be parsed,
@@ -185,6 +190,7 @@ even if not followed by an instance of the main parser."
 #+nil
 (funcall (sep-end1 (char #\!) (string "pilum")) (in "pilum!pilum!pilum!"))
 
+(fn consume-sep (-> (maybe t) (maybe t) (maybe fixnum)))
 (defun consume-sep (sep parser)
   "Like `sep', but similar to `consume' it ignores all success of the parsers in a
 memory-efficient way and simply advances the parsing offset. The main parser
@@ -208,6 +214,7 @@ need not succeed even once."
 #+nil
 (parse (consume-sep (char #\!) (string "pilum")) "")
 
+(fn consume-sep1 (-> (maybe t) (maybe t) (maybe fixnum)))
 (defun consume-sep1 (sep parser)
   "Like `consume-sep' but expects the main parser to succeed at least once."
   (lambda (offset)
@@ -250,31 +257,27 @@ need not succeed even once."
 #+nil
 (funcall (skip (char #\!)) (in "!!!hi"))
 
-(declaim (ftype (function (maybe-parse &key (:id (or keyword null))) (function (fixnum) (values cl:string fixnum))) take-until))
-(defun take-until (parser &key (id nil))
+(fn take-until (-> (maybe t) (maybe cl:string)))
+(defun take-until (parser)
   "Combinator: Take characters until another parser succeeds. Does not consume the
 input of the subparser."
-  (or (gethash id *take-until-cache*)
-      (let ((f (lambda (offset)
-                 (declare (type fixnum offset))
-                 (let* ((working offset)
-                        (keep (loop :for i fixnum :from offset :below *input-length*
-                                    :while (when (failure? (funcall parser working))
-                                             (incf working))
-                                    :finally (return (- i offset)))))
-                   (ok (off keep offset)
-                       (make-array keep
-                                   :element-type 'character
-                                   :displaced-to *input*
-                                   :displaced-index-offset offset))))))
-        (when id
-          (setf (gethash id *take-until-cache*) f))
-        f)))
+  (lambda (offset)
+    (declare (type fixnum offset))
+    (let* ((working offset)
+           (keep (loop :for i fixnum :from offset :below *input-length*
+                       :while (when (failure? (funcall parser working))
+                                (incf working))
+                       :finally (return (- i offset)))))
+      (ok (off keep offset)
+          (make-array keep
+                      :element-type 'character
+                      :displaced-to *input*
+                      :displaced-index-offset offset)))))
 
 #+nil
 (funcall (*> (string "!!!") (take-until (char #\'))) (in "!!!abcd'"))
 
-(declaim (ftype (function (maybe-parse) maybe-parse) peek))
+(fn peek (-> (maybe t) (maybe t)))
 (defun peek (parser)
   "Yield the value of a parser, but don't consume the input."
   (lambda (offset)
@@ -286,7 +289,7 @@ input of the subparser."
 #+nil
 (funcall (peek (string "he")) (in "hello"))
 
-(declaim (ftype (function (character) (function (fixnum) (values (or character (member :fail)) fixnum))) sneak))
+(fn sneak (-> character (maybe character)))
 (defun sneak (c)
   "Combinator: Like `peek' but specialized for characters and thus more performant."
   (or (gethash c *sneak-cache*)
@@ -301,7 +304,7 @@ input of the subparser."
 #+nil
 (funcall (sneak #\a) (in "aaabcd"))
 
-(declaim (ftype (function (fixnum maybe-parse) maybe-parse) count))
+(fn count (-> fixnum (maybe t) (maybe list)))
 (defun count (n parser)
   "Apply a `parser' a given number of times."
   (lambda (offset)
@@ -321,7 +324,7 @@ input of the subparser."
 #+nil
 (funcall (count 0 (char #\a)) (in "aa"))
 
-(declaim (ftype (function (maybe-parse) (function (fixnum) (values (or cl:string (member :fail)) fixnum))) recognize))
+(fn recognize (-> (maybe t) (maybe cl:string)))
 (defun recognize (parser)
   "If the given `parser' was successful, return the consumed input instead."
   (lambda (offset)
@@ -339,15 +342,16 @@ input of the subparser."
 #+nil
 (funcall (recognize (<*> (string "hi") (string "bye"))) (in "hihi"))
 
+(fn pair (-> (maybe t) (maybe t) (maybe cons)))
 (defun pair (p0 p1)
   "Combinator: Parse two parsers and yield the results as a cons cell."
   (lambda (offset)
-    (fmap (lambda (list) (cons (car list) (cadr list)))
-          (funcall (<*> p0 p1) offset))))
+    (funcall (ap #'cons p0 p1) offset)))
 
 #+nil
 (funcall (pair #'any #'any) (in "hi"))
 
+(fn maybe (-> function (maybe t) (maybe t) (maybe t)))
 (defun maybe (f p0 p1)
   "Combinator: If an initial parser succeeds, apply some `f' to the result of the
 second parser. If the first parser doesn't succeed, the second is attempted as

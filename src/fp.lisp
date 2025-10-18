@@ -158,10 +158,10 @@ given lambda. More memory-efficient than the combination of `<*>' and `fmap'."
 #+nil
 (all (string "hi") (string "ho") (string "hum"))
 
-(defun <$ (item parser)
+(defmacro <$ (item parser)
   "Run some parser, but substitute its inner value with some `item' if parsing was
   successful."
-  (lambda (offset) (fmap (const item) (funcall parser offset))))
+  `(lambda (offset) (fmap (const ,item) (funcall ,parser offset))))
 
 #++
 (funcall (<$ 1 #'any) (in "Ho"))

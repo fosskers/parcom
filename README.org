@@ -107,6 +107,7 @@ read their associated formats:
   - [[#basics][Basics]]
   - [[#parameterized-parsers][Parameterized Parsers]]
   - [[#failure][Failure]]
+  - [[#type-signatures][Type Signatures]]
 
 * Compatibility
 
@@ -1340,3 +1341,32 @@ explicitly test for sub-parser failure, and then react accordingly. Yielding
 
 #+RESULTS:
 : :FAIL, 12
+
+** Type Signatures
+
+Parser function signatures can get quite complex if you write themselves, but
+=parcom= supplies some shorthands:
+
+- =(maybe foo)= for parser which may fail.
+- =(always foo=) for parser which always succeed.
+- =->= for function arguments and return types.
+- =fn= for shortening the =declaim= statement.
+
+All together, this looks like:
+
+#+begin_src lisp
+(fn any (maybe character))
+(defun any (offset)
+  ...)
+
+(fn any-but (-> character (maybe character)))
+(defun any-but (c)
+  ...)
+
+(fn any-if (-> (-> character boolean) (maybe character)))
+(defun any-if (pred)
+  ...)
+#+end_src
+
+Especially for higher-order function arguments, this form is significantly
+shorter.

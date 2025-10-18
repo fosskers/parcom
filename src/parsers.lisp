@@ -4,6 +4,7 @@
 
 (defparameter +empty-string+ "")
 
+(fn pure (-> t (always t)))
 (defun pure (item)
   "Parser: Parse nothing and just yield the given value."
   (lambda (offset)
@@ -12,7 +13,7 @@
 #+nil
 (parse (pure :pāx) "hello")
 
-(declaim (ftype (function (fixnum) (values (or character (member :fail)) fixnum)) any))
+(fn any (maybe character))
 (defun any (offset)
   "Accept any character."
   (declare (optimize (speed 3) (safety 0)))
@@ -25,7 +26,7 @@
 #++
 (any (in ""))
 
-(declaim (ftype (function (character) (function (fixnum) (values (or character (member :fail)) fixnum))) any-but))
+(fn any-but (-> character (maybe character)))
 (defun any-but (c)
   "Parser: Any character except the given one."
   (or (gethash c *any-but-cache*)
@@ -42,7 +43,7 @@
 #+nil
 (funcall (any-but #\") (in "\"hi"))
 
-(declaim (ftype (function ((function (character) boolean)) (function (fixnum) (values (or character (member :fail)) fixnum))) any-if))
+(fn any-if (-> (-> character boolean) (maybe character)))
 (defun any-if (pred)
   "Parser: Any character, as long as it passes the predicate."
   (lambda (offset)
@@ -56,7 +57,7 @@
 #+nil
 (funcall (any-if #'digit?) (in "8a"))
 
-(declaim (ftype (function (fixnum) (values (or character (member :fail)) fixnum)) hex))
+(fn hex (maybe character))
 (defun hex (offset)
   "Parser: A hex character of any case."
   (multiple-value-bind (res next) (any offset)
@@ -69,7 +70,7 @@
 #+nil
 (funcall (many #'hex) (in "abcdefgh"))
 
-(declaim (ftype (function (fixnum) (values (or character (member :fail)) fixnum)) unicode))
+(fn unicode (maybe character))
 (defun unicode (offset)
   "Parser: Parse a unicode char of 4 hex values."
   (fmap (lambda (chars)
@@ -88,7 +89,7 @@
 #+nil
 (unicode (in "\\U0022"))
 
-(declaim (ftype (function (fixnum) (values (or character (member :fail)) fixnum)) control-char))
+(fn control-char (maybe character))
 (defun control-char (offset)
   "Parser: Newlines and whatnot."
   (funcall (*> (char #\\)
@@ -102,7 +103,7 @@
 #+nil
 (control-char (in "\\n"))
 
-(declaim (ftype (function (fixnum) (values (or t (member :fail)) fixnum)) eof))
+(fn eof (maybe t))
 (defun eof (offset)
   "Parser: Recognize the end of the input."
   (if (= offset *input-length*)
@@ -120,21 +121,18 @@
 #+nil
 (funcall (*> (string "Mālum") (char #\,)) (in "Mālum"))
 
-(declaim (ftype (function (character) (function (fixnum) (values (or character (member :fail)) fixnum))) char))
+(fn char (-> character (maybe character)))
 (defun char (c)
   "Parse a given character."
-  (or (gethash c *char-cache*)
-      (let ((f (lambda (offset)
-                 (declare (optimize (speed 3) (safety 0)))
-                 (declare (type fixnum offset))
-                 (if (>= offset *input-length*)
-                     (fail offset)
-                     (let ((head (schar *input* offset)))
-                       (if (equal c head)
-                           (ok (off 1 offset) head)
-                           (fail offset)))))))
-        (setf (gethash c *char-cache*) f)
-        f)))
+  (lambda (offset)
+    (declare (optimize (speed 3) (safety 0)))
+    (declare (type fixnum offset))
+    (if (>= offset *input-length*)
+        (fail offset)
+        (let ((head (schar *input* offset)))
+          (if (equal c head)
+              (ok (off 1 offset) head)
+              (fail offset))))))
 
 #++
 (funcall (char #\H) (in ""))
@@ -145,24 +143,21 @@
 #++
 (funcall (*> (char #\H) (char #\e)) (in "Hello"))
 
-(declaim (ftype (function (char-string) (function (fixnum) (values (or char-string (member :fail)) fixnum))) string))
+(fn string (-> cl:string (maybe cl:string)))
 (defun string (s)
   "Parser: Parse a given string. Yields the original string itself if parsing was
 successful, in order to save on memory."
-  (or (gethash s *string-cache*)
-      (let ((f (lambda (offset)
-                 (declare (optimize (speed 3) (safety 0)))
-                 (declare (type fixnum offset))
-                 (let ((i (if (>= offset *input-length*)
-                              0
-                              (loop :for i fixnum :from 0 :below (length s)
-                                    :while (equal (schar s i) (schar *input* (+ i offset)))
-                                    :finally (return i)))))
-                   (if (= i (length s))
-                       (ok (off (length s) offset) s)
-                       (fail offset))))))
-        (setf (gethash s *string-cache*) f)
-        f)))
+  (lambda (offset)
+    (declare (optimize (speed 3) (safety 0)))
+    (declare (type fixnum offset))
+    (let ((i (if (>= offset *input-length*)
+                 0
+                 (loop :for i fixnum :from 0 :below (length s)
+                       :while (equal (schar s i) (schar *input* (+ i offset)))
+                       :finally (return i)))))
+      (if (= i (length s))
+          (ok (off (length s) offset) s)
+          (fail offset)))))
 
 #+nil
 (funcall (string "Pāstor") (in ""))
@@ -173,7 +168,7 @@ successful, in order to save on memory."
 #++
 (funcall (string "HellO") (in "Hello yes"))
 
-(declaim (ftype (function (fixnum) (function (fixnum) (values (or cl:string (member :fail)) fixnum))) take))
+(fn take (-> fixnum (always cl:string)))
 (defun take (n)
   "Take `n' characters from the input. Lenient, in that if `n' is larger than the
 remaining amount of characters, only the remaining ones will be yielded."
@@ -220,7 +215,7 @@ complex."
 #+nil
 (funcall (consume (lambda (c) (eql c #\a))) (in "aaabcd!"))
 
-(declaim (ftype (function ((function (character) boolean)) (function (fixnum) (values fixnum fixnum))) consume1))
+(fn consume1 (-> (-> character boolean) (maybe fixnum)))
 (defun consume1 (p)
   "Like `consume', but guarantees that at least one check of the predicate must succeed."
   (lambda (offset)
@@ -236,7 +231,7 @@ complex."
 #+nil
 (funcall (consume1 (lambda (c) (eql c #\!))) (in "aaabcd!"))
 
-(declaim (ftype (function ((function (character) boolean)) (function (fixnum) (values cl:string fixnum))) take-while))
+(fn take-while (-> (-> character boolean) (always cl:string)))
 (defun take-while (p)
   "Parser: Take characters while some predicate holds."
   (lambda (offset)
@@ -264,7 +259,7 @@ complex."
                                (eql #\d c)))))
          (in "aaabcd!"))
 
-(declaim (ftype (function ((function (character) boolean)) (function (fixnum) (values (or cl:string (member :fail)) fixnum))) take-while1))
+(fn take-while1 (-> (-> character boolean) (maybe cl:string)))
 (defun take-while1 (p)
   "Parser: Take characters while some predicate holds. Must succeed at least once."
   (lambda (offset)
@@ -285,7 +280,7 @@ complex."
 #+nil
 (funcall (take-while1 #'digit?) (in "123!"))
 
-(declaim (ftype (function (fixnum) (values (or character (member :fail)) fixnum)) newline))
+(fn newline (maybe character))
 (defun newline (offset)
   "Parser: Matches a single newline character."
   (funcall (char #\newline) offset))
@@ -293,7 +288,7 @@ complex."
 #+nil
 (newline (in "Hello"))
 
-(declaim (ftype (function (fixnum) (values cl:string fixnum)) space))
+(fn space (always cl:string))
 (defun space (offset)
   "Parse 0 or more ASCII whitespace and tab characters."
   (funcall (take-while (lambda (c) (or (eql c #\space) (eql c #\tab)))) offset))
@@ -301,7 +296,7 @@ complex."
 #+nil
 (funcall #'space (in "   hi"))
 
-(declaim (ftype (function (fixnum) (values (or cl:string (member :fail)) fixnum)) space1))
+(fn space1 (maybe cl:string))
 (defun space1 (offset)
   "Parse 1 or more ASCII whitespace and tab characters."
   (multiple-value-bind (res next) (space offset)
@@ -314,7 +309,7 @@ complex."
 #+nil
 (funcall #'space1 (in "   abc"))
 
-(declaim (ftype (function (fixnum) (values cl:string fixnum)) multispace))
+(fn multispace (always cl:string))
 (defun multispace (offset)
   "Parse 0 or more ASCII whitespace, tabs, newlines, and carriage returns."
   (funcall (take-while (lambda (c)
@@ -327,7 +322,7 @@ complex."
 #+nil
 (funcall #'multispace (in (concatenate 'cl:string '(#\tab #\tab #\tab))))
 
-(declaim (ftype (function (fixnum) (values (or cl:string (member :fail)) fixnum)) multispace1))
+(fn multispace1 (maybe cl:string))
 (defun multispace1 (offset)
   "Parse 1 or more ASCII whitespace, tabs, newlines, and carriage returns."
   (multiple-value-bind (res next) (multispace offset)
@@ -338,7 +333,7 @@ complex."
 #+nil
 (funcall #'multispace1 (in (concatenate 'cl:string '(#\tab #\tab #\tab))))
 
-(declaim (ftype (function (fixnum) (values (or fixnum (member :fail)) fixnum)) unsigned))
+(fn unsigned (maybe fixnum))
 (defun unsigned (offset)
   "Parser: A positive integer."
   (declare (optimize (speed 3) (safety 0)))
@@ -347,7 +342,7 @@ complex."
           ((and (char-equal #\0 (cl:char res 0))
                 (> (length res) 1))
            (fail offset))
-          (t (fmap #'parse-integer (values res next))))))
+          (t (values (parse-integer res) next)))))
 
 #+nil
 (unsigned (in "0!"))
@@ -365,7 +360,7 @@ complex."
 #-abcl
 (defparameter +integer+ (integer-parser))
 
-(declaim (ftype (function (fixnum) (values (or fixnum (member :fail)) fixnum)) integer))
+(fn integer (maybe fixnum))
 (defun integer (offset)
   "Parser: A positive or negative integer."
   #-abcl
@@ -373,7 +368,7 @@ complex."
   #+abcl
   (funcall (integer-parser) offset))
 
-(declaim (ftype (function (fixnum) (values (or double-float (member :fail)) fixnum)) float))
+(fn float (maybe double-float))
 (defun float (offset)
   "Parser: A positive or negative floating point number."
   (fmap (lambda (s)
@@ -390,7 +385,7 @@ complex."
 #+nil
 (funcall #'float (in "1"))
 
-(declaim (ftype (function (fixnum) (values cl:string fixnum)) rest))
+(fn rest (always cl:string))
 (defun rest (offset)
   "Parser: Consume the rest of the input. Always succeeds."
   (let ((len (- *input-length* offset)))

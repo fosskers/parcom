@@ -7,7 +7,8 @@
            #:ok #:ok?
            #:empty?
            #:digit? #:hex? #:octal? #:binary?
-           #:ascii-letter? #:space?)
+           #:ascii-letter? #:space?
+           #:always #:maybe #:-> #:fn)
   ;; --- Functional Programming --- ;;
   (:export #:fmap #:pmap #:const
            #:all #:right #:left #:instead
@@ -32,9 +33,25 @@
 
 ;; --- Types --- ;;
 
-(deftype maybe-parse ()
+(defmacro fn (name type)
+  "A shorthand for declaiming function types."
+  `(declaim (ftype ,type ,name)))
+
+(deftype -> (a b &rest args)
+  "A shorthand for function types."
+  (if (null args)
+      `(function (,a) ,b)
+      (let ((argz (butlast args))
+            (res (car (last args))))
+        `(function (,a ,b ,@argz) ,res))))
+
+(deftype always (res)
+  "A parser that is always successful."
+  `(function (fixnum) (values ,res fixnum)))
+
+(deftype maybe (res)
   "A parser that might fail."
-  '(function (fixnum) (values (or t (member :fail)) fixnum)))
+  `(function (fixnum) (values (or ,res (member :fail)) fixnum)))
 
 (deftype char-string ()
   '(simple-array character (*)))
@@ -50,7 +67,6 @@
 
 ;; --- Lambda Caches --- ;;
 
-(defparameter *char-cache*    (make-hash-table :size 64 :test #'eql))
 (defparameter *any-but-cache* (make-hash-table :size 32 :test #'eql))
 (defparameter *sneak-cache*   (make-hash-table :size 32 :test #'eql))
 (defparameter *consume-cache* (make-hash-table :size 16 :test #'eq))
@@ -58,7 +74,6 @@
 (defparameter *sep-cache*     (make-hash-table :size 16 :test #'eq))
 (defparameter *skip-cache*    (make-hash-table :size 16 :test #'eq))
 (defparameter *string-cache*  (make-hash-table :size 64 :test #'equal))
-(defparameter *take-until-cache* (make-hash-table :size 16 :test #'eq))
 
 ;; --- Conditions --- ;;
 

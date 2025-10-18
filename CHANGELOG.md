@@ -1,5 +1,37 @@
 # Parcom Changelog
 
+### Unreleased
+
+#### Added
+
+- `->`, `fn`, `always`, and `maybe` for concise definition of function
+  signatures that involve parsers.
+
+#### Changed
+
+- `<$` is now a macro.
+
+#### Removed
+
+- Certain parsers no longer have an internal, automatically managed "lambda
+  cache". In any case, it is considered best practice to instead define your own
+  top-level, preallocated parsers for known cost-centers. These often involve
+  `char`, `string`, `between`, and `consume`. For instance, you should
+  essentially always define:
+
+```lisp
+(defparameter +colon+ (p:char #\:))
+```
+
+And call `+colon+` at usage sites, instead of using `p:char` directly within
+your composite parsers. This avoids a significant amount of lambda allocation at
+runtime. By doing this consistently you can expect a 3x-10x reduction in memory
+allocation and a 2x-3x speed up.
+
+For parsers/combinators that have a `&key id` in their arguments lists, these
+have been left alone to avoid API breakage. Even so, you should define your own
+`defparameter`s for these as well.
+
 ### 1.5.1 (2025-09-30)
 
 #### Fixed
