@@ -1,7 +1,7 @@
 (defpackage parcom/toml
   (:use :cl)
   (:shadow #:string #:integer #:number #:boolean #:array #:float)
-  (:import-from :parcom #:<*> #:<* #:*> #:<$ #:fn #:-> #:always #:maybe)
+  (:import-from :parcom #:<* #:*> #:<$ #:fn #:-> #:always #:maybe)
   (:local-nicknames (#:p #:parcom)
                     (#:pd #:parcom/datetime))
   ;; --- Types --- ;;
@@ -66,8 +66,8 @@
 (defparameter +tripledq+     (p:string "\"\"\""))
 
 (defparameter +chars1+       (p:take-while (lambda (c) (not (char= c #\')))))
-(defparameter +digit-chunks+ (p:sep1 +underscore+ +digits1+))
 (defparameter +digits1+      (p:take-while1 #'p:digit?))
+(defparameter +digit-chunks+ (p:sep1 +underscore+ +digits1+))
 (defparameter +not-quote+    (p:any-but #\"))
 
 (defparameter +skip-til-end+ (p:consume (lambda (c) (not (char= c #\newline)))))
