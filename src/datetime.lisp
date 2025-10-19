@@ -39,6 +39,10 @@
 
 ;; --- Types --- ;;
 
+(deftype date-time ()
+  "Some date or time type."
+  `(or offset-date-time local-date-time local-date local-time))
+
 (defstruct local-date
   "A simple calendar date."
   (year  0 :type fixnum)
@@ -68,7 +72,7 @@
 
 ;; --- Entry --- ;;
 
-(fn parse (-> p::char-string (or offset-date-time local-date-time local-date local-time)))
+(fn parse (-> p::char-string date-time))
 (defun parse (input)
   "Leniently parse some kind of date/time. It's up to the user to detect what they
 actually received."

@@ -2,6 +2,9 @@
 
 ### Unreleased
 
+The theme of this release is "type information". Overall, function signatures
+have been greatly elaborated across the various systems.
+
 #### Added
 
 - `->`, `fn`, `always`, and `maybe` for concise definition of function
@@ -11,6 +14,7 @@
 
 - `<$` is now a macro.
 - `between` is now a macro.
+- toml: Improved performance.
 
 #### Removed
 

@@ -20,6 +20,10 @@
 
 ;; --- Types --- ;;
 
+(deftype toml-value ()
+  "The value portion of a key-value pair."
+  `(or cl:string pd::date-time fixnum double-float cl:boolean hash-table list))
+
 (defstruct tiered-key
   "A key that might point to a value several tables deep."
   (key nil :type list))
@@ -36,11 +40,16 @@
 
 (defparameter +array-close+  (p:char #\]))
 (defparameter +array-open+   (p:char #\[))
+(defparameter +backslash+    (p:char #\\))
 (defparameter +big-e+        (p:char #\E))
 (defparameter +comma+        (p:char #\,))
 (defparameter +dash+         (p:char #\-))
+(defparameter +double-quote+ (p:char #\"))
+(defparameter +equal+        (p:char #\=))
+(defparameter +octothorp+    (p:char #\#))
 (defparameter +period+       (p:char #\.))
 (defparameter +plus+         (p:char #\+))
+(defparameter +quote+        (p:char #\'))
 (defparameter +small-e+      (p:char #\e))
 (defparameter +table-close+  (p:char #\}))
 (defparameter +table-open+   (p:char #\{))
@@ -53,19 +62,27 @@
 (defparameter +ta-close+     (p:string "]]"))
 (defparameter +ta-open+      (p:string "[["))
 (defparameter +true+         (p:string "true"))
+(defparameter +tripleq+      (p:string "'''"))
+(defparameter +tripledq+     (p:string "\"\"\""))
 
-(defparameter +digits1+      (p:take-while1 #'p:digit?))
+(defparameter +chars1+       (p:take-while (lambda (c) (not (char= c #\')))))
 (defparameter +digit-chunks+ (p:sep1 +underscore+ +digits1+))
+(defparameter +digits1+      (p:take-while1 #'p:digit?))
+(defparameter +not-quote+    (p:any-but #\"))
 
+(defparameter +skip-til-end+ (p:consume (lambda (c) (not (char= c #\newline)))))
 (defparameter +skip-space+   (p:consume (lambda (c) (or (equal c #\space) (equal c #\tab)))))
 (defparameter +skip-junk+    (p:consume #'p:space?))
 (defparameter +skip-space-and-comments+ (*> +skip-junk+ (p:skip (*> #'comment +skip-junk+))))
 
 ;; --- Entry --- ;;
 
+(fn parse (-> p::char-string hash-table))
 (defun parse (input)
   "Attempt to parse any JSON value."
   (p:parse (<* #'toml +skip-space-and-comments+ #'p:eof) input))
+
+;; --- Parsers --- ;;
 
 (fn toml (maybe hash-table))
 (defun toml (offset)
@@ -74,7 +91,7 @@
    (p:ap (lambda (top-level-pairs tables)
            (let ((ht (make-hash-table :test #'equal)))
              (dolist (pair top-level-pairs)
-               (write-into-hash-table ht (tiered-key-key (car pair)) (cadr pair)))
+               (write-into-hash-table ht (tiered-key-key (car pair)) (cdr pair)))
              (dolist (table tables)
                (etypecase table
                  (table (write-into-hash-table ht (tiered-key-key (table-key table))
@@ -140,14 +157,10 @@ and write its value there."
              (setf (gethash head ht) deeper)
              (write-into-hash-table deeper rest item))))))))
 
-;; --- Parsers --- ;;
-
 (fn comment (maybe fixnum))
 (defun comment (offset)
   "Parser: Skip over any comment line."
-  (funcall (*> (p:char #\#)
-               (p:consume (lambda (c) (not (equal c #\newline)))))
-           offset))
+  (funcall (*> +octothorp+ +skip-til-end+) offset))
 
 #+nil
 (comment (p:in "# yes"))
@@ -168,9 +181,9 @@ and write its value there."
 (defun basic-string (offset)
   "Parser: Parse the simplest kind of string."
   (funcall (p:ap (lambda (chars) (concatenate 'cl:string chars))
-                 (p:between (p:char #\")
+                 (p:between +double-quote+
                             (p:many #'compound-char)
-                            (p:char #\")))
+                            +double-quote+))
            offset))
 
 #+nil
@@ -179,30 +192,29 @@ and write its value there."
 (fn compound-char (maybe character))
 (defun compound-char (offset)
   "Parser: Parse a char while being wary of escaping."
-  (funcall (p:alt #'escaped-char (p:any-but #\")) offset))
+  (funcall (p:alt #'escaped-char +not-quote+) offset))
 
 (fn escaped-char (maybe character))
 (defun escaped-char (offset)
-  (funcall (*> (p:peek (p:char #\\))
+  (funcall (*> (p:peek +backslash+)
                (p:alt #'special-char #'p:control-char #'p:unicode))
            offset))
 
 (fn special-char (maybe character))
 (defun special-char (offset)
   "Parser: Backslashes and quotes."
-  (funcall (*> (p:char #\\)
-               (p:alt (p:char #\\) (p:char #\")))
+  (funcall (*> +backslash+
+               (p:alt +backslash+ +double-quote+))
            offset))
 
 (fn multiline-basic-string (maybe cl:string))
 (defun multiline-basic-string (offset)
   "Parser: Easily include newlines characters into strings and preserve them."
   (funcall (p:ap (lambda (chars) (concatenate 'cl:string chars))
-                 (p:between (<* (p:string "\"\"\"") (p:opt #'p:newline))
-                            (p:many (*> (p:opt (*> (p:char #\\)
-                                                   #'p:multispace1))
+                 (p:between (<* +tripledq+ (p:opt #'p:newline))
+                            (p:many (*> (p:opt (*> +backslash+ #'p:multispace1))
                                         #'compound-char))
-                            (p:string "\"\"\"")))
+                            +tripledq+))
            offset))
 
 #+nil
@@ -214,10 +226,7 @@ and write its value there."
 (defun literal-string (offset)
   "Parser: Strings with no escaping. These parse much faster and are more
 memory efficient than `basic-string'."
-  (funcall (p:between (p:char #\')
-                      (p:take-while (lambda (c) (not (equal c #\'))))
-                      (p:char #\'))
-           offset))
+  (funcall (p:between +quote+ +chars1+ +quote+) offset))
 
 #+nil
 (time (dotimes (n 10000)
@@ -229,28 +238,27 @@ memory efficient than `basic-string'."
 (fn multiline-literal-string (maybe cl:string))
 (defun multiline-literal-string (offset)
   "Parser: Multiline strings with no escaping."
-  (funcall (p:between (<* (p:string "'''") (p:opt #'p:newline))
-                      (p:take-until (p:string "'''"))
-                      (p:string "'''"))
+  (funcall (p:between (<* +tripleq+ (p:opt #'p:newline))
+                      (p:take-until +tripleq+)
+                      +tripleq+)
            offset))
 
 #+nil
 (multiline-literal-string (p:in "'''the cat's catnip'''"))
 
+(fn pair (maybe cons))
 (defun pair (offset)
   "Parser: A key-value pair."
-  (funcall (<*> #'key
-                (*> +skip-space+
-                    (p:char #\=)
-                    +skip-space+
-                    #'value))
+  (funcall (p:ap #'cons
+                 #'key
+                 (*> +skip-space+ +equal+ +skip-space+ #'value))
            offset))
 
 (fn key (maybe tiered-key))
 (defun key (offset)
   "Parser: A key that might be pointing several layers deep."
   (funcall (p:ap (lambda (list) (make-tiered-key :key list))
-                 (p:sep (*> (p:char #\.) +skip-junk+)
+                 (p:sep (*> +period+ +skip-junk+)
                         (<* (p:alt #'bare-key #'quoted-key)
                             +skip-junk+)))
            offset))
@@ -285,11 +293,11 @@ memory efficient than `basic-string'."
   (funcall (p:ap (lambda (name kvs)
                    (let ((ht (make-hash-table :test #'equalp)))
                      (dolist (pair kvs)
-                       (setf (gethash (car pair) ht) (cadr pair)))
+                       (setf (gethash (car pair) ht) (cdr pair)))
                      (make-table :key name :kvs ht)))
-                 (<* (p:between (p:char #\[)
+                 (<* (p:between +array-open+
                                 #'key
-                                (p:char #\]))
+                                +array-close+)
                      +skip-space-and-comments+)
                  (p:sep-end +skip-space-and-comments+ #'pair))
            offset))
@@ -307,7 +315,7 @@ zoo = 1988-07-05
   (funcall (p:ap (lambda (kvs)
                    (let ((ht (make-hash-table :test #'equalp)))
                      (dolist (kv kvs)
-                       (setf (gethash (car kv) ht) (cadr kv)))
+                       (setf (gethash (car kv) ht) (cdr kv)))
                      ht))
                  (p:between (*> +table-open+ +skip-space+)
                             (p:sep (*> +comma+ +skip-space+) #'pair)
@@ -335,7 +343,7 @@ zoo = 1988-07-05
   (funcall (p:ap (lambda (name kvs)
                    (let ((ht (make-hash-table :test #'equalp)))
                      (dolist (pair kvs)
-                       (setf (gethash (car pair) ht) (cadr pair)))
+                       (setf (gethash (car pair) ht) (cdr pair)))
                      (make-arrayed-table :key name :kvs ht)))
                  (<* (p:between +ta-open+ #'key +ta-close+)
                      +skip-junk+)
@@ -361,11 +369,13 @@ sku = 12345")
 ;; Local time
 ;; Array
 ;; Inline table
+(fn value (maybe toml-value))
 (defun value (offset)
   "Parser: The value portion of a key-value pair."
   (funcall (p:alt #'string #'date-time #'number #'boolean #'inline-table #'array)
            offset))
 
+(fn date-time (maybe (pd::date-time)))
 (defun date-time (offset)
   (funcall (p:alt #'pd:offset-date-time #'pd:local-date-time #'pd:local-date #'pd:local-time)
            offset))
