@@ -29,7 +29,7 @@
 (defpackage parcom/email
   (:use :cl)
   (:shadow #:atom)
-  (:import-from :parcom #:<*> #:<* #:*> #:<$)
+  (:import-from :parcom #:<*> #:<* #:*> #:<$ #:fn #:-> #:always #:maybe)
   (:local-nicknames (#:p #:parcom))
   ;; --- Exposed Parsers --- ;;
   (:export #:addr-spec #:msg-id)
@@ -42,17 +42,17 @@
 
 ;; --- Helpers --- ;;
 
-(declaim (ftype (function (character) boolean) ws?))
+(fn ws? (-> character boolean))
 (defun ws? (c)
   (or (char= c #\space)
       (char= c #\tab)))
 
-(declaim (ftype (function (character) boolean) crlf?))
+(fn crlf? (-> character boolean))
 (defun crlf? (c)
   (or (char= c #\newline)
       (char= c #\return)))
 
-(declaim (ftype (function (character) boolean) atext?))
+(fn atext? (-> character boolean))
 (defun atext? (c)
   "Printable US-ASCII characters not including specials."
   (or (p:ascii-letter? c)
@@ -67,20 +67,20 @@
       (char= c #\=)
       (char= c #\?)))
 
-(declaim (ftype (function (character) boolean) dtext?))
+(fn dtext? (-> character boolean))
 (defun dtext? (c)
   (or (char<= #\! c #\Z)
       (char<= #\^ c #\~)
       (obs-no-ws-ctl? c)))
 
-(declaim (ftype (function (character) boolean) obs-no-ws-ctl?))
+(fn obs-no-ws-ctl? (-> character boolean))
 (defun obs-no-ws-ctl? (c)
   (or (char<= #\Soh c #\backspace)
       (char<= #\Vt c #\Page)
       (char<= #\So c #\Us)
       (char= #\Rubout c)))
 
-(declaim (ftype (function (character character) boolean) quoted-pair?))
+(fn quoted-pair? (-> character character boolean))
 (defun quoted-pair? (a b)
   (and (char= a #\\)
        (or (char<= #\! b #\~)
@@ -92,14 +92,14 @@
 #+nil
 (quoted-pair? #\\ #\newline)
 
-(declaim (ftype (function (character) boolean) qtext?))
+(fn qtext? (-> character boolean))
 (defun qtext? (c)
   (or (char= #\! c)
       (char<= #\# c #\[)
       (char<= #\] c #\~)
       (obs-no-ws-ctl? c)))
 
-(declaim (ftype (function (character) boolean) ctext?))
+(fn ctext? (-> character boolean))
 (defun ctext? (c)
   (or (char<= #\! c #\')
       (char<= #\* c #\[)
@@ -226,7 +226,7 @@ have contained any number of junk characters or comments."
   "Attempt to parse an email address."
   (p:parse (<* #'addr-spec #'p:eof) input))
 
-(declaim (ftype (function (string) boolean) valid-email-address?))
+(fn valid-email-address? (-> string boolean))
 (defun valid-email-address? (s)
   (let ((s (etypecase s
              ((simple-array character (*)) s)
