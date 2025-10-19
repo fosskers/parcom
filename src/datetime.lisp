@@ -7,7 +7,7 @@
 (defpackage parcom/datetime
   (:use :cl)
   (:shadow #:time #:format)
-  (:import-from :parcom #:<*> #:<* #:*> #:<$)
+  (:import-from :parcom #:<*> #:<* #:*> #:<$ #:fn #:-> #:maybe)
   (:local-nicknames (#:p #:parcom))
   ;; --- Entrypoints --- ;;
   (:export #:now #:parse)
@@ -26,6 +26,8 @@
 
 (in-package :parcom/datetime)
 
+;; --- Static Parsers --- ;;
+
 (defparameter +T+      (p:char #\T))
 (defparameter +Z+      (p:char #\Z))
 (defparameter +dash+   (p:char #\-))
@@ -33,6 +35,39 @@
 (defparameter +colon+  (p:char #\:))
 (defparameter +space+  (p:char #\space))
 (defparameter +period+ (p:char #\.))
+
+(defparameter +any-digit+ (p:any-if #'p:digit?))
+
+;; --- Types --- ;;
+
+(defstruct local-date
+  "A simple calendar date."
+  (year  0 :type fixnum)
+  (month 1 :type fixnum)
+  (day   1 :type fixnum))
+
+(defstruct local-time
+  "A time without any timezone considerations."
+  (hour   0 :type fixnum)
+  (minute 0 :type fixnum)
+  (second 0 :type fixnum)
+  (millis 0 :type fixnum))
+
+(defstruct local-date-time
+  (date nil :type local-date)
+  (time nil :type local-time))
+
+(defstruct offset
+  "A timezone offset from UTC."
+  (hour   0 :type fixnum)
+  (minute 0 :type fixnum))
+
+(defstruct offset-date-time
+  (date   nil :type local-date)
+  (time   nil :type local-time)
+  (offset nil :type offset))
+
+;; --- Entry --- ;;
 
 (defun parse (offset)
   "Leniently parse some kind of date/time. It's up to the user to detect what they
@@ -44,6 +79,7 @@ actually received."
 #+nil
 (parse "07:13:15")
 
+(fn now (function () offset-date-time))
 (defun now ()
   "A full offset date time representing the current moment."
   (multiple-value-bind (second minute hour day month year dow dst off)
@@ -57,15 +93,7 @@ actually received."
 #+nil
 (now)
 
-(defstruct local-date
-  "A simple calendar date."
-  (year  0 :type fixnum)
-  (month 1 :type fixnum)
-  (day   1 :type fixnum))
-
-#+nil
-(format nil "~a" (p:parse #'local-date "1988-07-05"))
-
+(fn local-date (maybe local-date))
 (defun local-date (offset)
   "Parser: The YYYY-MM-DD portion."
   (multiple-value-bind (res next) (funcall (<*> (*> (p:count 4 (p:any-if #'p:digit?)))
@@ -83,9 +111,11 @@ actually received."
                            (make-local-date :year year :month month :day day)))))))))
 
 #+nil
+(format nil "~a" (p:parse #'local-date "1988-07-05"))
+#+nil
 (local-date (p:in "1979-01-02"))
 
-(declaim (ftype (function (list) fixnum) chars->year))
+(fn chars->year (-> list fixnum))
 (defun chars->year (chars)
   (destructuring-bind (a b c d) chars
     (+ (* 1000 (digit-char-p a))
@@ -93,24 +123,20 @@ actually received."
        (*   10 (digit-char-p c))
        (digit-char-p d))))
 
+(fn 2-digits (maybe fixnum))
 (defun 2-digits (offset)
   "Parser: A two-digit unsigned number that might start with 0."
-  (p:fmap (lambda (ns)
-            (destructuring-bind (a b) ns
-              (+ (* 10 (digit-char-p a))
-                 (digit-char-p b))))
-          (funcall (p:count 2 (p:any-if #'p:digit?)) offset)))
+  (funcall (p:ap (lambda (a b)
+                   (+ (* 10 (digit-char-p a))
+                      (digit-char-p b)))
+                 +any-digit+
+                 +any-digit+)
+           offset))
 
 #+nil
 (2-digits (p:in "07"))
 
-(defstruct local-time
-  "A time without any timezone considerations."
-  (hour   0 :type fixnum)
-  (minute 0 :type fixnum)
-  (second 0 :type fixnum)
-  (millis 0 :type fixnum))
-
+(fn simple-local-time (maybe local-time))
 (defun simple-local-time (offset)
   "Parser: Like `local-time', but only parses HH:MM(:SS). Seconds are optional
 here, unlike the usual spec requirement."
@@ -135,6 +161,7 @@ here, unlike the usual spec requirement."
 #+nil
 (p:parse #'simple-local-time "13:00")
 
+(fn local-time (maybe local-time))
 (defun local-time (offset)
   "Parser: A time in the format HH:MM:SS.XXX to millisecond precision. If
 additional factional seconds are present, the value will be truncated. Parsing
@@ -169,61 +196,55 @@ known here."
 #+nil
 (local-time (p:in "23:59:60"))
 
-(defstruct local-date-time
-  (date nil :type local-date)
-  (time nil :type local-time))
-
+(fn local-date-time (maybe local-date-time))
 (defun local-date-time (offset)
   "Parser: A time and date with no indicated timezone offset."
-  (p:fmap (lambda (xs)
-            (destructuring-bind (date time) xs
-              (make-local-date-time :date date :time time)))
-          (funcall (<*> #'local-date
-                        (*> (p:alt +T+ +space+)
-                            #'local-time))
-                   offset)))
+  (funcall (p:ap (lambda (date time)
+                   (make-local-date-time :date date :time time))
+                 #'local-date
+                 (*> (p:alt +T+ +space+)
+                     #'local-time))
+           offset))
 
 #+nil
 (local-date-time (p:in "1979-05-27T07:32:00"))
 
-(defstruct offset
-  "A timezone offset from UTC."
-  (hour   0 :type fixnum)
-  (minute 0 :type fixnum))
-
+(fn offset (maybe offset))
 (defun offset (offset)
   "Parser: A timezone offset."
-  (p:fmap (lambda (off)
-            (if (equal #\Z off)
-                (make-offset :hour 0 :minute 0)
-                (destructuring-bind (sign hours mins) off
-                  (make-offset :hour (if (equal #\- sign) (- hours) hours)
-                               :minute mins))))
-          (funcall (p:alt +Z+
-                          (<*> (p:alt +plus+ +dash+)
-                               #'2-digits
-                               (*> +colon+ #'2-digits)))
-                   offset)))
+  (funcall (p:alt #'greenwich
+                  (p:ap (lambda (sign hours mins)
+                          (make-offset :hour (if (equal #\- sign) (- hours) hours)
+                                       :minute mins))
+                        (p:alt +plus+ +dash+)
+                        #'2-digits
+                        (*> +colon+ #'2-digits)))
+           offset))
 
 #+nil
 (offset (p:in "Z"))
 #+nil
 (offset (p:in "-07:00"))
 
-(defstruct offset-date-time
-  (date   nil :type local-date)
-  (time   nil :type local-time)
-  (offset nil :type offset))
+(fn greenwich (maybe offset))
+(defun greenwich (offset)
+  (funcall (p:ap (lambda (off)
+                   (declare (ignore off))
+                   (make-offset :hour 0 :minute 0))
+                 +Z+)
+           offset))
 
+(fn offset-date-time (maybe offset-date-time))
 (defun offset-date-time (offset)
   "Parser: A time and date with some timezone offset, or Z to indicate UTC."
-  (p:fmap (lambda (xs)
-            (destructuring-bind (ldt off) xs
-              (make-offset-date-time
-               :date (local-date-time-date ldt)
-               :time (local-date-time-time ldt)
-               :offset off)))
-          (funcall (<*> #'local-date-time #'offset) offset)))
+  (funcall (p:ap (lambda (ldt off)
+                   (make-offset-date-time
+                    :date (local-date-time-date ldt)
+                    :time (local-date-time-time ldt)
+                    :offset off))
+                 #'local-date-time
+                 #'offset)
+           offset))
 
 #+nil
 (offset-date-time (p:in "1979-05-27T07:32:00Z"))
@@ -301,6 +322,7 @@ known here."
 
 ;; --- Utilities --- ;;
 
+(fn leap-year? (-> fixnum boolean))
 (defun leap-year? (year)
   "Must use a 4-digit year."
   (and (zerop (mod year 4))
@@ -310,6 +332,7 @@ known here."
 #+nil
 (leap-year? 1600)
 
+(fn days-in-month-by-year (-> fixnum fixnum fixnum))
 (defun days-in-month-by-year (year month)
   "The number of days in the given month for a particular year."
   (case month
