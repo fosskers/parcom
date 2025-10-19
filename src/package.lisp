@@ -78,7 +78,7 @@
 
 ;; --- Short-hands --- ;;
 
-(declaim (ftype (function (char-string) fixnum) in))
+(fn in (-> char-string fixnum))
 (defun in (input)
   "Set the global input and yield the initial parser offset."
   (setf *input* input)
@@ -88,7 +88,7 @@
 #+nil
 (in "hello")
 
-(declaim (ftype (function (fixnum fixnum) fixnum) off))
+(fn off (-> fixnum fixnum fixnum))
 (defun off (offset curr)
   "Advance the input by some offset."
   (declare (optimize (speed 3)))
@@ -116,6 +116,7 @@
   "Did parsing fail?"
   `(eq :fail ,x))
 
+(fn parse (-> (maybe t) char-string t))
 (defun parse (parser input)
   "Run a parser and attempt to extract its final value."
   (multiple-value-bind (res next) (funcall parser (in input))
@@ -140,7 +141,7 @@
 
 ;; --- Utilities --- ;;
 
-(declaim (ftype (function (cl:string) boolean) empty?))
+(fn empty? (-> cl:string boolean))
 (defun empty? (string)
   "Is a given string empty?"
   (zerop (length string)))
@@ -148,7 +149,7 @@
 #++
 (empty? "")
 
-(declaim (ftype (function (character) boolean) ascii-letter?))
+(fn ascii-letter? (-> character boolean))
 (defun ascii-letter? (char)
   "A-Za-z"
   (or (char<= #\a char #\z)
@@ -159,7 +160,7 @@
 #+nil
 (ascii-letter? #\1)
 
-(declaim (ftype (function (character) boolean) digit?))
+(fn digit? (-> character boolean))
 (defun digit? (char)
   "Is a given character a number from 0 to 9?"
   (char<= #\0 char #\9))
@@ -167,7 +168,7 @@
 #+nil
 (digit? #\7)
 
-(declaim (ftype (function (character) boolean) hex?))
+(fn hex? (-> character boolean))
 (defun hex? (char)
   "Is a given character a hex digit?"
   (or (digit? char)
@@ -179,17 +180,17 @@
 #+nil
 (hex? #\J)
 
-(declaim (ftype (function (character) boolean) octal?))
+(fn octal? (-> character boolean))
 (defun octal? (char)
   "Is a given character an octal digit?"
   (char<= #\0 char #\7))
 
-(declaim (ftype (function (character) boolean) binary?))
+(fn binary? (-> character boolean))
 (defun binary? (char)
   "Is a given character a binary digit?"
   (char<= #\0 char #\1))
 
-(declaim (ftype (function (character) boolean) space?))
+(fn space? (-> character boolean))
 (defun space? (char)
   "Is a given character some sort of whitespace?"
   (or (eql char #\space)
@@ -197,7 +198,7 @@
       (eql char #\tab)
       (eql char #\return)))
 
-(declaim (ftype (function (char-string fixnum fixnum) char-string) direct-copy))
+(fn direct-copy (-> char-string fixnum fixnum char-string))
 (defun direct-copy (s from to)
   "Direct, low-level string copying."
   (declare (optimize (speed 3) (safety 0)))

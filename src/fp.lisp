@@ -112,7 +112,17 @@ given lambda. More memory-efficient than the combination of `<*>' and `fmap'."
        ,(labels ((recurse (ps rs i)
                    (if (null ps)
                        (let ((ordered (nreverse rs)))
-                         `(values (funcall ,f ,@ordered) ,i))
+                         ;; NOTE: 2025-10-20 This final check allows the user to
+                         ;; yield `:fail' from within the passed lambda as well.
+                         ;; It will be detected here and the failure offset will
+                         ;; be set to the original offset, not the last one it
+                         ;; got to. Overall this improves error reporting, as
+                         ;; there was already nothing preventing the user from
+                         ;; yielding `:fail' anyway.
+                         `(let ((final (funcall ,f ,@ordered)))
+                            (if (failure? final)
+                                (fail ,offset)
+                                (values final ,i))))
                        (let ((res  (gensym "ap-RES"))
                              (next (gensym "ap-NEXT")))
                          `(multiple-value-bind (,res ,next) (funcall ,(car ps) ,i)
