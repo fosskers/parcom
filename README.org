@@ -1344,7 +1344,7 @@ explicitly test for sub-parser failure, and then react accordingly. Yielding
 
 ** Type Signatures
 
-Parser function signatures can get quite complex if you write themselves, but
+Parser function signatures can get quite complex if you write them yourself, but
 =parcom= supplies some shorthands:
 
 - =(maybe foo)= for parser which may fail.
