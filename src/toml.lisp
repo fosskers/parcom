@@ -1,7 +1,7 @@
 (defpackage parcom/toml
   (:use :cl)
   (:shadow #:string #:integer #:number #:boolean #:array #:float)
-  (:import-from :parcom #:<*> #:<* #:*> #:<$)
+  (:import-from :parcom #:<*> #:<* #:*> #:<$ #:fn #:-> #:always #:maybe)
   (:local-nicknames (#:p #:parcom)
                     (#:pd #:parcom/datetime))
   ;; --- Types --- ;;
@@ -13,7 +13,7 @@
   ;; --- Parsers --- ;;
   (:export #:toml
            #:key #:value #:pair
-           #:number #:float
+           #:number
            #:table #:inline-table #:array))
 
 (in-package :parcom/toml)
@@ -32,33 +32,63 @@
   (key ""  :type tiered-key)
   (kvs nil :type hash-table))
 
+;; --- Static Parsers --- ;;
+
+(defparameter +array-close+  (p:char #\]))
+(defparameter +array-open+   (p:char #\[))
+(defparameter +big-e+        (p:char #\E))
+(defparameter +comma+        (p:char #\,))
+(defparameter +dash+         (p:char #\-))
+(defparameter +period+       (p:char #\.))
+(defparameter +plus+         (p:char #\+))
+(defparameter +small-e+      (p:char #\e))
+(defparameter +table-close+  (p:char #\}))
+(defparameter +table-open+   (p:char #\{))
+(defparameter +underscore+   (p:char #\_))
+
+(defparameter +bin-start+    (p:string "0b"))
+(defparameter +false+        (p:string "false"))
+(defparameter +hex-start+    (p:string "0x"))
+(defparameter +oct-start+    (p:string "0o"))
+(defparameter +ta-close+     (p:string "]]"))
+(defparameter +ta-open+      (p:string "[["))
+(defparameter +true+         (p:string "true"))
+
+(defparameter +digits1+      (p:take-while1 #'p:digit?))
+(defparameter +digit-chunks+ (p:sep1 +underscore+ +digits1+))
+
+(defparameter +skip-space+   (p:consume (lambda (c) (or (equal c #\space) (equal c #\tab)))))
+(defparameter +skip-junk+    (p:consume #'p:space?))
+(defparameter +skip-space-and-comments+ (*> +skip-junk+ (p:skip (*> #'comment +skip-junk+))))
+
 ;; --- Entry --- ;;
 
 (defun parse (input)
   "Attempt to parse any JSON value."
-  (p:parse (<* #'toml #'skip-space-and-comments #'p:eof) input))
+  (p:parse (<* #'toml +skip-space-and-comments+ #'p:eof) input))
 
+(fn toml (maybe hash-table))
 (defun toml (offset)
   "Parser: Parse a TOML document into a Hash Table."
-  (p:fmap (lambda (xs)
-            (destructuring-bind (top-level-pairs tables) xs
-              (let ((ht (make-hash-table :test #'equal)))
-                (dolist (pair top-level-pairs)
-                  (write-into-hash-table ht (tiered-key-key (car pair)) (cadr pair)))
-                (dolist (table tables)
-                  (etypecase table
-                    (table (write-into-hash-table ht (tiered-key-key (table-key table))
-                                                  (table-kvs table)))
-                    (arrayed-table (write-into-hash-table ht (tiered-key-key (arrayed-table-key table))
-                                                          (arrayed-table-kvs table)
-                                                          :append t))))
+  (funcall
+   (p:ap (lambda (top-level-pairs tables)
+           (let ((ht (make-hash-table :test #'equal)))
+             (dolist (pair top-level-pairs)
+               (write-into-hash-table ht (tiered-key-key (car pair)) (cadr pair)))
+             (dolist (table tables)
+               (etypecase table
+                 (table (write-into-hash-table ht (tiered-key-key (table-key table))
+                                               (table-kvs table)))
+                 (arrayed-table (write-into-hash-table ht (tiered-key-key (arrayed-table-key table))
+                                                       (arrayed-table-kvs table)
+                                                       :append t))))
 
-                ht)))
-          (funcall (<*> (*> #'skip-space-and-comments
-                            (p:sep-end #'skip-space-and-comments #'pair))
-                        (p:sep-end #'skip-space-and-comments
-                                   (p:alt #'table-array #'table)))
-                   offset)))
+             ht))
+         (*> +skip-space-and-comments+
+             (p:sep-end +skip-space-and-comments+ #'pair))
+         (p:sep-end +skip-space-and-comments+
+                    (p:alt #'table-array #'table)))
+   offset))
 
 #+nil
 (p:parse #'toml (uiop:read-file-string "tests/data/basic.toml"))
@@ -112,6 +142,7 @@ and write its value there."
 
 ;; --- Parsers --- ;;
 
+(fn comment (maybe fixnum))
 (defun comment (offset)
   "Parser: Skip over any comment line."
   (funcall (*> (p:char #\#)
@@ -121,6 +152,7 @@ and write its value there."
 #+nil
 (comment (p:in "# yes"))
 
+(fn string (maybe cl:string))
 (defun string (offset)
   "Parser: One of the four TOML string types."
   (funcall (p:alt #'basic-string
@@ -132,47 +164,53 @@ and write its value there."
 #+nil
 (string (p:in "\"hel\\u00E9lo\""))
 
+(fn basic-string (maybe cl:string))
 (defun basic-string (offset)
   "Parser: Parse the simplest kind of string."
-  (p:fmap (lambda (chars) (concatenate 'cl:string chars))
-          (funcall (p:between (p:char #\")
-                              (p:many #'compound-char)
-                              (p:char #\"))
-                   offset)))
+  (funcall (p:ap (lambda (chars) (concatenate 'cl:string chars))
+                 (p:between (p:char #\")
+                            (p:many #'compound-char)
+                            (p:char #\")))
+           offset))
 
 #+nil
 (basic-string (p:in "\"hel\\u00E9lo\""))
 
+(fn compound-char (maybe character))
 (defun compound-char (offset)
   "Parser: Parse a char while being wary of escaping."
   (funcall (p:alt #'escaped-char (p:any-but #\")) offset))
 
+(fn escaped-char (maybe character))
 (defun escaped-char (offset)
   (funcall (*> (p:peek (p:char #\\))
                (p:alt #'special-char #'p:control-char #'p:unicode))
            offset))
 
+(fn special-char (maybe character))
 (defun special-char (offset)
   "Parser: Backslashes and quotes."
   (funcall (*> (p:char #\\)
                (p:alt (p:char #\\) (p:char #\")))
            offset))
 
+(fn multiline-basic-string (maybe cl:string))
 (defun multiline-basic-string (offset)
   "Parser: Easily include newlines characters into strings and preserve them."
-  (p:fmap (lambda (chars) (concatenate 'cl:string chars))
-          (funcall (p:between (<* (p:string "\"\"\"") (p:opt #'p:newline))
-                              (p:many (*> (p:opt (*> (p:char #\\)
-                                                     #'p:multispace1))
-                                          #'compound-char))
-                              (p:string "\"\"\""))
-                   offset)))
+  (funcall (p:ap (lambda (chars) (concatenate 'cl:string chars))
+                 (p:between (<* (p:string "\"\"\"") (p:opt #'p:newline))
+                            (p:many (*> (p:opt (*> (p:char #\\)
+                                                   #'p:multispace1))
+                                        #'compound-char))
+                            (p:string "\"\"\"")))
+           offset))
 
 #+nil
 (multiline-basic-string (p:in "\"\"\"hel\\u00E9lo\"\"\""))
 #+nil
 (multiline-basic-string (p:in "\"\"\"\\ a  \"\"\""))
 
+(fn literal-string (maybe cl:string))
 (defun literal-string (offset)
   "Parser: Strings with no escaping. These parse much faster and are more
 memory efficient than `basic-string'."
@@ -188,6 +226,7 @@ memory efficient than `basic-string'."
 (time (dotimes (n 10000)
         (basic-string (p:in "\"yes indeed\""))))
 
+(fn multiline-literal-string (maybe cl:string))
 (defun multiline-literal-string (offset)
   "Parser: Multiline strings with no escaping."
   (funcall (p:between (<* (p:string "'''") (p:opt #'p:newline))
@@ -201,43 +240,27 @@ memory efficient than `basic-string'."
 (defun pair (offset)
   "Parser: A key-value pair."
   (funcall (<*> #'key
-                (*> #'skip-space
+                (*> +skip-space+
                     (p:char #\=)
-                    #'skip-space
+                    +skip-space+
                     #'value))
            offset))
 
-(defun skip-space (offset)
-  "A faster variant of `space' that just advances over whitespace chars."
-  (funcall (p:consume (lambda (c) (or (equal c #\space) (equal c #\tab))))
-           offset))
-
-#+nil
-(funcall #'skip-space (p:in "   abc"))
-
-(defun skip-space-and-comments (offset)
-  "Blows past all the stuff we don't care about."
-  (funcall (*> #'skip-all-space
-               (p:skip (*> #'comment #'skip-all-space)))
-           offset))
-
-(defun skip-all-space (offset)
-  "Like `skip-space' but consumes newlines as well."
-  (funcall (p:consume #'p:space?) offset))
-
+(fn key (maybe tiered-key))
 (defun key (offset)
   "Parser: A key that might be pointing several layers deep."
-  (p:fmap (lambda (list) (make-tiered-key :key list))
-          (funcall (p:sep (*> (p:char #\.) #'skip-all-space)
-                          (<* (p:alt #'bare-key #'quoted-key)
-                              #'skip-all-space))
-                   offset)))
+  (funcall (p:ap (lambda (list) (make-tiered-key :key list))
+                 (p:sep (*> (p:char #\.) +skip-junk+)
+                        (<* (p:alt #'bare-key #'quoted-key)
+                            +skip-junk+)))
+           offset))
 
 #+nil
 (key (p:in "physical"))
 #+nil
 (key (p:in "physical.shape"))
 
+(fn bare-key (maybe cl:string))
 (defun bare-key (offset)
   "Parser: Just ASCII letters, digits, dashes, and underscores."
   (funcall (p:take-while1 (lambda (c)
@@ -252,23 +275,24 @@ memory efficient than `basic-string'."
 #+nil
 (bare-key (p:in "123"))
 
+(fn quoted-key (maybe cl:string))
 (defun quoted-key (offset)
   "Parser: Yuck don't do these."
   (funcall (p:alt #'basic-string #'literal-string) offset))
 
+(fn table (maybe table))
 (defun table (offset)
-  (p:fmap (lambda (x)
-            (destructuring-bind (name kvs) x
-              (let ((ht (make-hash-table :test #'equalp)))
-                (dolist (pair kvs)
-                  (setf (gethash (car pair) ht) (cadr pair)))
-                (make-table :key name :kvs ht))))
-          (funcall (<*> (<* (p:between (p:char #\[)
-                                       #'key
-                                       (p:char #\]))
-                            #'skip-space-and-comments)
-                        (p:sep-end #'skip-space-and-comments #'pair))
-                   offset)))
+  (funcall (p:ap (lambda (name kvs)
+                   (let ((ht (make-hash-table :test #'equalp)))
+                     (dolist (pair kvs)
+                       (setf (gethash (car pair) ht) (cadr pair)))
+                     (make-table :key name :kvs ht)))
+                 (<* (p:between (p:char #\[)
+                                #'key
+                                (p:char #\]))
+                     +skip-space-and-comments+)
+                 (p:sep-end +skip-space-and-comments+ #'pair))
+           offset))
 
 #+nil
 (table (p:in "[foo.bar]
@@ -277,46 +301,46 @@ baz = \"zoo\"
 zoo = 1988-07-05
 "))
 
+(fn inline-table (maybe hash-table))
 (defun inline-table (offset)
   "Parser: The compact form of a table."
-  (p:fmap (lambda (kvs)
-            (let ((ht (make-hash-table :test #'equalp)))
-              (dolist (kv kvs)
-                (setf (gethash (car kv) ht) (cadr kv)))
-              ht))
-          (funcall (p:between (*> (p:char #\{) #'skip-space)
-                              (p:sep (*> (p:char #\,) #'skip-space) #'pair)
-                              (*> #'skip-space (p:char #\})))
-                   offset)))
+  (funcall (p:ap (lambda (kvs)
+                   (let ((ht (make-hash-table :test #'equalp)))
+                     (dolist (kv kvs)
+                       (setf (gethash (car kv) ht) (cadr kv)))
+                     ht))
+                 (p:between (*> +table-open+ +skip-space+)
+                            (p:sep (*> +comma+ +skip-space+) #'pair)
+                            (*> +skip-space+ +table-close+)))
+           offset))
 
 #+nil
 (p:parse #'inline-table "{ first = \"Tom\", last = \"Preston-Werner\" }")
 
+(fn array (maybe list))
 (defun array (offset)
   "Parser: A list of values."
-  (funcall (p:between (*> (p:char #\[) #'skip-space-and-comments)
-                      (p:sep-end (*> (p:char #\,) #'skip-space-and-comments)
-                                 (<* #'value #'skip-all-space))
-                      (*> #'skip-space-and-comments (p:char #\])))
+  (funcall (p:between (*> +array-open+ +skip-space-and-comments+)
+                      (p:sep-end (*> +comma+ +skip-space-and-comments+)
+                                 (<* #'value +skip-junk+))
+                      (*> +skip-space-and-comments+ +array-close+))
            offset))
 
 #+nil
 (p:parse #'array "[ [\"delta\", \"phi\"], [3.14] ]")
 
+(fn table-array (maybe arrayed-table))
 (defun table-array (offset)
   "Parser: An entry in an array-of-tables."
-  (p:fmap (lambda (x)
-            (destructuring-bind (name kvs) x
-              (let ((ht (make-hash-table :test #'equalp)))
-                (dolist (pair kvs)
-                  (setf (gethash (car pair) ht) (cadr pair)))
-                (make-arrayed-table :key name :kvs ht))))
-          (funcall (<*> (<* (p:between (p:string "[[")
-                                       #'key
-                                       (p:string "]]"))
-                            #'skip-all-space)
-                        (p:sep-end #'skip-all-space #'pair))
-                   offset)))
+  (funcall (p:ap (lambda (name kvs)
+                   (let ((ht (make-hash-table :test #'equalp)))
+                     (dolist (pair kvs)
+                       (setf (gethash (car pair) ht) (cadr pair)))
+                     (make-arrayed-table :key name :kvs ht)))
+                 (<* (p:between +ta-open+ #'key +ta-close+)
+                     +skip-junk+)
+                 (p:sep-end +skip-junk+ #'pair))
+           offset))
 
 #+nil
 (p:parse #'table-array "[[fruits.varieties]]
@@ -339,106 +363,90 @@ sku = 12345")
 ;; Inline table
 (defun value (offset)
   "Parser: The value portion of a key-value pair."
-  (funcall (p:alt #'string #'date-time #'number #'bool #'inline-table #'array)
-           offset))
-
-(defun bool (offset)
-  "Parser: True or false."
-  (funcall (p:alt (<$ t   (p:string "true"))
-                  (<$ nil (p:string "false")))
+  (funcall (p:alt #'string #'date-time #'number #'boolean #'inline-table #'array)
            offset))
 
 (defun date-time (offset)
   (funcall (p:alt #'pd:offset-date-time #'pd:local-date-time #'pd:local-date #'pd:local-time)
            offset))
 
+(fn number (maybe (or fixnum double-float)))
 (defun number (offset)
   "Parser: Any number."
-  (funcall (p:alt #'float #'integer #'hex #'octal #'binary)
+  (funcall (p:alt #'float-or-int #'hex #'octal #'binary)
            offset))
 
-(defun float (offset)
-  "Parser: A Lisp double-float. Does not support NaN or infinity."
-  (p:fmap (lambda (parts)
-            (destructuring-bind (sign before after exp) parts
-              (let* ((*read-default-float-format* 'double-float)
-                     (e (or exp ""))
-                     (s (format nil "~{~a~}.~{~a~}~a" before after e))
-                     (n (read-from-string s)))
-                (if (eq :neg sign) (- n) n))))
-          (funcall (<*> (p:opt (p:alt (<$ :pos (p:char #\+))
-                                      (<$ :neg (p:char #\-))))
-                        (p:alt (p:pmap #'list (p:char #\0))
-                               (p:sep1 (p:char #\_)
-                                       (p:take-while1 #'p:digit?)))
-                        (p:opt (*> (p:char #\.)
-                                   (p:sep1 (p:char #\_)
-                                           (p:take-while1 #'p:digit?))))
-                        (p:opt (p:recognize (*> (p:alt (p:char #\e) (p:char #\E))
-                                                (p:opt (p:alt (p:char #\+) (p:char #\-)))
-                                                (p:take-while1 #'p:digit?)))))
-                   offset)))
-
-(defun integer (offset)
-  "Parser: Whole numbers."
-  (p:fmap (lambda (ns)
-            (destructuring-bind (head rest) ns
-              (if (null rest)
-                  head
-                  (read-from-string (format nil "~{~a~}" (cons head rest))))))
-          (funcall (<*> (p:alt (*> (p:opt (p:char #\+)) #'p:unsigned)
-                               #'p:integer)
-                        (p:opt (*> (p:char #\_)
-                                   (p:sep (p:char #\_) (p:take-while1 #'p:digit?)))))
-                   offset)))
+(fn float-or-int (maybe (or fixnum double-float)))
+(defun float-or-int (offset)
+  (funcall
+   (p:ap (lambda (sign init init-rest after exp)
+           (let ((n (if (and (null after) (null exp))
+                        ;; We have parsed an integer.
+                        (if (null init-rest)
+                            init
+                            ;; FIXME: 2025-10-20 Consider how I might use
+                            ;; bit-shifting to hydrate a final value instead of
+                            ;; asking Lisp to reparse the number.
+                            (read-from-string (format nil "~a~{~a~}" init init-rest)))
+                        ;; We have parsed a float.
+                        (let* ((*read-default-float-format* 'double-float)
+                               (e (or exp ""))
+                               (a (or after '(0)))
+                               (s (format nil "~a~{~a~}.~{~a~}~a" init init-rest a e)))
+                          (read-from-string s)))))
+             (if (eq :neg sign) (- n) n)))
+         (p:opt (p:alt (<$ :pos +plus+)
+                       (<$ :neg +dash+)))
+         #'p:unsigned
+         (p:opt (*> +underscore+ +digit-chunks+))
+         (p:opt (*> +period+ +digit-chunks+))
+         (p:opt (p:recognize (*> (p:alt +small-e+ +big-e+)
+                                 (p:opt (p:alt +plus+ +dash+))
+                                 +digits1+))))
+   offset))
 
 #+nil
-(integer (p:in "+123"))
+(p:parse #'float-or-int "10_0000000000_1")
 #+nil
-(integer (p:in "-17"))
-#+nil
-(integer (p:in "53_49_221"))
-#+nil
-(integer (p:in "1_001"))
+(p:parse #'float-or-int "-1.2e10")
 
+(fn hex (maybe fixnum))
 (defun hex (offset)
   "Parser: A positive hexadecimal number."
-  (p:fmap (lambda (ns) (read-from-string (format nil "#x~{~a~}" ns)))
-          (funcall (*> (p:string "0x")
-                       (p:sep1 (p:char #\_)
-                               (p:take-while1 #'p:hex?)))
-                   offset)))
+  (funcall (p:ap (lambda (ns) (read-from-string (format nil "#x~{~a~}" ns)))
+                 (*> +hex-start+ (p:sep1 +underscore+ (p:take-while1 #'p:hex?))))
+           offset))
 
 #+nil
 (hex (p:in "0xdead_beef"))
 
+(fn octal (maybe fixnum))
 (defun octal (offset)
   "Parser: A positive base-8 number."
-  (p:fmap (lambda (ns) (read-from-string (format nil "#o~{~a~}" ns)))
-          (funcall (*> (p:string "0o")
-                       (p:sep1 (p:char #\_)
-                               (p:take-while1 #'p:octal?)))
-                   offset)))
+  (funcall (p:ap (lambda (ns) (read-from-string (format nil "#o~{~a~}" ns)))
+                 (*> +oct-start+ (p:sep1 +underscore+ (p:take-while1 #'p:octal?))))
+           offset))
 
 #+nil
 (octal (p:in "0o01234567"))
 #+nil
 (octal (p:in "0o8"))
 
+(fn binary (maybe fixnum))
 (defun binary (offset)
   "Parser: A positive base-2 number."
-  (p:fmap (lambda (ns) (read-from-string (format nil "#b~{~a~}" ns)))
-          (funcall (*> (p:string "0b")
-                       (p:sep1 (p:char #\_)
-                               (p:take-while1 #'p:binary?)))
-                   offset)))
+  (funcall (p:ap (lambda (ns) (read-from-string (format nil "#b~{~a~}" ns)))
+                 (*> +bin-start+ (p:sep1 +underscore+ (p:take-while1 #'p:binary?))))
+           offset))
 
 #+nil
 (binary (p:in "0b1010"))
 
+(fn boolean (maybe cl:boolean))
 (defun boolean (offset)
-  (funcall (p:alt (<$ t (p:string "true"))
-                  (<$ nil (p:string "false")))
+  "Parser: True or false."
+  (funcall (p:alt (<$ t   +true+)
+                  (<$ nil +false+))
            offset))
 
 #+nil

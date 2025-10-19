@@ -289,13 +289,13 @@
 
 (define-test toml-integers
   :parent toml
-  (is = 123 (p:parse #'pt::integer "+123"))
-  (is = -17 (p:parse #'pt::integer "-17"))
-  (is = 0 (p:parse #'pt::integer "-0"))
-  (is = 0 (p:parse #'pt::integer "+0"))
-  (is = 1000 (p:parse #'pt::integer "1_000"))
-  (is = 5349221 (p:parse #'pt::integer "5_349_221"))
-  (is = 5349221 (p:parse #'pt::integer "53_49_221"))
+  (is = 123 (p:parse #'pt::float-or-int "+123"))
+  (is = -17 (p:parse #'pt::float-or-int "-17"))
+  (is = 0 (p:parse #'pt::float-or-int "-0"))
+  (is = 0 (p:parse #'pt::float-or-int "+0"))
+  (is = 1000 (p:parse #'pt::float-or-int "1_000"))
+  (is = 5349221 (p:parse #'pt::float-or-int "5_349_221"))
+  (is = 5349221 (p:parse #'pt::float-or-int "53_49_221"))
   (is = 0 (p:parse #'pt::hex "0x0000_0000"))
   (fail (p:parse #'pt::hex "0x"))
   (true (= (p:parse #'pt::hex "0xDEADBEEF")
@@ -308,15 +308,15 @@
 
 (define-test toml-floats
   :parent toml
-  (is = 1.0d0 (p:parse #'pt:float "+1.0"))
-  (is = 3.1415d0 (p:parse #'pt:float "3.1415"))
-  (is = -0.01d0 (p:parse #'pt:float "-0.01"))
+  (is = 1.0d0 (p:parse #'pt::float-or-int "+1.0"))
+  (is = 3.1415d0 (p:parse #'pt::float-or-int "3.1415"))
+  (is = -0.01d0 (p:parse #'pt::float-or-int "-0.01"))
   #-ecl
-  (is = 5d+22 (p:parse #'pt:float "5e+22"))
-  (is = 1d06 (p:parse #'pt:float "1e06"))
-  (is = -2d-2 (p:parse #'pt:float "-2E-2"))
-  (is = 6.626d-34 (p:parse #'pt:float "6.626e-34"))
-  (is = 224617.445991228d0 (p:parse #'pt:float "224_617.445_991_228")))
+  (is = 5d+22 (p:parse #'pt::float-or-int "5e+22"))
+  (is = 1d06 (p:parse #'pt::float-or-int "1e06"))
+  (is = -2d-2 (p:parse #'pt::float-or-int "-2E-2"))
+  (is = 6.626d-34 (p:parse #'pt::float-or-int "6.626e-34"))
+  (is = 224617.445991228d0 (p:parse #'pt::float-or-int "224_617.445_991_228")))
 
 (define-test toml-tables
   :parent toml
@@ -493,7 +493,7 @@ hi!
   (finish (pe:parse "very.unusual.\"@\".unusual.com@example.com")))
 
 (define-test email-from-spec
-    (finish (pe:parse "1234@local.machine.example"))
+  (finish (pe:parse "1234@local.machine.example"))
   (finish (pe:parse "pete(his account)@silly.test(his host)"))
   (finish (pe:parse "c@(Chris's host.)public.example")))
 
