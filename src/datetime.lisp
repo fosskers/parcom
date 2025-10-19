@@ -7,7 +7,7 @@
 (defpackage parcom/datetime
   (:use :cl)
   (:shadow #:time #:format)
-  (:import-from :parcom #:<*> #:<* #:*> #:<$ #:fn #:-> #:maybe)
+  (:import-from :parcom #:<* #:*> #:<$ #:fn #:-> #:maybe)
   (:local-nicknames (#:p #:parcom))
   ;; --- Entrypoints --- ;;
   (:export #:now #:parse)
@@ -35,7 +35,6 @@
 (defparameter +colon+  (p:char #\:))
 (defparameter +space+  (p:char #\space))
 (defparameter +period+ (p:char #\.))
-
 (defparameter +any-digit+ (p:any-if #'p:digit?))
 
 ;; --- Types --- ;;
@@ -69,10 +68,11 @@
 
 ;; --- Entry --- ;;
 
-(defun parse (offset)
+(fn parse (-> p::char-string (or offset-date-time local-date-time local-date local-time)))
+(defun parse (input)
   "Leniently parse some kind of date/time. It's up to the user to detect what they
 actually received."
-  (p:parse (p:alt #'offset-date-time #'local-date-time #'local-date #'local-time) offset))
+  (p:parse (p:alt #'offset-date-time #'local-date-time #'local-date #'local-time) input))
 
 #+nil
 (parse "1975-07-06")
@@ -96,32 +96,35 @@ actually received."
 (fn local-date (maybe local-date))
 (defun local-date (offset)
   "Parser: The YYYY-MM-DD portion."
-  (multiple-value-bind (res next) (funcall (<*> (*> (p:count 4 (p:any-if #'p:digit?)))
-                                                (*> +dash+ #'2-digits)
-                                                (*> +dash+ #'2-digits))
-                                           offset)
-    (if (p:failure? res)
-        (p:fail next)
-        (destructuring-bind (year month day) res
-          (let ((year (chars->year year)))
-            (cond ((not (<= 0 year 9999)) (p:fail offset))
-                  ((not (<= 1 month 12)) (p:fail offset))
-                  ((not (<= 1 day (days-in-month-by-year year month))) (p:fail offset))
-                  (t (p:ok next
-                           (make-local-date :year year :month month :day day)))))))))
+  (funcall
+   (p:ap (lambda (year month day)
+           (cond ((not (<= 0 year 9999)) :fail)
+                 ((not (<= 1 month 12)) :fail)
+                 ((not (<= 1 day (days-in-month-by-year year month))) :fail)
+                 (t (make-local-date :year year :month month :day day))))
+         #'year
+         (*> +dash+ #'2-digits)
+         (*> +dash+ #'2-digits))
+   offset))
 
 #+nil
 (format nil "~a" (p:parse #'local-date "1988-07-05"))
 #+nil
 (local-date (p:in "1979-01-02"))
 
-(fn chars->year (-> list fixnum))
-(defun chars->year (chars)
-  (destructuring-bind (a b c d) chars
-    (+ (* 1000 (digit-char-p a))
-       (*  100 (digit-char-p b))
-       (*   10 (digit-char-p c))
-       (digit-char-p d))))
+(fn year (maybe fixnum))
+(defun year (offset)
+  "Parser: The YYYY year."
+  (funcall (p:ap (lambda (a b c d)
+                   (+ (* 1000 (digit-char-p a))
+                      (*  100 (digit-char-p b))
+                      (*   10 (digit-char-p c))
+                      (digit-char-p d)))
+                 +any-digit+
+                 +any-digit+
+                 +any-digit+
+                 +any-digit+)
+           offset))
 
 (fn 2-digits (maybe fixnum))
 (defun 2-digits (offset)
@@ -140,23 +143,20 @@ actually received."
 (defun simple-local-time (offset)
   "Parser: Like `local-time', but only parses HH:MM(:SS). Seconds are optional
 here, unlike the usual spec requirement."
-  (multiple-value-bind (res next) (funcall (<*> #'2-digits
-                                                (*> +colon+ #'2-digits)
-                                                (p:opt (*> +colon+ #'2-digits)))
-                                           offset)
-    (if (p:failure? res)
-        (p:fail next)
-        (destructuring-bind (h m s) res
-          (let ((s (or s 0)))
-            (cond ((not (<= 0 h 23)) (p:fail offset))
-                  ((not (<= 0 m 59)) (p:fail offset))
-                  ((or (and (= h 23) (= m 59) (> s 60))
-                       (and (not (= h 23))
-                            (not (= m 59))
-                            (not (<= 0 s 59))))
-                   (p:fail offset))
-                  (t (p:ok next
-                           (make-local-time :hour h :minute m :second s :millis 0)))))))))
+  (funcall (p:ap (lambda (h m s)
+                   (let ((s (or s 0)))
+                     (cond ((not (<= 0 h 23)) :fail)
+                           ((not (<= 0 m 59)) :fail)
+                           ((or (and (= h 23) (= m 59) (> s 60))
+                                (and (not (= h 23))
+                                     (not (= m 59))
+                                     (not (<= 0 s 59))))
+                            :fail)
+                           (t (make-local-time :hour h :minute m :second s :millis 0)))))
+                 #'2-digits
+                 (*> +colon+ #'2-digits)
+                 (p:opt (*> +colon+ #'2-digits)))
+           offset))
 
 #+nil
 (p:parse #'simple-local-time "13:00")
@@ -167,29 +167,29 @@ here, unlike the usual spec requirement."
 additional factional seconds are present, the value will be truncated. Parsing
 of a leap second is generally permitted, since the year/month/day cannot be
 known here."
-  (multiple-value-bind (res next) (funcall (<*> #'2-digits
-                                                (*> +colon+ #'2-digits)
-                                                (*> +colon+ #'2-digits)
-                                                (p:opt (*> +period+ (p:many1 (p:any-if #'p:digit?)))))
-                                           offset)
-    (if (p:failure? res)
-        (p:fail next)
-        (destructuring-bind (h m s millis) res
-          (cond ((not (<= 0 h 23)) (p:fail offset))
-                ((not (<= 0 m 59)) (p:fail offset))
-                ((or (and (= h 23) (= m 59) (> s 60))
-                     (and (not (= h 23))
-                          (not (= m 59))
-                          (not (<= 0 s 59))))
-                 (p:fail offset))
-                (t (p:ok next
-                         (make-local-time :hour h :minute m :second s
-                                          :millis (let ((a (nth 0 millis))
-                                                        (b (nth 1 millis))
-                                                        (c (nth 2 millis)))
-                                                    (+ (if (null a) 0 (* 100 (digit-char-p a)))
-                                                       (if (null b) 0 (* 10 (digit-char-p b)))
-                                                       (if (null c) 0 (digit-char-p c))))))))))))
+  (funcall (p:ap (lambda (h m s millis)
+                   (cond ((not (<= 0 h 23)) :fail)
+                         ((not (<= 0 m 59)) :fail)
+                         ((or (and (= h 23) (= m 59) (> s 60))
+                              (and (not (= h 23))
+                                   (not (= m 59))
+                                   (not (<= 0 s 59))))
+                          :fail)
+                         (t (make-local-time
+                             :hour h
+                             :minute m
+                             :second s
+                             :millis (let ((a (nth 0 millis))
+                                           (b (nth 1 millis))
+                                           (c (nth 2 millis)))
+                                       (+ (if (null a) 0 (* 100 (digit-char-p a)))
+                                          (if (null b) 0 (* 10 (digit-char-p b)))
+                                          (if (null c) 0 (digit-char-p c))))))))
+                 #'2-digits
+                 (*> +colon+ #'2-digits)
+                 (*> +colon+ #'2-digits)
+                 (p:opt (*> +period+ (p:many1 (p:any-if #'p:digit?)))))
+           offset))
 
 #+nil
 (local-time (p:in "00:32:00.123"))
