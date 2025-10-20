@@ -11,6 +11,11 @@
 
 (in-package :parcom/xml)
 
+;; --- Globals --- ;;
+
+(defparameter +empty-hash-table+ (make-hash-table :test #'equal :size 8)
+  "To avoid allocations elsewhere. Not intended to be written to!")
+
 ;; --- Static Parsers --- ;;
 
 (defparameter +equal+          (p:char #\=))
@@ -27,6 +32,7 @@
 (defparameter +doctype+        (p:string "<!DOCTYPE"))
 (defparameter +system+         (p:string "SYSTEM"))
 
+(defparameter +any-space+      (p:any-if #'p:space?))
 (defparameter +peek-close+     (p:peek +tag-close+))
 (defparameter +peek-no-slash+  (p:peek (p:any-but #\/)))
 (defparameter +until-close+    (p:take-until +comment-close+))
@@ -109,32 +115,10 @@ carried."
 #+nil
 (pair (p:in "version=\"1.0\""))
 
-(fn elements (maybe hash-table))
-(defun elements (offset)
-  "Parser: A linear series of elements parsed into a Hash Table."
-  (funcall (p:ap (lambda (els)
-                   (let ((ht (make-hash-table :test #'equal :size 32)))
-                     (dolist (el els)
-                       (let* ((name (element-name el))
-                              (got? (gethash name ht)))
-                         (cond
-                           ((not got?) (setf (gethash name ht) el))
-                           ;; Subelements can share the same name, in which case they
-                           ;; need to be grouped into a list.
-                           ((listp got?) (setf (gethash name ht) (cons el got?)))
-                           ;; Similar to the case above, here we found a key collision,
-                           ;; but a list hasn't been started yet, so we start one.
-                           (t (setf (gethash name ht) (list el got?))))))
-                     ht))
-                 (p:sep-end1 +skip-junk+ #'element))
-           offset))
-
-#+nil
-(p:parse #'elements "<greeting>hi!</greeting>
-<!-- comment -->
-<farewell hi=\"there\">bye!</farewell>
-<!-- comment -->
-")
+(defparameter +take-element-words+
+  (p:take-while1 (lambda (c) (and (not (char= c #\<))
+                                  (not (char= c #\newline))))))
+(defparameter +all-element-words+ (p:sep-end1 +skip-junk+ +take-element-words+))
 
 (fn element (maybe element))
 (defun element (offset)
@@ -148,25 +132,23 @@ carried."
                  (etypecase res
                    (simple-string (values res nil))
                    (cons (values (car res) (cdr res))))
-               (p:fmap (lambda (content)
-                         (make-element :name name :content content :metadata meta))
-                       (funcall (<* (*> +skip-junk+
-                                        (p:alt
-                                         ;; Having this sneaky case here allows us to
-                                         ;; assert `take-while1' below. Look
-                                         ;; carefully; `sep-end' and `take-while'
-                                         ;; would otherwise form an infinite loop.
-                                         (<$ "" +peek-close+)
-                                         #'elements
-                                         ;; Preemptively unwrap a single-element list
-                                         ;; so that it yields just the underlying
-                                         ;; string.
-                                         (p:pmap (lambda (list) (if (null (cdr list)) (car list) list))
-                                                 (p:sep-end1 +skip-junk+
-                                                             (p:take-while1 (lambda (c) (not (or (eql #\< c) (eql #\newline c)))))))))
-                                    +skip-junk+
-                                    (close-tag name))
-                                next)))))))
+               (funcall (p:ap (lambda (content) (make-element :name name :content content :metadata meta))
+                              (<* (*> +skip-junk+
+                                      (p:alt
+                                       ;; Having this sneaky case here allows us to
+                                       ;; assert `take-while1' below. Look
+                                       ;; carefully; `sep-end' and `take-while'
+                                       ;; would otherwise form an infinite loop.
+                                       (<$ "" +peek-close+)
+                                       #'elements
+                                       ;; Preemptively unwrap a single-element list
+                                       ;; so that it yields just the underlying
+                                       ;; string.
+                                       (p:ap (lambda (list) (if (null (cdr list)) (car list) list))
+                                             +all-element-words+)))
+                                  +skip-junk+
+                                  (close-tag name)))
+                        next))))))
 
 #+nil
 (p:parse #'element "<greeting foo=\"bar\">hi!</greeting>")
@@ -187,6 +169,44 @@ carried."
 <greeting>hi</greeting>
 </project>")
 
+(defparameter +elements+ (p:sep-end1 +skip-junk+ #'element))
+
+(fn elements (maybe hash-table))
+(defun elements (offset)
+  "Parser: A linear series of elements parsed into a Hash Table."
+  (funcall (p:ap (lambda (els)
+                   (let ((ht (make-hash-table :test #'equal :size 16)))
+                     (dolist (el els)
+                       (let* ((name (element-name el))
+                              (got? (gethash name ht)))
+                         (cond
+                           ((not got?) (setf (gethash name ht) el))
+                           ;; Subelements can share the same name, in which case they
+                           ;; need to be grouped into a list.
+                           ((listp got?) (setf (gethash name ht) (cons el got?)))
+                           ;; Similar to the case above, here we found a key collision,
+                           ;; but a list hasn't been started yet, so we start one.
+                           (t (setf (gethash name ht) (list el got?))))))
+                     ht))
+                 +elements+)
+           offset))
+
+#+nil
+(p:parse #'elements "<greeting>hi!</greeting>
+<!-- comment -->
+<farewell hi=\"there\">bye!</farewell>
+<!-- comment -->
+")
+
+(defparameter +pairs+ (p:sep-end1 +skip-all-space+ #'pair))
+(defparameter +maybe-pairs+ (p:opt (*> +any-space+ +skip-all-space+ +pairs+)))
+(defparameter +maybe-slash+ (p:opt (*> +skip-space+ +slash+)))
+(defparameter +consume-tag-name+
+  (p:consume (lambda (c)
+               (and (not (p:space? c))
+                    (not (char= c #\>))
+                    (not (char= c #\/))))))
+
 (fn open-tag (maybe (or element cons p::char-string)))
 (defun open-tag (offset)
   "Parser: The <foo> part of an element. If shaped like <foo/> it is in fact
@@ -195,11 +215,13 @@ standalone with no other content, and no closing tag."
             (*> +tag-start+ +peek-no-slash+)
             (p:ap (lambda (consumed meta slash)
                     (let ((meta (when meta
-                                  ;; TODO: 2025-05-20 Abstract this out.
-                                  (let ((ht (make-hash-table :test #'equal :size 32)))
-                                    (dolist (pair meta)
-                                      (setf (gethash (car pair) ht) (cdr pair)))
-                                    ht)))
+                                  (if (null meta)
+                                      +empty-hash-table+
+                                      ;; TODO: 2025-05-20 Abstract this out.
+                                      (let ((ht (make-hash-table :test #'equal :size 8)))
+                                        (dolist (pair meta)
+                                          (setf (gethash (car pair) ht) (cdr pair)))
+                                        ht))))
                           (name (p::direct-copy p::*input* (1+ offset) consumed)))
                       (cond
                         ;; This was a self-closing, standalone tag with no other
@@ -212,14 +234,9 @@ standalone with no other content, and no closing tag."
                         (meta (cons name meta))
                         ;; It was just a simple named tag.
                         (t name))))
-                  (p:consume (lambda (c)
-                               (not (or (p:space? c)
-                                        (eql c #\>)
-                                        (eql c #\/)))))
-                  (p:opt (*> (p:any-if #'p:space?)
-                             +skip-all-space+
-                             (p:sep-end1 +skip-all-space+ #'pair)))
-                  (p:opt (*> +skip-space+ +slash+)))
+                  +consume-tag-name+
+                  +maybe-pairs+
+                  +maybe-slash+)
             +tag-end+)
            offset))
 
@@ -249,10 +266,12 @@ standalone with no other content, and no closing tag."
 (defun xml-metadata (offset)
   "Parser: The version, etc., declarations at the top of the document."
   (funcall (p:ap (lambda (pairs)
-                   (let ((ht (make-hash-table :test #'equal :size 16)))
-                     (dolist (pair pairs)
-                       (setf (gethash (car pair) ht) (cdr pair)))
-                     ht))
+                   (if (null pairs)
+                       +empty-hash-table+
+                       (let ((ht (make-hash-table :test #'equal :size 8)))
+                         (dolist (pair pairs)
+                           (setf (gethash (car pair) ht) (cdr pair)))
+                         ht)))
                  (p:between +meta-open+
                             (p:sep-end1 +skip-space+ #'pair)
                             +meta-close+))

@@ -217,6 +217,10 @@
 ;; (5) Cache on `take-until': 0.75b bytes, 1.48s
 ;; (6) `consume' over `take-while': 0.65b bytes, 1.40s
 ;; (7) Pre-saved global parsers: 0.61 bytes, 0.83s
+;; (8) Various refactors: 0.74 bytes, 0.80s
+;; (9) Avoing HT allocs: 0.60 bytes, 0.80s
+;; (10) `open-tag' caches: 0.50 bytes, 0.71s
+;; (11) `element' caches: 0.40 bytes, 0.68s
 
 ;; --- EMAIL --- ;;
 
