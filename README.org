@@ -193,17 +193,17 @@ SBCL:
 
 | Method     | Times (ms) | Memory (bytes) |
 |------------+------------+----------------|
-| parcom/xml |        447 | 423m           |
-| cxml       |        808 | 497m           |
-| plump      |       1460 | 656m           |
+| parcom/xml |        341 | 161m           |
+| cxml       |        795 | 497m           |
+| plump      |       1450 | 656m           |
 
 Allegro:
 
 | Method     | Time (s) | Memory (cons) | Memory (bytes) |
 |------------+----------+---------------+----------------|
-| parcom/xml |      1.2 | 3m            | 777m           |
-| plump      |      4.2 | 10m           | 790m           |
-| cxml       |      4.3 | 13m           | 684m           |
+| parcom/xml |      1.2 | 2m            | 353m           |
+| plump      |      4.9 | 10m           | 790m           |
+| cxml       |      5.0 | 13m           | 684m           |
 
 ABCL:
 

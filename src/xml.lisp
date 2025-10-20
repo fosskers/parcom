@@ -83,7 +83,7 @@ carried."
 (fn parse (-> p::char-string document))
 (defun parse (input)
   "Attempt to parse a whole XML document."
-  (p:parse (<* #'xml +skip-junk+ #'p:eof)  input))
+  (p:parse (<* #'xml +skip-junk+ #'p:eof) input))
 
 (fn xml (maybe document))
 (defun xml (offset)

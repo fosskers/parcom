@@ -17,7 +17,7 @@
   (/ (apply #'+ list) (float (length list))))
 
 #+nil
-(average '(0.508 0.440 0.619 0.491 0.431))
+(average '(1.15 1.14 1.17))
 
 ;; --- Integer Parsing --- ;;
 
@@ -166,7 +166,7 @@
 
 #+nil
 (let ((s (uiop:read-file-string "tests/data/java.pom")))
-  #-cmucl
+  #+nil
   (progn
     (format t "--- PLUMP ---~%")
     (time (dotimes (n 1000)
@@ -175,20 +175,23 @@
             (plump:parse s)))
     (time (dotimes (n 1000)
             (plump:parse s))))
-  (format t "--- CXML ---~%")
-  (time (dotimes (n 1000)
-          (cxml:parse s (cxml-dom:make-dom-builder))))
-  (time (dotimes (n 1000)
-          (cxml:parse s (cxml-dom:make-dom-builder))))
-  (time (dotimes (n 1000)
-          (cxml:parse s (cxml-dom:make-dom-builder))))
-  (format t "--- PARCOM/XML ---~%")
-  (time (dotimes (n 1000)
-          (px:parse s)))
-  (time (dotimes (n 1000)
-          (px:parse s)))
-  (time (dotimes (n 1000)
-          (px:parse s))))
+  #+nil
+  (progn
+    (format t "--- CXML ---~%")
+    (time (dotimes (n 1000)
+            (cxml:parse s (cxml-dom:make-dom-builder))))
+    (time (dotimes (n 1000)
+            (cxml:parse s (cxml-dom:make-dom-builder))))
+    (time (dotimes (n 1000)
+            (cxml:parse s (cxml-dom:make-dom-builder)))))
+  (progn
+    (format t "--- PARCOM/XML ---~%")
+    (time (dotimes (n 1000)
+            (px:parse s)))
+    (time (dotimes (n 1000)
+            (px:parse s)))
+    (time (dotimes (n 1000)
+            (px:parse s)))))
 
 ;; MEMORY
 #+nil

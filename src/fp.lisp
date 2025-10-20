@@ -107,7 +107,8 @@ its inner result if it happened to be successful."
 (defmacro ap (f parser &rest parsers)
   "Run many parsers that must all succeed, and apply their success values to a
 given lambda. More memory-efficient than the combination of `<*>' and `fmap'."
-  (let ((offset (gensym "ap-OFFSET")))
+  (let ((offset (gensym "ap-OFFSET"))
+        (final  (gensym "ap-FINAL")))
     `(lambda (,offset)
        ,(labels ((recurse (ps rs i)
                    (if (null ps)
@@ -119,10 +120,10 @@ given lambda. More memory-efficient than the combination of `<*>' and `fmap'."
                          ;; got to. Overall this improves error reporting, as
                          ;; there was already nothing preventing the user from
                          ;; yielding `:fail' anyway.
-                         `(let ((final (funcall ,f ,@ordered)))
-                            (if (failure? final)
+                         `(let ((,final (funcall ,f ,@ordered)))
+                            (if (failure? ,final)
                                 (fail ,offset)
-                                (values final ,i))))
+                                (values ,final ,i))))
                        (let ((res  (gensym "ap-RES"))
                              (next (gensym "ap-NEXT")))
                          `(multiple-value-bind (,res ,next) (funcall ,(car ps) ,i)
