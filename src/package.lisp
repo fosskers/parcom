@@ -19,6 +19,7 @@
            #:unsigned #:integer #:float
            #:newline #:space #:space1 #:multispace #:multispace1
            #:take #:take-while #:take-while1 #:rest
+           #:sliding-take #:sliding-take1
            #:pure)
   ;; --- Combinators --- ;;
   (:export #:opt #:between #:pair #:maybe #:not

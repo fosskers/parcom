@@ -393,3 +393,98 @@ complex."
 (rest (in "hello"))
 #+nil
 (funcall (<*> (string "hi") (*> #'space #'rest)) (in "hi there"))
+
+(fn sliding-take (-> (-> character character (values (member :one :two nil) character)) (always cl:string)))
+(defun sliding-take (f)
+  "Parser: Like `take-while', but check two characters at a time. Very useful for
+parsing escaped characters where the backslash and char need to be analyzed at
+the same time.
+
+The given function must yield two values via `values':
+
+- The keyword `:one' and a character to keep if you only wish to advance the
+  parser by one place. For instance, when the character wasn't escaped.
+- The keyword `:two' and a character to keep if you want to advance the parser
+  by two.
+
+Note that in both cases, the character yielded by your lambda need not be one of
+the inputs given to it. For example, if it detected a backslash and an `n', it
+could yield the single Lisp newline character.
+
+Like other parsers/combinators in this series, this parser need not succeed even
+a single time. See `sliding-take1' for that."
+  (lambda (offset)
+    (declare (optimize (speed 3) (safety 0)))
+    (let* ((s (make-array 16 :element-type 'character :adjustable t :fill-pointer 0))
+           (keep (loop :with i fixnum := offset
+                       :while (< i *input-length*)
+                       :do (let ((a (schar *input* i))
+                                 (b (if (< i (1- *input-length*))
+                                        (schar *input* (1+ i))
+                                        #\Nul)))
+                             (multiple-value-bind (kw c) (funcall f a b)
+                               (case kw
+                                 (:one
+                                  (incf i)
+                                  (vector-push-extend c s))
+                                 (:two
+                                  (incf i 2)
+                                  (vector-push-extend c s))
+                                 (t (return (- i offset))))))
+                       :finally (return (- i offset))))
+           (next (off keep offset)))
+      (values s next))))
+
+#+nil
+(parse (sliding-take (lambda (a b)
+                       (cond ((and (char= a #\\)
+                                   (char= b #\n))
+                              (values :two #\newline))
+                             (t (values :one a)))))
+       "Hello \\n there!")
+
+(fn sliding-take1 (-> (-> character character (values (member :one :two nil) character)) (maybe cl:string)))
+(defun sliding-take1 (f)
+  "Parser: A variant of `sliding-take' which requires the predicate to pass at least once."
+  (lambda (offset)
+    (declare (optimize (speed 3) (safety 0)))
+    ;; NOTE: We are checking by hand if an initial parse will succeed, and only
+    ;; after that do we allocate a result vector.
+    (if (>= offset *input-length*)
+        (fail offset)
+        (let ((a (schar *input* offset))
+              (b (if (< offset (1- *input-length*))
+                     (schar *input* (1+ offset))
+                     #\Nul)))
+          (multiple-value-bind (kw c) (funcall f a b)
+            (if (cl:not (or (eq :one kw)
+                            (eq :two kw)))
+                (fail offset)
+                (let* ((s (make-array 8 :element-type 'character :adjustable t :fill-pointer 1 :initial-element c))
+                       (start (if (eq :one kw) (1+ offset) (+ 2 offset)))
+                       (keep (loop :with i fixnum := start
+                                   :while (< i *input-length*)
+                                   :do (let* ((a (schar *input* i))
+                                              (b (if (< i (1- *input-length*))
+                                                     (schar *input* (1+ i))
+                                                     #\Nul)))
+                                         (multiple-value-bind (kw c) (funcall f a b)
+                                           (case kw
+                                             (:one
+                                              (incf i)
+                                              (vector-push-extend c s))
+                                             (:two
+                                              (incf i 2)
+                                              (vector-push-extend c s))
+                                             (t (return (- i offset))))))
+                                   :finally (return (- i offset))))
+                       (next (off keep offset)))
+                  (values s next))))))))
+
+#+nil
+(parse (sliding-take1 (lambda (a b)
+                        (cond ((and (char= a #\\)
+                                    (char= b #\n))
+                               (values :two #\newline))
+                              (t (values :one a)))))
+       "Hello \\n there!")

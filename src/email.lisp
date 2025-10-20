@@ -106,87 +106,6 @@
       (char<= #\] c #\~)
       (obs-no-ws-ctl? c)))
 
-;; --- Utilities --- ;;
-
-;; (declaim (ftype (function ((function (character character) (values keyword character)))
-;;                           (values string fixnum))
-;;                 sliding-take))
-(defun sliding-take (f)
-  (lambda (offset)
-    (declare (optimize (speed 3) (safety 0)))
-    (let* ((s (make-array 16 :element-type 'character :adjustable t :fill-pointer 0))
-           (keep (loop :with i fixnum := offset
-                       :while (< i p::*input-length*)
-                       :do (let ((a (schar p::*input* i))
-                                 (b (if (< i (1- p::*input-length*))
-                                        (schar p::*input* (1+ i))
-                                        #\Nul)))
-                             (multiple-value-bind (kw c) (funcall f a b)
-                               (case kw
-                                 (:one
-                                  (incf i)
-                                  (vector-push-extend c s))
-                                 (:two
-                                  (incf i 2)
-                                  (vector-push-extend c s))
-                                 (t (return (- i offset))))))
-                       :finally (return (- i offset))))
-           (next (p::off keep offset)))
-      (values s next))))
-
-#+nil
-(p:parse (sliding-take (lambda (a b)
-                         (cond ((and (char= a #\\)
-                                     (char= b #\n))
-                                (values :two #\newline))
-                               (t (values :one a)))))
-         "Hello \\n there!")
-
-(defun sliding-take1 (f)
-  "A variant of `sliding-take' which requires the predicate to pass at least once.
-Implementation note: We are checking by hand if an initial parse will succeed,
-and only after that do we allocate a result vector."
-  (lambda (offset)
-    (declare (optimize (speed 3) (safety 0)))
-    (if (>= offset p::*input-length*)
-        (p:fail offset)
-        (let ((a (schar p::*input* offset))
-              (b (if (< offset (1- p::*input-length*))
-                     (schar p::*input* (1+ offset))
-                     #\Nul)))
-          (multiple-value-bind (kw c) (funcall f a b)
-            (if (not (or (eq :one kw)
-                         (eq :two kw)))
-                (p:fail offset)
-                (let* ((s (make-array 8 :element-type 'character :adjustable t :fill-pointer 1 :initial-element c))
-                       (start (if (eq :one kw) (1+ offset) (+ 2 offset)))
-                       (keep (loop :with i fixnum := start
-                                   :while (< i p::*input-length*)
-                                   :do (let* ((a (schar p::*input* i))
-                                              (b (if (< i (1- p::*input-length*))
-                                                     (schar p::*input* (1+ i))
-                                                     #\Nul)))
-                                         (multiple-value-bind (kw c) (funcall f a b)
-                                           (case kw
-                                             (:one
-                                              (incf i)
-                                              (vector-push-extend c s))
-                                             (:two
-                                              (incf i 2)
-                                              (vector-push-extend c s))
-                                             (t (return (- i offset))))))
-                                   :finally (return (- i offset))))
-                       (next (p::off keep offset)))
-                  (values s next))))))))
-
-#+nil
-(p:parse (sliding-take1 (lambda (a b)
-                          (cond ((and (char= a #\\)
-                                      (char= b #\n))
-                                 (values :two #\newline))
-                                (t (values :one a)))))
-         "Hello \\n there!")
-
 ;; --- Static Parsers --- ;;
 
 (defparameter +@+             (p:char #\@))
@@ -300,9 +219,9 @@ have contained any number of junk characters or comments."
 (p:parse #'comment "(hello(there))")
 
 (defparameter +ccontent+
-  (sliding-take1 (lambda (a b)
-                   (cond ((ctext? a) (values :one a))
-                         ((quoted-pair? a b) (values :two b))))))
+  (p:sliding-take1 (lambda (a b)
+                     (cond ((ctext? a) (values :one a))
+                           ((quoted-pair? a b) (values :two b))))))
 
 (defun ccontent (offset)
   (funcall (p:alt +ccontent+ #'comment) offset))
@@ -365,9 +284,9 @@ have contained any number of junk characters or comments."
 ;; Whitespace: https://datatracker.ietf.org/doc/html/rfc5322#section-3.2.2
 
 (defparameter +sliding-quoted-pairs+
-  (sliding-take1 (lambda (a b)
-                   (cond ((qtext? a) (values :one a))
-                         ((quoted-pair? a b) (values :two b))))))
+  (p:sliding-take1 (lambda (a b)
+                     (cond ((qtext? a) (values :one a))
+                           ((quoted-pair? a b) (values :two b))))))
 
 (defparameter +many-quoted-pairs+
   (p:many (*> +opt-fws+ +sliding-quoted-pairs+)))
@@ -459,9 +378,9 @@ have contained any number of junk characters or comments."
   (funcall (p:recognize (*> +bracket-open+ #'many-dtext +bracket-close+)) offset))
 
 (defparameter +many-dtext+
-  (sliding-take (lambda (a b)
-                  (cond ((dtext? a) (values :one a))
-                        ((quoted-pair? a b) (values :two b))))))
+  (p:sliding-take (lambda (a b)
+                    (cond ((dtext? a) (values :one a))
+                          ((quoted-pair? a b) (values :two b))))))
 
 (defun many-dtext (offset)
   "Parser: Potentially escaped characters."

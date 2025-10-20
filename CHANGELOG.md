@@ -9,11 +9,15 @@ have been greatly elaborated across the various systems.
 
 - `->`, `fn`, `always`, and `maybe` for concise definition of function
   signatures that involve parsers.
+- Parser: `sliding-take` and `sliding-take1` for parsing escaped characters
+  efficiently.
 
 #### Changed
 
 - `<$` is now a macro.
 - `between` is now a macro.
+- `:fail` can be returned from the lambda given to `ap` to fail the whole parse.
+  This is useful for manually validating the results of parse. 
 - toml: Improved performance.
 
 #### Removed

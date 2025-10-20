@@ -55,6 +55,7 @@ read their associated formats:
       - [[#take][take]]
       - [[#take-while-take-while1][take-while, take-while1]]
       - [[#consume-consume1][consume, consume1]]
+      - [[#sliding-take-sliding-take1][sliding-take, sliding-take1]]
       - [[#rest][rest]]
     - [[#other][Other]]
       - [[#pure][pure]]
@@ -561,6 +562,37 @@ don't need the parsed output.
 : T, 3
 
 =consume1= requires at least one application of the predicate to succeed.
+
+**** sliding-take, sliding-take1
+
+Like =take-while=, but check two characters at a time. Very useful for parsing
+escaped characters where the backslash and char need to be analyzed at the same
+time.
+
+The given function must yield two values via =values=:
+
+- The keyword =:one= and a character to keep if you only wish to advance the
+  parser by one place. For instance, when the character wasn't escaped.
+- The keyword =:two= and a character to keep if you want to advance the parser by
+  two.
+
+Note that in both cases, the character yielded by your lambda need not be one of
+the inputs given to it. For example, if it detected a backslash and an =#\n=, it
+could yield the single Lisp =#\newline= character.
+
+#+begin_src lisp :exports both :results verbatim
+(in-package :parcom)
+(parse (sliding-take (lambda (a b)
+                       (cond ((and (char= a #\\)
+                                   (char= b #\n))
+                              (values :two #\newline))
+                             (t (values :one a)))))
+       "Hello \\n there!")
+#+end_src
+
+#+RESULTS:
+: Hello 
+:  there!
 
 **** rest
 
