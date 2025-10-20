@@ -150,7 +150,7 @@ successful, in order to save on memory."
     (let ((i (if (>= offset *input-length*)
                  0
                  (loop :for i fixnum :from 0 :below (length s)
-                       :while (equal (schar s i) (schar *input* (+ i offset)))
+                       :while (char= (schar s i) (schar *input* (+ i offset)))
                        :finally (return i)))))
       (if (= i (length s))
           (ok (off (length s) offset) s)
