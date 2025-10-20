@@ -170,10 +170,21 @@ even if not followed by an instance of the main parser."
 the separator eagerly, such that a final instance of it will also be parsed,
 even if not followed by an instance of the main parser."
   (lambda (offset)
-    (multiple-value-bind (res next) (funcall (sep-end sep parser) offset)
-      (if (null res)
-          (fail offset)
-          (values res next)))))
+    (labels ((recurse (acc in)
+               (multiple-value-bind (res next) (funcall parser in)
+                 (if (failure? res)
+                     (ok in acc)
+                     (multiple-value-bind (sep-res sep-next) (funcall sep next)
+                       (if (failure? sep-res)
+                           (ok next (cons res acc))
+                           (recurse (cons res acc) sep-next)))))))
+      (multiple-value-bind (res next) (funcall parser offset)
+        (if (failure? res)
+            (fail offset)
+            (multiple-value-bind (sep-res sep-next) (funcall sep next)
+              (if (failure? sep-res)
+                  (ok next (list res))
+                  (fmap #'nreverse (recurse (list res) sep-next)))))))))
 
 #+nil
 (funcall (sep-end1 (char #\!) (string "pilum")) (in "."))
