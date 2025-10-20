@@ -221,6 +221,7 @@
 ;; (9) Avoing HT allocs: 0.60 bytes, 0.80s
 ;; (10) `open-tag' caches: 0.50 bytes, 0.71s
 ;; (11) `element' caches: 0.40 bytes, 0.68s
+;; (12) Inline `close-tag': 0.32 bytes, 0.68s
 
 ;; --- EMAIL --- ;;
 

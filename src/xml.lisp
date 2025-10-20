@@ -147,7 +147,7 @@ carried."
                                        (p:ap (lambda (list) (if (null (cdr list)) (car list) list))
                                              +all-element-words+)))
                                   +skip-junk+
-                                  (close-tag name)))
+                                  (p:between +tag-close+ (p:string name) +tag-end+)))
                         next))))))
 
 #+nil
@@ -175,7 +175,7 @@ carried."
 (defun elements (offset)
   "Parser: A linear series of elements parsed into a Hash Table."
   (funcall (p:ap (lambda (els)
-                   (let ((ht (make-hash-table :test #'equal :size 16)))
+                   (let ((ht (make-hash-table :test #'equal :size 8)))
                      (dolist (el els)
                        (let* ((name (element-name el))
                               (got? (gethash name ht)))
@@ -222,6 +222,12 @@ standalone with no other content, and no closing tag."
                                         (dolist (pair meta)
                                           (setf (gethash (car pair) ht) (cdr pair)))
                                         ht))))
+                          ;; NOTE: 2025-10-21 In theory the associated `consume'
+                          ;; call could have just been a `take-while', but I
+                          ;; suppose the original logic was that since this
+                          ;; string has to later be reused within `close-tag',
+                          ;; that a reallocated, non-displaced string would have
+                          ;; better CPU performance.
                           (name (p::direct-copy p::*input* (1+ offset) consumed)))
                       (cond
                         ;; This was a self-closing, standalone tag with no other
@@ -248,19 +254,6 @@ standalone with no other content, and no closing tag."
 (p:parse #'open-tag "<greeting foo=\"bar\" baz=\"zoo\"/>")
 #+nil
 (p:parse #'open-tag "<organization />")
-
-;; FIXME: 2025-10-20 Consider using a cache for the label here to avoid repeated
-;; allocations.
-(fn close-tag (-> p::char-string (maybe p::char-string)))
-(defun close-tag (label)
-  (lambda (offset)
-    (funcall (p:between +tag-close+
-                        (p:string label)
-                        +tag-end+)
-             offset)))
-
-#+nil
-(p:parse (close-tag "greeting") "</greeting>")
 
 (fn xml-metadata (maybe hash-table))
 (defun xml-metadata (offset)
