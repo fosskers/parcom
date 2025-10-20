@@ -1,6 +1,6 @@
 # Parcom Changelog
 
-### Unreleased
+### 1.6.0 (2025-10-21)
 
 The theme of this release is "type information". Overall, function signatures
 have been greatly elaborated across the various systems.
