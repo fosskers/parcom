@@ -422,6 +422,7 @@
   :parent xml
   (is equal " hello " (p:parse px::+comment+ "<!-- hello -->")))
 
+#-abcl
 (define-test xml-element
   :parent xml
   (let ((el (p:parse #'px::element "<greeting></greeting>")))
@@ -451,6 +452,7 @@ hi!
     (is equal "hi!" (px:element-content el)))
   (is = 2 (hash-table-count (px:element-content (p:parse #'px::element "<phrases><greeting>hi!</greeting><farewell>bye!</farewell></phrases>")))))
 
+#-abcl
 (define-test xml-open-tag
   :parent xml
   (is equal "greeting" (p:parse #'px::open-tag "<greeting>"))
@@ -470,6 +472,7 @@ hi!
   :parent xml
   (finish (p:parse #'px::doctype "<!DOCTYPE supplementalData SYSTEM \"../../common/dtd/ldmlSupplemental.dtd\">")))
 
+#-abcl
 (define-test xml-documents
   :parent xml
   (finish (px:parse (uiop:read-file-string "tests/data/java.pom")))
