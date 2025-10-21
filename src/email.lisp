@@ -29,7 +29,7 @@
 (defpackage parcom/email
   (:use :cl)
   (:shadow #:atom)
-  (:import-from :parcom #:<*> #:<* #:*> #:<$ #:fn #:-> #:always #:maybe)
+  (:import-from :parcom #:<* #:*> #:<$ #:fn #:-> #:always #:maybe)
   (:local-nicknames (#:p #:parcom))
   ;; --- Exposed Parsers --- ;;
   (:export #:addr-spec #:msg-id)
@@ -293,34 +293,32 @@ have contained any number of junk characters or comments."
 
 (defun quoted-string (offset)
   "No whitespace around or within the quotes is considered actual content."
-  (p:fmap (lambda (list) (apply #'concatenate 'string list))
-          (funcall (*> +opt-cfws+
-                       +quote+
-                       ;; FIXME: 2025-09-10 This `many' is wasteful and forces a
-                       ;; reallocation into a single string above. I'm not sure
-                       ;; how to get around it though, given that `fws' has a
-                       ;; specific structure that is not just a matter of
-                       ;; `consuming' over whitespace.
-                       (<* +many-quoted-pairs+
-                           +opt-fws+
-                           +quote+
-                           +opt-cfws+))
-                   offset)))
+  (funcall (p:ap (lambda (list) (apply #'concatenate 'string list))
+                 (*> +opt-cfws+
+                     +quote+
+                     ;; FIXME: 2025-09-10 This `many' is wasteful and forces a
+                     ;; reallocation into a single string above. I'm not sure
+                     ;; how to get around it though, given that `fws' has a
+                     ;; specific structure that is not just a matter of
+                     ;; `consuming' over whitespace.
+                     (<* +many-quoted-pairs+
+                         +opt-fws+
+                         +quote+
+                         +opt-cfws+)))
+           offset))
 
 #+nil
 (p:parse #'quoted-string "\"hello \\\" there\"")
 
-(defparameter +domain-literal+
-  (p:between +opt-cfws+
-             (<*> +bracket-open+
-                  (p:many (*> +opt-fws+
-                              #'many-dtext1))
-                  (*> +opt-fws+ +bracket-close+))
-             +opt-cfws+))
-
 (defun domain-literal (offset)
-  (p:fmap (lambda (list) (format nil "[~{~a~}]" (cadr list)))
-          (funcall +domain-literal+ offset)))
+  (funcall
+   (p:between +opt-cfws+
+              (p:between +bracket-open+
+                         (p:ap (lambda (list) (format nil "[~{~a~}]" list))
+                               (p:many (*> +opt-fws+ #'many-dtext1)))
+                         (*> +opt-fws+ +bracket-close+))
+              +opt-cfws+)
+   offset))
 
 #+nil
 (p:parse #'domain-literal "[hello there]")
@@ -343,8 +341,9 @@ have contained any number of junk characters or comments."
   (p:sep1 +period+ #'word))
 
 (defun obs-local-part (offset)
-  (p:fmap (lambda (list) (format nil "~{~a~^.~}" list))
-          (funcall +obs-local-part+ offset)))
+  (funcall (p:ap (lambda (list) (format nil "~{~a~^.~}" list))
+                 +obs-local-part+)
+           offset))
 
 #+nil
 (p:parse #'obs-local-part "hello . there . hi")
@@ -353,8 +352,9 @@ have contained any number of junk characters or comments."
   (p:sep1 +period+ #'atom))
 
 (defun obs-domain (offset)
-  (p:fmap (lambda (list) (format nil "~{~a~^.~}" list))
-          (funcall +obs-domain+ offset)))
+  (funcall (p:ap (lambda (list) (format nil "~{~a~^.~}" list))
+                 +obs-domain+)
+           offset))
 
 #+nil
 (p:parse #'obs-domain "yes . hello . there")
