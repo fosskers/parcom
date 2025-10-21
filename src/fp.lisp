@@ -172,7 +172,14 @@ given lambda. More memory-efficient than the combination of `<*>' and `fmap'."
 (defmacro <$ (item parser)
   "Run some parser, but substitute its inner value with some `item' if parsing was
   successful."
-  `(lambda (offset) (fmap (const ,item) (funcall ,parser offset))))
+  (let ((offset (gensym "<$-OFFSET"))
+        (res    (gensym "<$-RES"))
+        (next   (gensym "<$-NEXT")))
+    `(lambda (,offset)
+       (multiple-value-bind (,res ,next) (funcall ,parser ,offset)
+         (if (failure? ,res)
+             (fail ,next)
+             (values ,item ,next))))))
 
 #++
 (funcall (<$ 1 #'any) (in "Ho"))

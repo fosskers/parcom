@@ -19,6 +19,7 @@ have been greatly elaborated across the various systems.
 - `:fail` can be returned from the lambda given to `ap` to fail the whole parse.
   This is useful for manually validating the results of parse. 
 - toml: Improved performance.
+- xml: Improved performance.
 
 #### Removed
 
