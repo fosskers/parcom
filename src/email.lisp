@@ -141,6 +141,7 @@ have contained any number of junk characters or comments."
 
 ;; --- Entry --- ;;
 
+(fn parse (-> p::char-string address))
 (defun parse (input)
   "Attempt to parse an email address."
   (p:parse (<* #'addr-spec #'p:eof) input))
@@ -211,6 +212,7 @@ have contained any number of junk characters or comments."
                  +opt-fws+)
              +paren-close+))
 
+(fn comment (maybe (member nil)))
 (defun comment (offset)
   "Yields NIL if successful."
   (funcall +comment+ offset))
@@ -223,6 +225,7 @@ have contained any number of junk characters or comments."
                      (cond ((ctext? a) (values :one a))
                            ((quoted-pair? a b) (values :two b))))))
 
+(fn ccontent (maybe (or string (member nil))))
 (defun ccontent (offset)
   (funcall (p:alt +ccontent+ #'comment) offset))
 
@@ -237,6 +240,7 @@ have contained any number of junk characters or comments."
 (defparameter +recognize-atoms+
   (p:recognize +period-sep-atext+))
 
+(fn dot-atom-text (maybe string))
 (defun dot-atom-text (offset)
   "Parser: Simple dot-separated ascii atoms."
   (funcall +recognize-atoms+ offset))
@@ -244,19 +248,19 @@ have contained any number of junk characters or comments."
 #+nil
 (p:parse #'dot-atom-text "foo.bar.baz")
 
-(defparameter +dot-atom+
-  (p:between +opt-cfws+
-             #'dot-atom-text
-             +opt-cfws+))
-
+(fn dot-atom (maybe string))
 (defun dot-atom (offset)
-  (funcall +dot-atom+ offset))
+  (funcall (p:between +opt-cfws+
+                      #'dot-atom-text
+                      +opt-cfws+)
+           offset))
 
 #+nil
 (p:parse #'dot-atom "   (hi)hello(there)    ")
 
 ;; --- Content Parsers --- ;;
 
+(fn addr-spec (maybe address))
 (defun addr-spec (offset)
   (funcall (p:ap (lambda (name domain) (make-address :name name :domain domain))
                  #'local-part
@@ -269,12 +273,14 @@ have contained any number of junk characters or comments."
 #+nil
 (p:parse #'addr-spec "alice@bob@charles.com")
 
+(fn local-part (maybe string))
 (defun local-part (offset)
   (funcall (p:alt (<* #'dot-atom +peek-@+)
                   (<* #'quoted-string +peek-@+)
                   #'obs-local-part)
            offset))
 
+(fn domain (maybe string))
 (defun domain (offset)
   (funcall (p:alt (<* #'dot-atom +peek-eof+)
                   #'domain-literal
@@ -291,6 +297,7 @@ have contained any number of junk characters or comments."
 (defparameter +many-quoted-pairs+
   (p:many (*> +opt-fws+ +sliding-quoted-pairs+)))
 
+(fn quoted-string (maybe p::char-string))
 (defun quoted-string (offset)
   "No whitespace around or within the quotes is considered actual content."
   (funcall (p:ap (lambda (list) (apply #'concatenate 'string list))
@@ -310,6 +317,7 @@ have contained any number of junk characters or comments."
 #+nil
 (p:parse #'quoted-string "\"hello \\\" there\"")
 
+(fn domain-literal (maybe simple-string))
 (defun domain-literal (offset)
   (funcall
    (p:between +opt-cfws+
@@ -323,6 +331,7 @@ have contained any number of junk characters or comments."
 #+nil
 (p:parse #'domain-literal "[hello there]")
 
+(fn word (maybe string))
 (defun word (offset)
   (funcall (p:alt #'atom #'quoted-string) offset))
 
@@ -331,6 +340,7 @@ have contained any number of junk characters or comments."
              (p:take-while1 #'atext?)
              +opt-cfws+))
 
+(fn atom (maybe string))
 (defun atom (offset)
   (funcall +atom+ offset))
 
@@ -340,6 +350,7 @@ have contained any number of junk characters or comments."
 (defparameter +obs-local-part+
   (p:sep1 +period+ #'word))
 
+(fn obs-local-part (maybe simple-string))
 (defun obs-local-part (offset)
   (funcall (p:ap (lambda (list) (format nil "~{~a~^.~}" list))
                  +obs-local-part+)
@@ -351,6 +362,7 @@ have contained any number of junk characters or comments."
 (defparameter +obs-domain+
   (p:sep1 +period+ #'atom))
 
+(fn obs-domain (maybe simple-string))
 (defun obs-domain (offset)
   (funcall (p:ap (lambda (list) (format nil "~{~a~^.~}" list))
                  +obs-domain+)
@@ -359,6 +371,7 @@ have contained any number of junk characters or comments."
 #+nil
 (p:parse #'obs-domain "yes . hello . there")
 
+(fn msg-id (maybe address))
 (defun msg-id (offset)
   (funcall (p:ap (lambda (name domain) (make-address :name name :domain domain))
                  #'id-left
