@@ -493,7 +493,7 @@ hi!
 
 (define-test email-strange
   :parent email
-  (finish (pe:parse "email@[123.123.123.123]"))
+  (is equal "[123.123.123.123]" (pe:address-domain (pe:parse "email@[123.123.123.123]")))
   (finish (pe:parse "much.\"more\\ unusual\"@example.com"))
   (finish (pe:parse "very.unusual.\"@\".unusual.com@example.com")))
 

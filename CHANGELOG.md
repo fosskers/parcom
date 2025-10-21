@@ -1,5 +1,16 @@
 # Parcom Changelog
 
+### Unreleased
+
+#### Changed
+
+- Safety of `many` and `many1` further improved.
+
+#### Fixed
+
+- `(safety 0)` within `sliding-take` was manifesting as a strange crash under
+  SBCL within the `email` system.
+
 ### 1.6.0 (2025-10-21)
 
 The theme of this release is "type information". Overall, function signatures

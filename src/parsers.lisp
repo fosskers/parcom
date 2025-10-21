@@ -414,7 +414,7 @@ could yield the single Lisp newline character.
 Like other parsers/combinators in this series, this parser need not succeed even
 a single time. See `sliding-take1' for that."
   (lambda (offset)
-    (declare (optimize (speed 3) (safety 0)))
+    (declare (optimize (speed 3)))
     (let* ((s (make-array 16 :element-type 'character :adjustable t :fill-pointer 0))
            (keep (loop :with i fixnum := offset
                        :while (< i *input-length*)
@@ -447,7 +447,7 @@ a single time. See `sliding-take1' for that."
 (defun sliding-take1 (f)
   "Parser: A variant of `sliding-take' which requires the predicate to pass at least once."
   (lambda (offset)
-    (declare (optimize (speed 3) (safety 0)))
+    (declare (optimize (speed 3)))
     ;; NOTE: We are checking by hand if an initial parse will succeed, and only
     ;; after that do we allocate a result vector.
     (if (>= offset *input-length*)
