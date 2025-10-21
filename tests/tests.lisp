@@ -131,6 +131,7 @@
 (define-test many
   :parent combinators
   (is equal nil (p:parse (p:many (p:string "ovēs")) "ovis"))
+  (is equal '("ovēs" "ovēs" "ovēs") (p:parse (p:many (p:string "ovēs")) "ovēsovēsovēs"))
   (is equal '("ovēs" "ovēs" "ovēs") (p:parse (p:many (p:string "ovēs")) "ovēsovēsovēs!"))
   (is equal '("ovēs" "ovēs" "avis") (p:parse (p:many (p:alt (p:string "ovēs") (p:string "avis"))) "ovēsovēsavis!"))
   (finish (p:parse (p:*> (p:many (p:*> (p:string "ov") (p:string "ēs")))
@@ -140,6 +141,7 @@
 (define-test many1
   :parent combinators
   (fail (p:parse (p:many1 (p:string "ovēs")) "ovis"))
+  (is equal '("ovēs" "ovēs" "ovēs") (p:parse (p:many1 (p:string "ovēs")) "ovēsovēsovēs"))
   (is equal '("ovēs" "ovēs" "ovēs") (p:parse (p:many1 (p:string "ovēs")) "ovēsovēsovēs!"))
   (finish (p:parse (p:*> (p:many1 (p:*> (p:string "ov") (p:string "ēs")))
                          (p:string "ov!"))

@@ -45,21 +45,23 @@ kept. Good for parsing backets, parentheses, etc."
 (defun many (parser)
   "Parse 0 or more occurrences of a `parser'."
   (lambda (offset)
+    (declare (type fixnum offset))
     (declare (optimize (speed 3)))
-    (multiple-value-bind (res next) (funcall parser offset)
-      (if (failure? res)
-          (ok offset '())
-          (let* ((inp next)
-                 (res res)
-                 (final (loop :while (ok? res)
-                              :collect res
-                              :do (multiple-value-bind (r i) (funcall parser inp)
-                                    (setf res r)
-                                    (when (ok? r) (setf inp i))))))
-            (ok inp final))))))
+    (let* ((inp offset)
+           (res '())
+           (final (loop :while (< inp *input-length*)
+                        :do (multiple-value-bind (r i) (funcall parser inp)
+                              (if (failure? r)
+                                  (return res)
+                                  (progn (setf inp i)
+                                         (push r res))))
+                        :finally (return res))))
+      (ok inp (nreverse final)))))
 
 #+nil
 (funcall (many (string "ovēs")) (in "ovis"))
+#+nil
+(funcall (many (string "ovēs")) (in "ovēsovēsovēs"))
 #+nil
 (funcall (many (string "ovēs")) (in "ovēsovēsovēs!"))
 #+nil
@@ -69,18 +71,21 @@ kept. Good for parsing backets, parentheses, etc."
 (defun many1 (parser)
   "Parse 1 or more occurrences of a `parser'."
   (lambda (offset)
+    (declare (type fixnum offset))
     (declare (optimize (speed 3)))
     (multiple-value-bind (res next) (funcall parser offset)
       (if (failure? res)
           (fail offset)
           (let* ((inp next)
-                 (res res)
-                 (final (loop :while (ok? res)
-                              :collect res
+                 (res (list res))
+                 (final (loop :while (< inp *input-length*)
                               :do (multiple-value-bind (r i) (funcall parser inp)
-                                    (setf res r)
-                                    (when (ok? r) (setf inp i))))))
-            (ok inp final))))))
+                                    (if (failure? r)
+                                        (return res)
+                                        (progn (setf inp i)
+                                               (push r res))))
+                              :finally (return res))))
+            (ok inp (nreverse final)))))))
 
 #+nil
 (funcall (many1 (string "ovēs")) (in "ovis"))
