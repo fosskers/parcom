@@ -1,6 +1,8 @@
 # Parcom Changelog
 
-### Unreleased
+### 1.6.1 (2025-10-22)
+
+A funny bug snuck through.
 
 #### Changed
 
