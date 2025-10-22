@@ -381,12 +381,15 @@ have contained any number of junk characters or comments."
 #+nil
 (p:parse #'msg-id "colin@fosskers.ca")
 
+(fn id-left (maybe string))
 (defun id-left (offset)
   (funcall (p:alt #'dot-atom-text #'local-part) offset))
 
+(fn id-right (maybe string))
 (defun id-right (offset)
   (funcall (p:alt #'dot-atom-text #'no-fold-literal #'domain) offset))
 
+(fn no-fold-literal (maybe string))
 (defun no-fold-literal (offset)
   (funcall (p:recognize (*> +bracket-open+ #'many-dtext +bracket-close+)) offset))
 
@@ -395,15 +398,25 @@ have contained any number of junk characters or comments."
                     (cond ((dtext? a) (values :one a))
                           ((quoted-pair? a b) (values :two b))))))
 
+(fn many-dtext (always string))
 (defun many-dtext (offset)
   "Parser: Potentially escaped characters."
   (funcall +many-dtext+ offset))
+
+#+nil
+(defun many-dtext (offset)
+  "Parser: Potentially escaped characters."
+  (funcall (p:sliding-take (lambda (a b)
+                             (cond ((dtext? a) (values :one a))
+                                   ((quoted-pair? a b) (values :two b)))))
+           offset))
 
 #+nil
 (p:parse #'many-dtext "Hello\\ there")
 #+nil
 (p:parse #'many-dtext "Hello there")
 
+(fn many-dtext1 (maybe string))
 (defun many-dtext1 (offset)
   "Parser: Potentially escaped characters."
   (multiple-value-bind (res next) (many-dtext offset)
@@ -414,3 +427,5 @@ have contained any number of junk characters or comments."
 #+nil
 (p:parse #'many-dtext1 "")
 
+#+nil
+(parse "email@[1]")
