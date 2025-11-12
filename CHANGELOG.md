@@ -1,5 +1,10 @@
 # Parcom Changelog
 
+### 1.6.2 (2025-11-13)
+
+The bug appears to be gone, at least with SBCL 2.5.10. Other compilers have no
+issue.
+
 ### 1.6.1 (2025-10-22)
 
 A funny bug snuck through.

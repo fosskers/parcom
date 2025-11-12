@@ -1,5 +1,5 @@
 (defsystem "parcom"
-  :version "1.6.1"
+  :version "1.6.2"
   :author "Colin Woodbury <colin@fosskers.ca>"
   :license "MPL-2.0"
   :homepage "https://github.com/fosskers/parcom"
