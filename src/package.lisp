@@ -15,7 +15,7 @@
            #:*> #:<* #:ap #:<*> #:<$ #:alt)
   ;; --- Parsers --- ;;
   (:export #:any #:any-but #:any-if #:hex #:unicode #:control-char #:eof
-           #:char #:string
+           #:char #:string #:string-lenient
            #:unsigned #:integer #:float
            #:newline #:space #:space1 #:multispace #:multispace1
            #:take #:take-while #:take-while1 #:rest

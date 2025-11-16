@@ -140,10 +140,11 @@
 #++
 (funcall (*> (char #\H) (char #\e)) (in "Hello"))
 
-(fn string (-> cl:string (maybe cl:string)))
+(fn string (-> char-string (maybe char-string)))
 (defun string (s)
-  "Parser: Parse a given string. Yields the original string itself if parsing was
-successful, in order to save on memory."
+  "Parser: Parse a given string, limited to the most efficient string type. Yields
+the original string itself if parsing was successful, in order to save on
+memory."
   (lambda (offset)
     (declare (optimize (speed 3) (safety 0)))
     (declare (type fixnum offset))
@@ -164,6 +165,23 @@ successful, in order to save on memory."
 (funcall (string "Hēllo") (in "Hēllo yes"))
 #++
 (funcall (string "HellO") (in "Hello yes"))
+
+(fn string-lenient (-> cl:string (maybe cl:string)))
+(defun string-lenient (s)
+  "Parser: Like `string' but parses any string type, thereby a bit slower. Yields
+the original string itself if parsing was successful, in order to save on
+memory."
+  (lambda (offset)
+    (declare (optimize (speed 3) (safety 0)))
+    (declare (type fixnum offset))
+    (let ((i (if (>= offset *input-length*)
+                 0
+                 (loop :for i fixnum :from 0 :below (length s)
+                       :while (char= (cl:char s i) (schar *input* (+ i offset)))
+                       :finally (return i)))))
+      (if (= i (length s))
+          (ok (off (length s) offset) s)
+          (fail offset)))))
 
 (fn take (-> fixnum (always cl:string)))
 (defun take (n)

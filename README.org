@@ -36,7 +36,7 @@ read their associated formats:
   - [[#parsers][Parsers]]
     - [[#characters-and-strings][Characters and Strings]]
       - [[#char][char]]
-      - [[#string][string]]
+      - [[#string-string-lenient][string, string-lenient]]
       - [[#any][any]]
       - [[#any-but][any-but]]
       - [[#any-if][any-if]]
@@ -281,9 +281,11 @@ Parse a given character.
 #+RESULTS:
 : #\a
 
-**** string
+**** string, string-lenient
 
-Parse the given string. The parsed string is a slice into the original input.
+Parse the given string, limited to the most efficient string type (=(simple-array
+character (*))=) for efficiency. To further save on memory, the parsed string is
+the argument itself.
 
 #+begin_src lisp :exports both
 (in-package :parcom)
@@ -292,6 +294,9 @@ Parse the given string. The parsed string is a slice into the original input.
 
 #+RESULTS:
 : Hello
+
+The =string-lenient= variant accepts any =cl:string= as an argument, and thus is a
+bit slower. Likewise it returns its own argument in order to avoid allocation.
 
 **** any
 

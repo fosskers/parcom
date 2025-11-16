@@ -1,9 +1,21 @@
 # Parcom Changelog
 
+### Unreleased
+
+#### Added
+
+- The `string-lenient` function as a companion to `string` but that accepts any
+  `cl:string` as an argument.
+
+#### Fixed
+
+- The type of the `string` parser has been restored to reflect that it has only
+  ever accepted `(simple-array character (*))` as an argument.
+
 ### 1.6.2 (2025-11-13)
 
-The bug appears to be gone, at least with SBCL 2.5.10. Other compilers have no
-issue.
+The crash involving `sliding-take` appears to be gone, at least with SBCL
+2.5.10. Other compilers have no issue.
 
 ### 1.6.1 (2025-10-22)
 
