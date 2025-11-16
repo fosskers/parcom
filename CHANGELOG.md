@@ -1,6 +1,6 @@
 # Parcom Changelog
 
-### Unreleased
+### 1.6.3 (2025-11-17)
 
 #### Added
 

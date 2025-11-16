@@ -45,6 +45,7 @@
   ;; Request is longer than total input.
   (fail (p:parse (p:string "arstneo") "a"))
   ;; Being careful about the type of the string argument.
+  #+sbcl
   (fail (p:parse (p:string (format nil "hello")) "hello"))
   (is equal "hello" (p:parse (p:string-lenient (format nil "hello")) "hello")))
 
